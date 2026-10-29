@@ -1,3 +1,5 @@
+<img src="assets/icon/app-icon-256.png" alt="" width="96" align="right" />
+
 # Remote Desktop Harbor
 
 A fast, portable Windows app that keeps your Remote Desktop connections and credentials in one encrypted catalog,
