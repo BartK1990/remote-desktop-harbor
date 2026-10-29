@@ -10,7 +10,8 @@ Spec-driven repo. Before changing behaviour:
 Build/test (works on Linux thanks to `EnableWindowsTargeting`; the WPF app only runs on Windows):
 
 - `dotnet build RemoteDesktopHarbor.slnx` — warnings are errors.
-- `dotnet test RemoteDesktopHarbor.slnx`
+- `dotnet test RemoteDesktopHarbor.slnx` — `Harbor.App.Tests` (WPF + DPAPI) only runs on Windows; it is skipped
+  elsewhere, so keep logic that can be OS-neutral out of `Harbor.App`.
 - Docs site (`website/`, Astro Starlight, Node 22.23+): `npm ci && npm run build`. Update the matching page when
   user-facing behaviour changes.
 

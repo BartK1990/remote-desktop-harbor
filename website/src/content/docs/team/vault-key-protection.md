@@ -1,6 +1,6 @@
 ---
 title: Vault key protection
-description: How the shared vault key is protected — AD group with DPAPI-NG, or a shared passphrase.
+description: How the shared vault key is protected — signed-in users, AD group with DPAPI-NG, or a shared passphrase.
 ---
 
 Every vault has one random 256-bit **data-encryption key** (DEK) that encrypts all its passwords
@@ -10,7 +10,17 @@ a database administrator or anyone holding a backup. The DEK is therefore stored
 You choose the wrapping when the shared vault is **created**. Later clients read the scheme stored with the key and
 use it automatically, whatever their own settings say.
 
-## Active Directory group (DPAPI-NG) — recommended
+## Signed-in users — default, no passphrase
+
+Anyone who is signed in to the app with a **Windows account** or **Microsoft Entra ID** and can connect to the shared
+database opens the vault. Nobody types a passphrase and there is nothing to set up.
+
+- Users in *No sign-in* mode cannot open such a vault.
+- The key is stored in the database without further wrapping. **Anyone who can read the database or a backup of it —
+  including database administrators — can read the stored passwords.** Protect the database accordingly, or choose
+  one of the options below.
+
+## Active Directory group (DPAPI-NG) — strongest
 
 The DEK is protected with Windows **DPAPI-NG** to a security group, described by its SID:
 
@@ -39,6 +49,16 @@ For environments without Active Directory. The DEK is encrypted with a key deriv
 
 ![Passphrase dialog shown when a new shared vault is created: passphrase and repeat fields with OK and Cancel.](../../../assets/screenshots/passphrase.png)
 - Distribute it through a secure channel (e.g. your password manager), never by e-mail or chat.
+
+## Changing the protection of an existing vault
+
+The choice above is used when a vault is **created**. To change an existing vault (for example from a passphrase to
+*Signed-in users*), pick the new protection in **Settings**, tick
+**Convert the existing shared vault to this protection on the next start**, save and restart. The app re-protects
+the same key once and then clears the option:
+
+- On a computer that has opened the vault before, no passphrase is needed — the locally cached key is used.
+- The key itself does not change, so other users are not asked for anything.
 
 ## Cached key on each client
 

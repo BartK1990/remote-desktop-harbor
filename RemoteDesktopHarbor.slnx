@@ -6,6 +6,7 @@
     <Project Path="src/Harbor.Windows/Harbor.Windows.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Harbor.App.Tests/Harbor.App.Tests.csproj" />
     <Project Path="tests/Harbor.Core.Tests/Harbor.Core.Tests.csproj" />
     <Project Path="tests/Harbor.Data.Tests/Harbor.Data.Tests.csproj" />
   </Folder>

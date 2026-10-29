@@ -39,6 +39,19 @@ internal sealed class TestKeyProtector(string scheme, string secret) : IKeyProte
     public byte[] Unprotect(ReadOnlySpan<byte> protectedKey) => _inner.Unprotect(protectedKey);
 }
 
+internal sealed class CountingKeyProtector(IKeyProtector inner) : IKeyProtector
+{
+    public int UnprotectCount { get; private set; }
+    public string Scheme => inner.Scheme;
+    public byte[] Protect(ReadOnlySpan<byte> key) => inner.Protect(key);
+
+    public byte[] Unprotect(ReadOnlySpan<byte> protectedKey)
+    {
+        UnprotectCount++;
+        return inner.Unprotect(protectedKey);
+    }
+}
+
 internal sealed class FakeDbException(string message) : DbException(message);
 
 /// <summary>Remote store whose connectivity can be switched off.</summary>
@@ -71,4 +84,5 @@ internal static class Users
 {
     public static readonly UserIdentity Alice = new("CONTOSO\\alice", "Alice Smith", "alice@contoso.com", IdentitySource.Windows);
     public static readonly UserIdentity Bob = new("bob@contoso.com", "Bob Jones", "bob@contoso.com", IdentitySource.EntraId);
+    public static readonly UserIdentity Carol = new("Carol", "Carol (not signed in)", null, IdentitySource.Anonymous);
 }
