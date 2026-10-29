@@ -27,3 +27,4 @@ Process: see [spec/README.md](../spec/README.md).
 | [0019](0019-multiple-accounts-per-entry.md) | Several user accounts per entry in a child table; the entry's own account stays the default | Accepted |
 | [0020](0020-wpf-ui-library.md) | Fluent look with WPF UI (lepoco) instead of the built-in WPF Fluent theme | Superseded by 0021 |
 | [0021](0021-keep-built-in-fluent-theme.md) | Keep the built-in WPF Fluent theme (WPF UI reverted) | Accepted |
+| [0022](0022-rdp-settings-form.md) | RDP settings edited as a form over the stored `.rdp` text | Accepted |

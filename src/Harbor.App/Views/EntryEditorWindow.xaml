@@ -1,7 +1,7 @@
 <Window x:Class="Harbor.App.Views.EntryEditorWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="{Binding Title}" Width="560" Height="720" MinHeight="480"
+        Title="{Binding Title}" Width="580" Height="760" MinHeight="480"
         Icon="/Assets/AppIcon.ico"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False" ResizeMode="CanResizeWithGrip">
   <DockPanel Margin="16">
@@ -107,11 +107,85 @@
         </ItemsControl>
         <Button Content="Add account" Command="{Binding AddAccountCommand}" HorizontalAlignment="Left" Margin="0,6,0,0" />
 
+        <!-- SPEC FR-13, ADR-0022: common .rdp settings as a form; other lines stay as text. -->
         <StackPanel Visibility="{Binding IsRdpConnection, Converter={StaticResource BoolToVisibility}}">
-          <TextBlock Text="RDP settings (.rdp lines, key:type:value)" Style="{StaticResource FieldLabel}" />
-          <TextBox Text="{Binding RdpSettings, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="NoWrap"
-                   FontFamily="Cascadia Mono, Consolas" MinHeight="110" MaxHeight="220" VerticalScrollBarVisibility="Auto"
-                   HorizontalScrollBarVisibility="Auto" />
+        <StackPanel DataContext="{Binding RdpSettings}">
+          <TextBlock Text="Display" Style="{StaticResource FieldLabel}" FontWeight="SemiBold" Margin="0,16,0,4" />
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="12" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+              <TextBlock Text="Mode" FontSize="11" Opacity="0.7" Margin="0,0,0,2" />
+              <ComboBox ItemsSource="{Binding DisplayModes}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                        SelectedValue="{Binding DisplayMode}" />
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+              <TextBlock Text="Resolution" FontSize="11" Opacity="0.7" Margin="0,0,0,2" />
+              <ComboBox ItemsSource="{Binding Resolutions}" DisplayMemberPath="Label" SelectedItem="{Binding Resolution}"
+                        ToolTip="Size of the remote desktop. &quot;Match local screen&quot; uses the size of your screen (or window)." />
+            </StackPanel>
+          </Grid>
+          <StackPanel Orientation="Horizontal" Margin="0,6,0,0"
+                      Visibility="{Binding IsCustomResolution, Converter={StaticResource BoolToVisibility}}">
+            <TextBlock Text="Width" VerticalAlignment="Center" Margin="0,0,6,0" />
+            <TextBox Text="{Binding CustomWidth, UpdateSourceTrigger=PropertyChanged}" Width="80" />
+            <TextBlock Text="Height" VerticalAlignment="Center" Margin="16,0,6,0" />
+            <TextBox Text="{Binding CustomHeight, UpdateSourceTrigger=PropertyChanged}" Width="80" />
+            <TextBlock Text="pixels" VerticalAlignment="Center" Opacity="0.6" Margin="6,0,0,0" />
+          </StackPanel>
+          <TextBlock Text="Colour depth" FontSize="11" Opacity="0.7" Margin="0,6,0,2" />
+          <ComboBox ItemsSource="{Binding ColorDepths}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                    SelectedValue="{Binding ColorDepth}" />
+          <CheckBox Content="Use all my monitors" IsChecked="{Binding UseAllMonitors}" Margin="0,6,0,0" />
+          <CheckBox Content="Update the remote resolution when the window is resized" IsChecked="{Binding DynamicResolution}" />
+          <CheckBox Content="Scale the remote desktop to fit the window (smart sizing)" IsChecked="{Binding SmartSizing}" />
+
+          <TextBlock Text="Local resources" Style="{StaticResource FieldLabel}" FontWeight="SemiBold" Margin="0,16,0,4" />
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="12" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+              <TextBlock Text="Remote audio" FontSize="11" Opacity="0.7" Margin="0,0,0,2" />
+              <ComboBox ItemsSource="{Binding AudioModes}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                        SelectedValue="{Binding Audio}" />
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+              <TextBlock Text="Apply Windows key combinations" FontSize="11" Opacity="0.7" Margin="0,0,0,2" />
+              <ComboBox ItemsSource="{Binding KeyboardModes}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                        SelectedValue="{Binding Keyboard}" ToolTip="Where shortcuts such as Alt+Tab go." />
+            </StackPanel>
+          </Grid>
+          <CheckBox Content="Record audio from this computer (microphone)" IsChecked="{Binding RecordAudio}" Margin="0,6,0,0" />
+          <WrapPanel>
+            <CheckBox Content="Clipboard" IsChecked="{Binding RedirectClipboard}" Margin="0,0,16,0" />
+            <CheckBox Content="Printers" IsChecked="{Binding RedirectPrinters}" Margin="0,0,16,0" />
+            <CheckBox Content="Smart cards" IsChecked="{Binding RedirectSmartCards}" Margin="0,0,16,0" />
+            <CheckBox Content="All local drives" IsChecked="{Binding RedirectDrives}" />
+          </WrapPanel>
+
+          <TextBlock Text="Connection" Style="{StaticResource FieldLabel}" FontWeight="SemiBold" Margin="0,16,0,4" />
+          <TextBlock Text="If server authentication fails" FontSize="11" Opacity="0.7" Margin="0,0,0,2" />
+          <ComboBox ItemsSource="{Binding ServerAuthentications}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                    SelectedValue="{Binding ServerAuthentication}" />
+          <CheckBox Content="Reconnect automatically if the connection drops" IsChecked="{Binding AutoReconnect}" Margin="0,6,0,0" />
+          <CheckBox Content="Connect to the administrative (console) session" IsChecked="{Binding AdminSession}" />
+
+          <Expander Header="Other .rdp settings (advanced)" IsExpanded="{Binding ShowOtherSettings}" Margin="0,12,0,0">
+            <StackPanel>
+              <TextBlock Text="Settings the form above does not cover, as .rdp lines (key:type:value), e.g. gatewayhostname:s:gw.contoso.com."
+                         FontSize="11" Opacity="0.6" TextWrapping="Wrap" Margin="0,4,0,4" />
+              <TextBox Text="{Binding OtherSettings, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="NoWrap"
+                       FontFamily="Cascadia Mono, Consolas" MinHeight="80" MaxHeight="220" VerticalScrollBarVisibility="Auto"
+                       HorizontalScrollBarVisibility="Auto" />
+            </StackPanel>
+          </Expander>
+        </StackPanel>
         </StackPanel>
 
         <TextBlock Text="Notes" Style="{StaticResource FieldLabel}" />

@@ -18,7 +18,7 @@ The same schema is used in every store — local vault, local cache and shared d
 | `Kind` | int | `0` RDP connection, `1` credentials only |
 | `Host`, `Port` | text, int | Port defaults to 3389 |
 | `Domain`, `UserName` | text, nullable | |
-| `RdpSettings` | text, nullable | Extra `.rdp` lines |
+| `RdpSettings` | text, nullable | Extra `.rdp` lines (only settings that differ from the defaults; edited as a form, FR-13) |
 | `Notes` | text, nullable | |
 | `PasswordCipher` | binary, nullable | AES-GCM envelope — see [Security model](../security-model/) |
 | `Version` | bigint | Optimistic concurrency token, incremented on every write |

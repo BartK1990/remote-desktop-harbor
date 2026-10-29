@@ -117,7 +117,7 @@ public static class RdpFile
     /// <summary>Target name mstsc.exe looks up in Credential Manager for <paramref name="host"/>.</summary>
     public static string CredentialTarget(string host) => $"TERMSRV/{host}";
 
-    private static IEnumerable<(string Key, string Type, string Value, string Raw)> Parse(string text)
+    internal static IEnumerable<(string Key, string Type, string Value, string Raw)> Parse(string text)
     {
         foreach (var rawLine in text.Split('\n'))
         {

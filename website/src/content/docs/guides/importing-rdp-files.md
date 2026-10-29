@@ -20,7 +20,8 @@ If you already have `.rdp` files saved from the Remote Desktop client, you can i
 | `username:s:…` | **User name**. `DOMAIN\user` is split into **Domain** and **User name** if no `domain` line exists. |
 | `domain:s:…` | **Domain** |
 | `password 51:b:…`, `password:…` | **Discarded.** Saved passwords in `.rdp` files are never imported. |
-| everything else | Kept as-is in the entry's **RDP settings** |
+| display, audio, redirection and connection settings the editor knows (e.g. `screen mode id`, `desktopwidth`, `audiomode`) | The matching [RDP settings](../managing-entries/#rdp-settings) fields |
+| everything else | Kept as-is in **Other .rdp settings** |
 
 :::caution
 Delete the original `.rdp` file afterwards if it contained a saved password — Harbor does not touch the source file.
@@ -28,15 +29,16 @@ Delete the original `.rdp` file afterwards if it contained a saved password — 
 
 ## RDP settings format
 
-The **RDP settings** box holds ordinary `.rdp` lines, one per line:
+Entries store their settings as ordinary `.rdp` lines. The editor shows the common ones as
+[fields](../managing-entries/#rdp-settings); the **Other .rdp settings** box holds the rest, one per line:
 
 ```ini
-screen mode id:i:1
-desktopwidth:i:1920
-desktopheight:i:1080
-redirectdrives:i:0
-audiomode:i:2
+gatewayhostname:s:gw.contoso.com
+gatewayusagemethod:i:1
+drivestoredirect:s:C:\;D:\;
 ```
+
+A line for a setting that also has a field overrides the field.
 
 The keys `full address`, `server port`, `username`, `domain` and any password keys are managed by the app and are
 ignored if you type them here — edit the corresponding fields instead.
