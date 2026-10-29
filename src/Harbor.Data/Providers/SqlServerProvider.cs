@@ -7,7 +7,7 @@ namespace Harbor.Data.Providers;
 /// Microsoft SQL Server / Azure SQL. Authentication is chosen by the connection string, e.g.
 /// <c>Integrated Security=true</c> (Windows/domain) or <c>Authentication=Active Directory Default</c> (Entra ID).
 /// </summary>
-public sealed class SqlServerProvider : IDatabaseProvider
+public sealed class SqlServerProvider : IServerDatabaseProvider
 {
     public const string ProviderName = "SqlServer";
 

@@ -70,3 +70,13 @@ public sealed class SqlServerConnectionFormTests
     public void Strings_the_form_cannot_describe_stay_raw(string connectionString) =>
         Assert.False(_provider.CanEditAsFields(connectionString));
 }
+
+public sealed class ProviderRegistryTests
+{
+    [Fact]
+    public void Sql_server_is_registered_as_a_server_provider()
+    {
+        Assert.Contains(SqlServerProvider.ProviderName, DatabaseProviders.Names, StringComparer.OrdinalIgnoreCase);
+        Assert.IsAssignableFrom<IServerDatabaseProvider>(DatabaseProviders.Get(SqlServerProvider.ProviderName));
+    }
+}
