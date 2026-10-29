@@ -7,7 +7,7 @@ Process: see [spec/README.md](../spec/README.md).
 | ADR | Title | Status |
 |---|---|---|
 | [0001](0001-record-architecture-decisions.md) | Spec-driven development with ADRs | Accepted |
-| [0002](0002-ui-framework-wpf-net10.md) | UI framework: WPF on .NET 10 | Accepted, amended by 0020 |
+| [0002](0002-ui-framework-wpf-net10.md) | UI framework: WPF on .NET 10 | Accepted |
 | [0003](0003-portable-self-contained-distribution.md) | Distribution: portable self-contained win-x64 exe, no install | Accepted |
 | [0004](0004-data-access-ado-dapper-providers.md) | Data access: ADO.NET + Dapper with pluggable SQL providers | Accepted |
 | [0005](0005-secret-encryption-envelope.md) | Secret encryption: AES-GCM envelope, DEK bound to user + machine with DPAPI | Accepted |
@@ -25,4 +25,5 @@ Process: see [spec/README.md](../spec/README.md).
 | [0017](0017-compact-folder-tree.md) | Compact folder tree for the entry list | Accepted |
 | [0018](0018-database-sign-in-opens-vault.md) | Database sign-in alone opens a `sign-in` vault (no app sign-in required) | Accepted |
 | [0019](0019-multiple-accounts-per-entry.md) | Several user accounts per entry in a child table; the entry's own account stays the default | Accepted |
-| [0020](0020-wpf-ui-library.md) | Fluent look with WPF UI (lepoco) instead of the built-in WPF Fluent theme | Accepted |
+| [0020](0020-wpf-ui-library.md) | Fluent look with WPF UI (lepoco) instead of the built-in WPF Fluent theme | Superseded by 0021 |
+| [0021](0021-keep-built-in-fluent-theme.md) | Keep the built-in WPF Fluent theme (WPF UI reverted) | Accepted |

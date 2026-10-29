@@ -1,6 +1,6 @@
 # ADR-0020: Fluent look with WPF UI (lepoco) instead of the built-in WPF Fluent theme
 
-* Status: Accepted
+* Status: Superseded by ADR-0021 (reverted; the built-in Fluent theme is kept)
 * Date: 2026-10-29
 * Requirements: FR-08, NFR-01, NFR-02, NFR-05
 * Amends: ADR-0002

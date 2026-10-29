@@ -1,11 +1,10 @@
 using System.ComponentModel;
 using System.Windows;
 using Harbor.App.ViewModels;
-using FluentWindow = Wpf.Ui.Controls.FluentWindow;
 
 namespace Harbor.App.Views;
 
-public partial class SettingsWindow : FluentWindow
+public partial class SettingsWindow : Window
 {
     private readonly SettingsViewModel _viewModel;
 

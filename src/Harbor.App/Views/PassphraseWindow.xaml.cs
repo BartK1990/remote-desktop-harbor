@@ -1,9 +1,8 @@
 using System.Windows;
-using FluentWindow = Wpf.Ui.Controls.FluentWindow;
 
 namespace Harbor.App.Views;
 
-public partial class PassphraseWindow : FluentWindow
+public partial class PassphraseWindow : Window
 {
     private const int MinLength = 12;
     private readonly bool _isNew;

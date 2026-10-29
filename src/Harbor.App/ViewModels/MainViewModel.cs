@@ -132,7 +132,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
             Log.Error("Startup failed", ex);
             StatusText = "Not connected";
             UserText = "";
-            await _dialogs.ShowErrorAsync("Remote Desktop Harbor could not start", ex.Message + Environment.NewLine + Environment.NewLine +
+            _dialogs.ShowError("Remote Desktop Harbor could not start", ex.Message + Environment.NewLine + Environment.NewLine +
                 "Open Settings to change the storage or sign-in configuration.");
             return;
         }
@@ -363,7 +363,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         // SPEC FR-33: hosts that allow several sessions (e.g. Windows Server) let other accounts connect side by side;
         // only someone using the same account (or an unknown one) would be disconnected.
         var conflicts = vm.ActiveSessions.Where(s => accountName is null || s.UsesAccount(accountName)).ToList();
-        if (conflicts.Count > 0 && !await _dialogs.ConfirmAsync("Connection in use",
+        if (conflicts.Count > 0 && !_dialogs.Confirm("Connection in use",
                 $"{EntryViewModel.Describe(conflicts)}{Environment.NewLine}{Environment.NewLine}Connect anyway? This may disconnect the other user."))
         {
             return;
@@ -384,7 +384,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         catch (Exception ex)
         {
             Log.Error("Launch failed", ex);
-            await _dialogs.ShowErrorAsync("Could not start Remote Desktop", ex.Message);
+            _dialogs.ShowError("Could not start Remote Desktop", ex.Message);
         }
     }
 
@@ -439,7 +439,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
             }
             catch (Exception ex) when (ex is ConcurrencyConflictException or WorkspaceOfflineException)
             {
-                await _dialogs.ShowErrorAsync("Not saved", ex.Message);
+                _dialogs.ShowError("Not saved", ex.Message);
                 if (ex is ConcurrencyConflictException) await SyncAsync();
                 return;
             }
@@ -455,7 +455,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     private async Task DeleteAsync()
     {
         if (_host is null || Selected is not { } vm) return;
-        if (!await _dialogs.ConfirmAsync("Delete entry", $"Delete '{vm.Name}'?{(_host.Workspace.IsRemote ? " It will be removed for everyone using the shared database." : "")}"))
+        if (!_dialogs.Confirm("Delete entry", $"Delete '{vm.Name}'?{(_host.Workspace.IsRemote ? " It will be removed for everyone using the shared database." : "")}"))
         {
             return;
         }
@@ -468,7 +468,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         }
         catch (Exception ex) when (ex is ConcurrencyConflictException or WorkspaceOfflineException)
         {
-            await _dialogs.ShowErrorAsync("Not deleted", ex.Message);
+            _dialogs.ShowError("Not deleted", ex.Message);
         }
     }
 
@@ -519,13 +519,13 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     }
 
     [RelayCommand]
-    private async Task OpenSettingsAsync()
+    private void OpenSettings()
     {
         var vm = new SettingsViewModel(Settings);
         if (!_dialogs.EditSettings(vm)) return;
         vm.Apply();
         SettingsStore.Save(Settings);
-        if (await _dialogs.ConfirmAsync("Restart required", "Settings were saved. Restart Remote Desktop Harbor now to apply them?"))
+        if (_dialogs.Confirm("Restart required", "Settings were saved. Restart Remote Desktop Harbor now to apply them?"))
         {
             System.Diagnostics.Process.Start(Environment.ProcessPath!);
             Application.Current.Shutdown();

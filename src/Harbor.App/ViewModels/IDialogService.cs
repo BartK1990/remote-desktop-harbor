@@ -4,7 +4,7 @@ public interface IDialogService
 {
     bool EditEntry(EntryEditorViewModel editor);
     bool EditSettings(SettingsViewModel settings);
-    Task<bool> ConfirmAsync(string title, string message);
-    Task ShowErrorAsync(string title, string message);
+    bool Confirm(string title, string message);
+    void ShowError(string title, string message);
     string? PickRdpFile();
 }
