@@ -18,7 +18,7 @@ tag `v<version>`):
 
 1. Validates the version (`1.2.3` or `1.2.3-beta.1`).
 2. Runs the tests.
-3. Publishes the self-contained build and the framework-dependent (`-fdd`) build with that version.
+3. Publishes the self-contained build and the framework-dependent (`-requires-dotnet10`) build with that version.
 4. Zips both, writes `SHA256SUMS.txt`, and creates a GitHub Release with generated notes. Versions with a `-` suffix
    are marked as pre-releases.
 

@@ -16,7 +16,7 @@ whose installer normally needs admin rights.
   bundled and self-extracted to the per-user temp folder on first run (no admin).
 * Single-file **compression is off**: it would cut size ~50% but decompresses on every start (startup is the priority).
   Release zips are compressed anyway.
-* A second, small **framework-dependent** zip is published for machines that already have the .NET 10 Desktop Runtime.
+* A second, small **framework-dependent** zip (`-requires-dotnet10`) is published for machines that already have the .NET 10 Desktop Runtime.
 * Manifest `requestedExecutionLevel=asInvoker`; nothing is written outside the user's profile.
 * Data location: `%LOCALAPPDATA%\RemoteDesktopHarbor`. **Portable mode**: a `portable.txt` next to the exe moves data
   to `.\data`. Encryption still binds data to the Windows user and machine (ADR-0005), so a portable folder copied to
