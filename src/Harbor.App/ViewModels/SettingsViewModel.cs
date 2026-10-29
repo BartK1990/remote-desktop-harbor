@@ -112,7 +112,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         set { if (value) IsRemote = false; }
     }
 
-    // ADR-0016: no passphrase for users signed in with Windows / Entra ID.
+    // ADR-0016, ADR-0018: "Not protected" – the key is stored unencrypted in the database (scheme name `sign-in`).
     public bool UseSignInKey
     {
         get => KeyScheme == SignInKeyProtector.SchemeName;

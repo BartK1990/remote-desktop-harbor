@@ -39,7 +39,7 @@ public sealed class HarborSettings
     public string? RemoteConnectionStringProtected { get; set; }
 
     /// <summary>
-    /// How a new shared vault key is protected: <c>sign-in</c> (verified Windows/Entra sign-in, no passphrase),
+    /// How a new shared vault key is protected: <c>sign-in</c> (not protected: key stored unencrypted in the database),
     /// <c>dpapi-ng</c> or <c>passphrase</c>. See ADR-0016.
     /// </summary>
     public string RemoteKeyScheme { get; set; } = "sign-in";

@@ -128,11 +128,12 @@ All timestamps are Unix milliseconds (UTC) from the database clock. Ids are GUID
 * **Local binding:** the DEK in any local SQLite file is wrapped with DPAPI *CurrentUser* and then *LocalMachine*:
   only this Windows user on this computer can unwrap it.
 * **Shared binding** ([ADR-0006](../adr/0006-shared-vault-key-protection.md), [ADR-0016](../adr/0016-sign-in-vault-key-protection.md)):
-  by default the DEK is stored for **verified sign-in** (no passphrase; anyone with database access and a Windows/Entra
-  sign-in can open it, including a DBA). Alternatively in the shared DB the DEK is wrapped with
+  by default the DEK is stored **unencrypted** in the shared DB (scheme `sign-in`, shown as *Not protected*; no
+  passphrase; anyone who can read the database or a backup can open it, including a DBA, ADR-0018). Alternatively in the shared DB the DEK is wrapped with
   DPAPI-NG to an AD security group (recommended) or with a passphrase-derived key (PBKDF2-SHA256, 600k iterations).
   After the first successful unwrap, each client caches the DEK locally (DPAPI user + machine) so offline mode works.
-* **Threats addressed:** stolen laptop disk/DB copy (DPAPI binding), DB admin reading passwords (ciphertext only),
+* **Threats addressed:** stolen laptop disk/DB copy (DPAPI binding), DB admin reading passwords (ciphertext only — when the shared DEK is wrapped with DPAPI-NG or a passphrase,
+  not with the default *Not protected*),
   row tampering (GCM + AAD), password leakage via process list/.rdp files (Credential Manager hand-off).
 * **Out of scope / accepted:** a user who can unwrap the vault can read every password in it (that is the purpose
   of a shared vault); malware running as the same Windows user; key rotation (future work).
