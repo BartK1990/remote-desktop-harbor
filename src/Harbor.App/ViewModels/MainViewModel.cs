@@ -1,7 +1,5 @@
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Windows;
-using System.Windows.Data;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -24,13 +22,18 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     private readonly DispatcherTimer _presenceTimer = new() { Interval = PresenceRefreshInterval };
     private AppHost? _host;
 
+    // Tree state (SPEC FR-02). Folders are reused across rebuilds so expansion and scroll position survive syncs.
+    // Collapsed folders are remembered separately while searching, where every folder with matches starts expanded.
+    private Dictionary<string, FolderViewModel> _folders = new(StringComparer.CurrentCultureIgnoreCase);
+    private readonly HashSet<string> _collapsed;
+    private readonly HashSet<string> _collapsedWhileSearching = new(StringComparer.CurrentCultureIgnoreCase);
+    private bool _rebuildingTree;
+
     public MainViewModel(HarborSettings settings, IDialogService dialogs)
     {
         Settings = settings;
         _dialogs = dialogs;
-        EntriesView = CollectionViewSource.GetDefaultView(Entries);
-        EntriesView.GroupDescriptions.Add(new PropertyGroupDescription(nameof(EntryViewModel.GroupName)));
-        EntriesView.Filter = o => o is EntryViewModel e && e.Matches(SearchText);
+        _collapsed = new HashSet<string>(settings.CollapsedFolders, StringComparer.CurrentCultureIgnoreCase);
         _syncTimer.Tick += async (_, _) => await SyncAsync();
         _presenceTimer.Tick += async (_, _) => await RefreshPresenceAsync();
     }
@@ -38,9 +41,14 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     public HarborSettings Settings { get; }
     public int ActiveLaunchCount => _leases.Count;
     public ObservableCollection<EntryViewModel> Entries { get; } = [];
-    public ICollectionView EntriesView { get; }
+
+    /// <summary>Top level of the entry tree: folders, then entries without a folder. Only entries matching <see cref="SearchText"/>.</summary>
+    public TreeChildren Tree { get; } = [];
 
     [ObservableProperty] private string _searchText = "";
+
+    /// <summary>The selected tree row (folder or entry); kept in sync with <see cref="Selected"/>.</summary>
+    [ObservableProperty] private TreeNodeViewModel? _selectedNode;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(ConnectCommand), nameof(EditCommand), nameof(DeleteCommand), nameof(CopyPasswordCommand), nameof(CopyUserNameCommand))]
@@ -59,7 +67,34 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     [ObservableProperty] private bool _isOffline;
     [ObservableProperty] private string _statusText = "Starting…";
 
-    partial void OnSearchTextChanged(string value) => EntriesView.Refresh();
+    private bool IsSearching => !string.IsNullOrWhiteSpace(SearchText);
+
+    partial void OnSearchTextChanged(string value)
+    {
+        _collapsedWhileSearching.Clear();
+        RebuildTree();
+        UpdateCountText();
+    }
+
+    partial void OnSelectedNodeChanged(TreeNodeViewModel? oldValue, TreeNodeViewModel? newValue)
+    {
+        if (oldValue is not null) oldValue.IsSelected = false;
+        if (newValue is not null) newValue.IsSelected = true;
+        Selected = newValue as EntryViewModel;
+    }
+
+    partial void OnSelectedChanged(EntryViewModel? value)
+    {
+        if (value is not null && !ReferenceEquals(SelectedNode, value))
+        {
+            RevealFolder(value.Model.Folder);
+            SelectedNode = value;
+        }
+        else if (value is null && SelectedNode is EntryViewModel)
+        {
+            SelectedNode = null;
+        }
+    }
 
     // ------------------------------------------------------------------ lifecycle
 
@@ -134,9 +169,125 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
             Entries.Add(vm);
         }
 
+        RebuildTree();
         Selected = Entries.FirstOrDefault(e => e.Model.Id == selectedId) ?? Selected;
-        if (!IsOffline) StatusText = $"{Entries.Count} entries";
+        UpdateCountText();
     }
+
+    private void UpdateCountText()
+    {
+        if (IsOffline) return; // keep the offline reason visible
+        StatusText = IsSearching ? $"{CountMatches()} of {Entries.Count} entries" : $"{Entries.Count} entries";
+    }
+
+    private int CountMatches() => Tree.Sum(n => n is FolderViewModel f ? f.Count : 1);
+
+    // ------------------------------------------------------------------ tree (SPEC FR-02)
+
+    /// <summary>Rebuilds the tree from <see cref="Entries"/> and <see cref="SearchText"/>, reusing existing rows.</summary>
+    private void RebuildTree()
+    {
+        var root = FolderTree.Build(Entries.Where(e => e.Matches(SearchText)), e => e.Model.Folder, e => e.Name);
+        var previous = _folders;
+        _folders = new Dictionary<string, FolderViewModel>(StringComparer.CurrentCultureIgnoreCase);
+
+        // The selected row and the folders above it: collections holding them must not be reset (see TreeChildren).
+        var selectionPath = new HashSet<TreeNodeViewModel>();
+        if (SelectedNode is { } selected)
+        {
+            selectionPath.Add(selected);
+            var folder = selected is FolderViewModel f ? f.Path : ((EntryViewModel)selected).Model.Folder;
+            foreach (var path in FolderTree.AncestorPaths(folder))
+            {
+                if (previous.TryGetValue(path, out var ancestor)) selectionPath.Add(ancestor);
+            }
+        }
+
+        _rebuildingTree = true;
+        try
+        {
+            Tree.ReplaceWith(BuildRows(root, previous, selectionPath), Tree.Any(selectionPath.Contains));
+
+            // The TreeView may have moved its selection while rows were replaced; the view model's selection stands.
+            foreach (var folder in _folders.Values) folder.IsSelected = ReferenceEquals(folder, SelectedNode);
+            if (SelectedNode is not null) SelectedNode.IsSelected = true;
+        }
+        finally
+        {
+            _rebuildingTree = false;
+        }
+    }
+
+    /// <summary>Called by the view when the user selects a row. Ignored while rows are replaced by <see cref="RebuildTree"/>.</summary>
+    public void SelectFromTree(TreeNodeViewModel? node)
+    {
+        if (!_rebuildingTree) SelectedNode = node;
+    }
+
+    private List<TreeNodeViewModel> BuildRows(
+        FolderTreeNode<EntryViewModel> node, Dictionary<string, FolderViewModel> previous, HashSet<TreeNodeViewModel> selectionPath)
+    {
+        var rows = new List<TreeNodeViewModel>(node.Folders.Count + node.Items.Count);
+        var collapsed = IsSearching ? _collapsedWhileSearching : _collapsed;
+        foreach (var child in node.Folders)
+        {
+            if (!previous.TryGetValue(child.Path, out var folder))
+            {
+                folder = new FolderViewModel(child.Path, OnFolderExpandedChanged);
+            }
+
+            folder.Name = child.Name;
+            folder.Count = child.TotalCount;
+            folder.IsExpanded = !collapsed.Contains(child.Path);
+            folder.Children.ReplaceWith(BuildRows(child, previous, selectionPath), folder.Children.Any(selectionPath.Contains));
+            _folders[child.Path] = folder;
+            rows.Add(folder);
+        }
+
+        rows.AddRange(node.Items);
+        return rows;
+    }
+
+    private void OnFolderExpandedChanged(FolderViewModel folder)
+    {
+        if (_rebuildingTree) return;
+        var collapsed = IsSearching ? _collapsedWhileSearching : _collapsed;
+        if (folder.IsExpanded) collapsed.Remove(folder.Path);
+        else collapsed.Add(folder.Path);
+    }
+
+    /// <summary>Expands <paramref name="folder"/> and its ancestors so an entry in it is visible.</summary>
+    private void RevealFolder(string? folder)
+    {
+        foreach (var path in FolderTree.AncestorPaths(folder))
+        {
+            if (_folders.TryGetValue(path, out var vm)) vm.IsExpanded = true;
+            else (IsSearching ? _collapsedWhileSearching : _collapsed).Remove(path);
+        }
+    }
+
+    [RelayCommand]
+    private void ExpandAll()
+    {
+        foreach (var folder in _folders.Values) folder.IsExpanded = true;
+    }
+
+    [RelayCommand]
+    private void CollapseAll()
+    {
+        foreach (var folder in _folders.Values) folder.IsExpanded = false;
+    }
+
+    [RelayCommand]
+    private void ClearSearch() => SearchText = "";
+
+    /// <summary>The folder a new entry goes to: the selected folder, or the folder of the selected entry.</summary>
+    private string? SelectedFolderPath => SelectedNode switch
+    {
+        FolderViewModel f => f.Path,
+        EntryViewModel e => e.Model.Folder,
+        _ => null,
+    };
 
     private async Task SyncAsync()
     {
@@ -218,7 +369,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
 
     private async Task EditNewAsync(ConnectionEntry template, bool importFirst)
     {
-        var editor = new EntryEditorViewModel(template with { Folder = Selected?.Model.Folder }, isNew: true, _dialogs, Folders());
+        var editor = new EntryEditorViewModel(template with { Folder = SelectedFolderPath }, isNew: true, _dialogs, Folders());
         if (importFirst)
         {
             editor.ImportRdpFileCommand.Execute(null);
@@ -241,6 +392,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
                 var saved = await _host.Workspace.SaveAsync(editor.BuildEntry(), editor.BuildSecretUpdate());
                 await ReloadAsync();
                 Selected = Entries.FirstOrDefault(e => e.Model.Id == saved.Id);
+                RevealFolder(saved.Folder); // also when an already selected entry moved to another folder
                 StatusText = $"Saved {saved.Name}";
                 return;
             }
@@ -339,11 +491,28 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
+    /// <summary>Remembers which folders are collapsed for the next start.</summary>
+    private void SaveTreeState()
+    {
+        var collapsed = _collapsed.Order(StringComparer.CurrentCultureIgnoreCase).ToList();
+        if (collapsed.SequenceEqual(Settings.CollapsedFolders, StringComparer.CurrentCultureIgnoreCase)) return;
+        Settings.CollapsedFolders = collapsed;
+        try
+        {
+            SettingsStore.Save(Settings);
+        }
+        catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException)
+        {
+            Log.Error("Tree state could not be saved", ex);
+        }
+    }
+
     private List<string> Folders() =>
         Entries.Select(e => e.Model.Folder).OfType<string>().Distinct(StringComparer.CurrentCultureIgnoreCase).Order().ToList();
 
     public async ValueTask DisposeAsync()
     {
+        SaveTreeState();
         _syncTimer.Stop();
         _presenceTimer.Stop();
         // End presence records now; otherwise others would see us as connected until the TTL runs out.

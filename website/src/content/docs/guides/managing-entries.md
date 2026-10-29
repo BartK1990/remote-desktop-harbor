@@ -3,10 +3,10 @@ title: Managing entries
 description: Create, edit, organise, search, copy and delete connection entries.
 ---
 
-Every item in the catalog is an **entry**. The main window shows the entries on the left, grouped by folder, and the
-details of the selected entry on the right.
+Every item in the catalog is an **entry**. The main window shows the entries on the left in a compact folder tree,
+and the details of the selected entry on the right.
 
-![Main window: search box and toolbar at the top, entry list grouped by folder on the left, details and actions of the selected entry on the right, status bar at the bottom.](../../../assets/screenshots/main.png)
+![Main window: search box and toolbar at the top, compact folder tree of entries on the left, details and actions of the selected entry on the right, status bar at the bottom.](../../../assets/screenshots/main.png)
 
 ## Entry kinds
 
@@ -25,7 +25,7 @@ RDP connections.
 | Field | Notes |
 |---|---|
 | **Name** | Required. Shown in the list. |
-| **Folder** | Optional. Entries are grouped by folder; type a new name or pick an existing one. |
+| **Folder** | Optional. Type a new name or pick an existing one. Use `/` (or `\`) for sub-folders, e.g. `Production/Web`. |
 | **Host** / **Port** | Host name or IP address (IPv6 literals like `[fe80::1]` work). Port defaults to `3389`. An entry without a host cannot be launched, but you can still copy its credentials. |
 | **Domain** / **User name** | Combined as `DOMAIN\user`. If the user name already contains `\` or `@` (UPN), the domain is not added. |
 | **Password** | Optional. Encrypted before it is written to any database. When editing an entry that already has a password, tick **Change stored password** to replace or clear it. |
@@ -34,9 +34,20 @@ RDP connections.
 
 The details pane also shows who changed the entry last and when.
 
+## The folder tree
+
+Each folder and entry is one low row showing just its name; folders also show how many entries they contain, and
+entries in use show an **In use by …** badge. Hover an entry for its user and host.
+
+- Click the arrow next to a folder, double-click it, or press <kbd>←</kbd>/<kbd>→</kbd> to collapse or expand it.
+- Right-click the tree for **Expand all** and **Collapse all** (and the actions for the selected entry).
+- Folders are matched regardless of case; entries without a folder are listed at the root, after the folders.
+- Collapsed folders are remembered the next time you start the app.
+
 ## Create
 
-Click **New** (<kbd>Ctrl</kbd>+<kbd>N</kbd>). The new entry starts in the folder of the currently selected entry.
+Click **New** (<kbd>Ctrl</kbd>+<kbd>N</kbd>). The new entry starts in the selected folder, or in the folder of the
+selected entry.
 
 ## Edit
 
@@ -55,8 +66,10 @@ Select an entry and click **Delete**, then confirm. In a shared database the ent
 
 ## Search
 
-Type in the search box (<kbd>Ctrl</kbd>+<kbd>F</kbd>). The list is filtered as you type, by **name, host, user,
-folder and notes**. Filtering happens in memory, so it stays instant with thousands of entries.
+Type in the search box (<kbd>Ctrl</kbd>+<kbd>F</kbd>). The tree is filtered as you type, by **name, host, user,
+folder and notes**, and every folder with matches is expanded; the status bar shows how many entries match.
+<kbd>Esc</kbd> clears the search, <kbd>↓</kbd> moves into the tree. Filtering happens in memory, so it stays
+instant with thousands of entries.
 
 ## Copy user name and password
 

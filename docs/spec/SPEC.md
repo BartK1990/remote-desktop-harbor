@@ -25,7 +25,7 @@ shows who is currently connected to which machine.
 | ID | Requirement |
 |---|---|
 | FR-01 | The app stores entries with: name, folder, host, port, domain, user name, password, notes, and (for RDP entries) additional `.rdp` settings. |
-| FR-02 | Users can create, edit, delete and search entries (by name, host, user, folder, notes). Entries are grouped by folder. |
+| FR-02 | Users can create, edit, delete and search entries (by name, host, user, folder, notes). Entries are shown in a compact folder tree: one low row per folder or entry showing just its name (plus the in-use badge, FR-33). Folders can be nested (`Production/Web`; `/` or `\` separates levels) and each can be expanded and collapsed; collapsed folders are remembered across restarts. The search filters the tree as you type and expands every folder with matches. See [ADR-0017](../adr/0017-compact-folder-tree.md). |
 | FR-03 | Each entry is one of two kinds: **RDP connection** — a full Remote Desktop profile (host + `.rdp` settings) with optional credentials; **Credentials only** — just user name/password and an optional host; launching uses default RDP settings. |
 | FR-04 | Passwords are encrypted by the app before they are written to any database and are decrypted only at the moment of use (launch, copy). |
 | FR-05 | Existing `.rdp` files can be imported. Host, port, domain and user become fields; other settings are kept; any saved password in the file is discarded. |
@@ -154,6 +154,7 @@ for the full list.
 | Requirement | Implementation | Tests |
 |---|---|---|
 | FR-01..06 | `Core/Model/ConnectionEntry`, `App/ViewModels/*` | `SqlHarborStoreTests` |
+| FR-02 (tree) | `Core/Model/FolderTree`, `App/ViewModels/MainViewModel`, `TreeNodeViewModel`, `MainWindow` | `FolderTreeTests`; UI manual (Windows) |
 | FR-07 | `App/Infrastructure/AppInfo`, `MainWindow`, `SettingsWindow` | manual (Windows) |
 | FR-03, FR-05, FR-10, FR-12 | `Core/Rdp/RdpFile`, `Windows/Rdp/MstscLauncher` | `RdpFileTests` |
 | FR-11 | `Windows/Rdp/WindowsCredentialStore` | manual (Windows) |

@@ -48,6 +48,12 @@ DPAPI-protected for your Windows account, so a copied `settings.json` does not r
 Read-only. Shows where the app stores its data, with “(portable mode)” when [portable mode](../../getting-started/portable-mode/)
 is active.
 
+## Remembered by the main window
+
+| UI | JSON property | Default | Description |
+|---|---|---|---|
+| Folder arrows in the entry tree | `CollapsedFolders` | `[]` | Folders collapsed in the entry tree, restored at start. Written when the app closes. |
+
 ## Validation
 
 The dialog refuses to save when:
@@ -79,6 +85,7 @@ The dialog refuses to save when:
   "AnonymousName": null,
   "PresenceTtlSeconds": 120,
   "PresenceHeartbeatSeconds": 45,
-  "KeepCredentialAfterLaunch": false
+  "KeepCredentialAfterLaunch": false,
+  "CollapsedFolders": [ "Lab" ]
 }
 ```

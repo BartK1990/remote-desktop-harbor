@@ -60,6 +60,20 @@
   .item.sel::before { content: ""; position: absolute; left: 0; top: 50%; height: 16px; margin-top: -8px; width: 3px; border-radius: 2px; background: var(--accent); }
   .item .n { font-weight: 600; }
   .item .s { font-size: 12px; opacity: .7; }
+  /* Entry tree: compact one-line rows (~22 px), 16 px indent per level, chevron for folders. */
+  .tree { padding: 2px; }
+  .tree .r { display: flex; align-items: center; height: 22px; border-radius: 3px; position: relative; padding-right: 6px; white-space: nowrap; }
+  .tree .r.sel { background: rgba(0,0,0,.07); }
+  .tree .r.sel::before { content: ""; position: absolute; left: 0; top: 50%; height: 12px; margin-top: -6px; width: 3px; border-radius: 2px; background: var(--accent); }
+  .tree .chev { width: 16px; height: 16px; flex: none; display: flex; align-items: center; justify-content: center; }
+  .tree .chev::after { content: ""; width: 5px; height: 5px; border-right: 1.2px solid #555; border-bottom: 1.2px solid #555; transform: rotate(-45deg); }
+  .tree .open > .chev::after { transform: rotate(45deg) translate(-1px,-1px); }
+  .tree .leaf > .chev::after { display: none; }
+  .tree .f { font-weight: 600; margin-left: 2px; }
+  .tree .e { margin-left: 2px; overflow: hidden; text-overflow: ellipsis; }
+  .tree .cnt { font-size: 11px; opacity: .5; margin-left: 6px; }
+  .tree .in { margin-left: 16px; }
+  .tree .badge { padding: 0 4px; border-radius: 3px; margin-left: auto; }
   .badge { margin-left: auto; background: var(--orange-soft); border-radius: 4px; padding: 2px 6px; font-size: 11px; white-space: nowrap; }
   .details { flex: 1; padding: 0 0 0 18px; }
   .details h1 { font-size: 22px; font-weight: 600; margin: 0; }
@@ -96,18 +110,29 @@
     <span class="user">Alex Kim &lt;alex.kim@contoso.com&gt;</span>
   </div>
   <div class="body">
-    <div class="list">
-      <div class="grp">Production</div>
-      <div class="item"><div><div class="n">APP01 – Line of business</div><div class="s">CONTOSO\svc-admin @ srv-app01.contoso.local</div></div></div>
-      <div class="item sel"><div><div class="n">APP02 – Reporting</div><div class="s">CONTOSO\svc-admin @ srv-app02.contoso.local</div></div><span class="badge">In use by Jane Doe</span></div>
-      <div class="item"><div><div class="n">DC01</div><div class="s">CONTOSO\alex.admin @ dc01.contoso.local</div></div></div>
-      <div class="item"><div><div class="n">SQL01</div><div class="s">CONTOSO\sql-admin @ sql01.contoso.local</div></div><span class="badge">In use by Sam Patel</span></div>
-      <div class="grp">Staging</div>
-      <div class="item"><div><div class="n">APP01-STG</div><div class="s">CONTOSO\svc-admin @ stg-app01.contoso.local</div></div></div>
-      <div class="item"><div><div class="n">Jump host (external)</div><div class="s">admin @ jump.fabrikam.com:3390</div></div></div>
-      <div class="grp">Lab</div>
-      <div class="item"><div><div class="n">Hyper-V host</div><div class="s">LAB\administrator @ 10.20.0.5</div></div></div>
-      <div class="item"><div><div class="n">Local admin (workstations)</div><div class="s">.\localadmin</div></div></div>
+    <div class="list tree">
+      <div class="r"><span class="chev"></span><span class="f">Lab</span><span class="cnt">3</span></div>
+      <div class="r open"><span class="chev"></span><span class="f">Production</span><span class="cnt">9</span></div>
+      <div class="in">
+        <div class="r open"><span class="chev"></span><span class="f">Web</span><span class="cnt">3</span></div>
+        <div class="in">
+          <div class="r leaf"><span class="chev"></span><span class="e">WEB01</span></div>
+          <div class="r leaf"><span class="chev"></span><span class="e">WEB02</span></div>
+          <div class="r leaf"><span class="chev"></span><span class="e">WEB03 – Intranet</span></div>
+        </div>
+        <div class="r leaf"><span class="chev"></span><span class="e">APP01 – Line of business</span></div>
+        <div class="r leaf sel"><span class="chev"></span><span class="e">APP02 – Reporting</span><span class="badge">In use by Jane Doe</span></div>
+        <div class="r leaf"><span class="chev"></span><span class="e">DC01</span></div>
+        <div class="r leaf"><span class="chev"></span><span class="e">DC02</span></div>
+        <div class="r leaf"><span class="chev"></span><span class="e">SQL01</span><span class="badge">In use by Sam Patel</span></div>
+        <div class="r leaf"><span class="chev"></span><span class="e">SQL02 – Analysis</span></div>
+      </div>
+      <div class="r open"><span class="chev"></span><span class="f">Staging</span><span class="cnt">2</span></div>
+      <div class="in">
+        <div class="r leaf"><span class="chev"></span><span class="e">APP01-STG</span></div>
+        <div class="r leaf"><span class="chev"></span><span class="e">Jump host (external)</span></div>
+      </div>
+      <div class="r leaf"><span class="chev"></span><span class="e">Local admin (workstations)</span></div>
     </div>
     <div class="details">
       <h1>APP02 – Reporting</h1>
@@ -124,7 +149,7 @@
       <div class="lbl" style="font-size:11px">Last changed by CONTOSO\alex.kim · 10/27/2026 4:12 PM</div>
     </div>
   </div>
-  <div class="status"><span>8 entries</span><span class="r">Shared database · online · synced 10:42:15 AM</span></div>
+  <div class="status"><span>15 entries</span><span class="r">Shared database · online · synced 10:42:15 AM</span></div>
 </div></div>
 
 <!-- ============================================================ main window (offline) -->
@@ -136,10 +161,12 @@
     <span class="user">Alex Kim &lt;alex.kim@contoso.com&gt;</span>
   </div>
   <div class="body">
-    <div class="list">
-      <div class="grp">Production</div>
-      <div class="item sel"><div><div class="n">SQL01</div><div class="s">CONTOSO\sql-admin @ sql01.contoso.local</div></div></div>
-      <div class="item"><div><div class="n">SQL02 – Analysis</div><div class="s">CONTOSO\sql-admin @ sql02.contoso.local</div></div></div>
+    <div class="list tree">
+      <div class="r open"><span class="chev"></span><span class="f">Production</span><span class="cnt">2</span></div>
+      <div class="in">
+        <div class="r leaf sel"><span class="chev"></span><span class="e">SQL01</span></div>
+        <div class="r leaf"><span class="chev"></span><span class="e">SQL02 – Analysis</span></div>
+      </div>
     </div>
     <div class="details">
       <h1>SQL01</h1>

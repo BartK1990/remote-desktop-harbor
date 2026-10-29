@@ -61,4 +61,7 @@ public sealed class HarborSettings
 
     /// <summary>Keep the TERMSRV credential in Windows Credential Manager after launch (otherwise removed shortly after).</summary>
     public bool KeepCredentialAfterLaunch { get; set; }
+
+    /// <summary>Canonical paths of the folders collapsed in the entry tree (SPEC FR-02); restored at start.</summary>
+    public List<string> CollapsedFolders { get; set; } = [];
 }
