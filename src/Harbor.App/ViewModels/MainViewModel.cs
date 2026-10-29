@@ -54,8 +54,10 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     /// <summary>Colour theme; applied immediately and remembered across restarts (SPEC FR-08).</summary>
     [ObservableProperty] private AppTheme _theme;
 
-    /// <summary>The selected tree row (folder or entry); kept in sync with <see cref="Selected"/>.</summary>
-    [ObservableProperty] private TreeNodeViewModel? _selectedNode;
+    /// <summary>The selected tree row (folder, entry or account); kept in sync with <see cref="Selected"/>.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SelectedAccount))]
+    private TreeNodeViewModel? _selectedNode;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(ConnectCommand), nameof(EditCommand), nameof(DeleteCommand), nameof(CopyPasswordCommand), nameof(CopyUserNameCommand))]
@@ -83,21 +85,38 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         UpdateCountText();
     }
 
+    /// <summary>
+    /// The account that Connect and Copy use: the selected account row, or the default account of the selected entry.
+    /// SPEC FR-09
+    /// </summary>
+    public AccountViewModel? SelectedAccount => SelectedNode switch
+    {
+        AccountViewModel a => a,
+        EntryViewModel e => e.DefaultAccount,
+        _ => null,
+    };
+
     partial void OnSelectedNodeChanged(TreeNodeViewModel? oldValue, TreeNodeViewModel? newValue)
     {
         if (oldValue is not null) oldValue.IsSelected = false;
         if (newValue is not null) newValue.IsSelected = true;
-        Selected = newValue as EntryViewModel;
+        Selected = newValue switch
+        {
+            EntryViewModel e => e,
+            AccountViewModel a => a.Entry,
+            _ => null,
+        };
     }
 
     partial void OnSelectedChanged(EntryViewModel? value)
     {
-        if (value is not null && !ReferenceEquals(SelectedNode, value))
+        // An account row of the entry counts as the entry being selected.
+        if (value is not null && !ReferenceEquals(SelectedNode, value) && (SelectedNode as AccountViewModel)?.Entry != value)
         {
             RevealFolder(value.Model.Folder);
             SelectedNode = value;
         }
-        else if (value is null && SelectedNode is EntryViewModel)
+        else if (value is null && SelectedNode is EntryViewModel or AccountViewModel)
         {
             SelectedNode = null;
         }
@@ -178,6 +197,12 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
 
         RebuildTree();
         Selected = Entries.FirstOrDefault(e => e.Model.Id == selectedId) ?? Selected;
+        if (SelectedNode is AccountViewModel { IsDefault: false } account && account.Entry.FindAccount(account.AccountId) is null)
+        {
+            SelectedNode = account.Entry; // the account was removed
+        }
+
+        OnPropertyChanged(nameof(SelectedAccount));
         UpdateCountText();
     }
 
@@ -203,7 +228,13 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         if (SelectedNode is { } selected)
         {
             selectionPath.Add(selected);
-            var folder = selected is FolderViewModel f ? f.Path : ((EntryViewModel)selected).Model.Folder;
+            if (selected is AccountViewModel account) selectionPath.Add(account.Entry);
+            var folder = selected switch
+            {
+                FolderViewModel f => f.Path,
+                AccountViewModel a => a.Entry.Model.Folder,
+                _ => ((EntryViewModel)selected).Model.Folder,
+            };
             foreach (var path in FolderTree.AncestorPaths(folder))
             {
                 if (previous.TryGetValue(path, out var ancestor)) selectionPath.Add(ancestor);
@@ -293,6 +324,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     {
         FolderViewModel f => f.Path,
         EntryViewModel e => e.Model.Folder,
+        AccountViewModel a => a.Entry.Model.Folder,
         _ => null,
     };
 
@@ -326,23 +358,28 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     [RelayCommand(CanExecute = nameof(CanConnectSelection))]
     private async Task ConnectAsync()
     {
-        if (_host is null || Selected is not { } vm) return;
+        if (_host is null || Selected is not { } vm || SelectedAccount is not { } accountVm) return;
         var entry = vm.Model;
+        var account = entry.FindAccount(accountVm.AccountId);
+        var accountName = entry.QualifiedUserNameFor(account);
 
-        if (vm.IsInUse && !_dialogs.Confirm("Connection in use",
-                $"{vm.PresenceDetails}{Environment.NewLine}{Environment.NewLine}Connect anyway? This may disconnect the other user."))
+        // SPEC FR-33: hosts that allow several sessions (e.g. Windows Server) let other accounts connect side by side;
+        // only someone using the same account (or an unknown one) would be disconnected.
+        var conflicts = vm.ActiveSessions.Where(s => accountName is null || s.UsesAccount(accountName)).ToList();
+        if (conflicts.Count > 0 && !_dialogs.Confirm("Connection in use",
+                $"{EntryViewModel.Describe(conflicts)}{Environment.NewLine}{Environment.NewLine}Connect anyway? This may disconnect the other user."))
         {
             return;
         }
 
         try
         {
-            var password = _host.Workspace.RevealPassword(entry);
-            var session = await _host.Launcher.LaunchAsync(entry, password);
-            StatusText = $"Launched {entry.Name}";
+            var password = _host.Workspace.RevealPassword(entry, account?.Id);
+            var session = await _host.Launcher.LaunchAsync(entry.ForAccount(account), password);
+            StatusText = accountName is null ? $"Launched {entry.Name}" : $"Launched {entry.Name} as {accountName}";
             Log.Info($"Launched {entry.Id}");
 
-            var lease = await _host.Presence.BeginAsync(entry.Id, _host.User);
+            var lease = await _host.Presence.BeginAsync(entry.Id, accountName, _host.User);
             _leases.Add(lease);
             await RefreshPresenceAsync();
             _ = TrackSessionAsync(session, lease);
@@ -396,7 +433,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         {
             try
             {
-                var saved = await _host.Workspace.SaveAsync(editor.BuildEntry(), editor.BuildSecretUpdate());
+                var saved = await _host.Workspace.SaveAsync(editor.BuildEntry(), editor.BuildSecretUpdate(), editor.BuildAccountSecretUpdates());
                 await ReloadAsync();
                 Selected = Entries.FirstOrDefault(e => e.Model.Id == saved.Id);
                 RevealFolder(saved.Folder); // also when an already selected entry moved to another folder
@@ -441,11 +478,11 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     [RelayCommand(CanExecute = nameof(HasSelection))]
     private void CopyPassword()
     {
-        if (_host is null || Selected is not { } vm) return;
-        var password = _host.Workspace.RevealPassword(vm.Model);
+        if (_host is null || Selected is not { } vm || SelectedAccount is not { } account) return;
+        var password = _host.Workspace.RevealPassword(vm.Model, account.AccountId);
         if (password is null)
         {
-            StatusText = "This entry has no stored password.";
+            StatusText = account.IsDefault ? "This entry has no stored password." : $"{account.Name} has no stored password.";
             return;
         }
 
@@ -469,7 +506,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     [RelayCommand(CanExecute = nameof(HasSelection))]
     private void CopyUserName()
     {
-        if (Selected?.Model.QualifiedUserName is { } user)
+        if (SelectedAccount?.QualifiedUserName is { } user)
         {
             Clipboard.SetDataObject(user, copy: false);
             StatusText = "User name copied.";

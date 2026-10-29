@@ -24,3 +24,4 @@ Process: see [spec/README.md](../spec/README.md).
 | [0016](0016-sign-in-vault-key-protection.md) | Shared vault key protected by verified sign-in (no passphrase); one-time conversion | Accepted |
 | [0017](0017-compact-folder-tree.md) | Compact folder tree for the entry list | Accepted |
 | [0018](0018-database-sign-in-opens-vault.md) | Database sign-in alone opens a `sign-in` vault (no app sign-in required) | Accepted |
+| [0019](0019-multiple-accounts-per-entry.md) | Several user accounts per entry in a child table; the entry's own account stays the default | Accepted |

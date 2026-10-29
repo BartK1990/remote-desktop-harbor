@@ -50,10 +50,13 @@ public partial class MainWindow : Window
         if (e.OriginalSource is TreeViewItem item) item.BringIntoView();
     }
 
-    private void EntryTree_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    private void EntryTree_PreviewMouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
-        // Double-clicking a folder toggles it (built into TreeViewItem); only an entry row connects.
-        if (RowAt(e.OriginalSource)?.DataContext is EntryViewModel && _viewModel.ConnectCommand.CanExecute(null))
+        // Double-clicking a folder toggles it (built into TreeViewItem); an entry or account row connects. Handled in the
+        // preview phase so an entry with account rows connects instead of expanding (SPEC FR-09).
+        // A quick double click on the expand arrow only toggles the row.
+        if (RowAt(e.OriginalSource, out var onExpander)?.DataContext is EntryViewModel or AccountViewModel && !onExpander
+            && _viewModel.ConnectCommand.CanExecute(null))
         {
             _viewModel.ConnectCommand.Execute(null);
             e.Handled = true;
@@ -98,12 +101,16 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
-    private static TreeViewItem? RowAt(object source)
+    private static TreeViewItem? RowAt(object source) => RowAt(source, out _);
+
+    private static TreeViewItem? RowAt(object source, out bool onExpander)
     {
+        onExpander = false;
         for (var d = source as DependencyObject; d is not null && d is not TreeView;
              d = d is Visual or Visual3D ? VisualTreeHelper.GetParent(d) : LogicalTreeHelper.GetParent(d))
         {
             if (d is TreeViewItem item) return item;
+            if (d is System.Windows.Controls.Primitives.ToggleButton) onExpander = true;
         }
 
         return null;

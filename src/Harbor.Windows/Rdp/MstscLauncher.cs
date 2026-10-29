@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime.Versioning;
 using Harbor.Core.Model;
@@ -15,6 +16,11 @@ public sealed class MstscLauncher(string tempDirectory, bool keepCredential, Act
 {
     private static readonly TimeSpan CleanupDelay = TimeSpan.FromSeconds(30);
 
+    // Accounts of one host share the TERMSRV/<host> credential (SPEC FR-09, ADR-0019). Each target maps to the launch
+    // whose credential is waiting for cleanup, so an older launch's cleanup leaves a newer launch's credential alone.
+    private static readonly ConcurrentDictionary<string, long> PendingCleanup = new(StringComparer.OrdinalIgnoreCase);
+    private static long _launchCount;
+
     public Task<IRdpSession> LaunchAsync(ConnectionEntry entry, string? password, CancellationToken cancellationToken = default)
     {
         Directory.CreateDirectory(tempDirectory);
@@ -22,11 +28,18 @@ public sealed class MstscLauncher(string tempDirectory, bool keepCredential, Act
         File.WriteAllText(rdpPath, RdpFile.Build(entry));
 
         var target = RdpFile.CredentialTarget(entry.Host!);
+        var launch = Interlocked.Increment(ref _launchCount);
         var wroteCredential = false;
         if (!string.IsNullOrEmpty(password) && entry.QualifiedUserName is { } user)
         {
             WindowsCredentialStore.WriteDomainPassword(target, user, password, keepCredential);
             wroteCredential = true;
+            if (!keepCredential) PendingCleanup[target] = launch;
+        }
+        else if (PendingCleanup.TryRemove(target, out _))
+        {
+            // Another account's credential from a launch moments ago would sign this one in as that account.
+            WindowsCredentialStore.Delete(target);
         }
 
         Process process;
@@ -38,15 +51,18 @@ public sealed class MstscLauncher(string tempDirectory, bool keepCredential, Act
         }
         catch
         {
-            TryDelete(rdpPath, wroteCredential && !keepCredential ? target : null);
+            TryDelete(rdpPath, OwnsCredential() ? target : null);
             throw;
         }
 
         // mstsc reads the file and credential while connecting; give it time, then remove both.
         _ = Task.Delay(CleanupDelay, CancellationToken.None)
-            .ContinueWith(_ => TryDelete(rdpPath, wroteCredential && !keepCredential ? target : null), TaskScheduler.Default);
+            .ContinueWith(_ => TryDelete(rdpPath, OwnsCredential() ? target : null), TaskScheduler.Default);
 
         return Task.FromResult<IRdpSession>(new MstscSession(process));
+
+        // True only while no later launch has replaced this launch's credential.
+        bool OwnsCredential() => wroteCredential && !keepCredential && PendingCleanup.TryRemove(new KeyValuePair<string, long>(target, launch));
     }
 
     private void TryDelete(string rdpPath, string? credentialTarget)

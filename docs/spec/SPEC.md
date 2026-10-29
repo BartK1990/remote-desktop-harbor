@@ -24,7 +24,7 @@ shows who is currently connected to which machine.
 
 | ID | Requirement |
 |---|---|
-| FR-01 | The app stores entries with: name, folder, host, port, domain, user name, password, notes, and (for RDP entries) additional `.rdp` settings. |
+| FR-01 | The app stores entries with: name, folder, host, port, domain, user name, password, notes, additional accounts (FR-09), and (for RDP entries) additional `.rdp` settings. |
 | FR-02 | Users can create, edit, delete and search entries (by name, host, user, folder, notes). Entries are shown in a compact folder tree: one low row per folder or entry showing just its name (plus the in-use badge, FR-33). Folders can be nested (`Production/Web`; `/` or `\` separates levels) and each can be expanded and collapsed; collapsed folders are remembered across restarts. The search filters the tree as you type and expands every folder with matches. See [ADR-0017](../adr/0017-compact-folder-tree.md). |
 | FR-03 | Each entry is one of two kinds: **RDP connection** — a full Remote Desktop profile (host + `.rdp` settings) with optional credentials; **Credentials only** — just user name/password and an optional host; launching uses default RDP settings. |
 | FR-04 | Passwords are encrypted by the app before they are written to any database and are decrypted only at the moment of use (launch, copy). |
@@ -32,13 +32,14 @@ shows who is currently connected to which machine.
 | FR-06 | Users can copy the user name and the password to the clipboard. A copied password is cleared from the clipboard after 30 s if unchanged. |
 | FR-07 | The app shows its release version (e.g. `0.1.0`) in the main window title and in Settings → About, together with the build commit when known. The version comes from the release build (`-p:Version`), so the app and its GitHub release always match. |
 | FR-08 | The user can choose the colour theme — **System** (follow the Windows light/dark setting, default), **Light** or **Dark** — from the main toolbar. The choice applies immediately, without a restart, and is remembered across restarts. |
+| FR-09 | An entry can have **several accounts**, for hosts that allow several sessions at once (e.g. Windows Server): the entry's own domain/user name/password is its default account, followed by any number of additional accounts (user name, optional domain — empty uses the entry's — and password). In the tree an entry with additional accounts can be expanded to one row per account (default first). Connecting and copying the user name or password use the selected account row, or the default account when the entry row is selected. Each account's password is encrypted on its own and bound to that account (FR-04, NFR-11). Search also matches account user names. See [ADR-0019](../adr/0019-multiple-accounts-per-entry.md). |
 
 ### 3.2 Launching Remote Desktop
 
 | ID | Requirement |
 |---|---|
 | FR-10 | Activating an entry (button, double-click, Enter) opens the standard Windows Remote Desktop client (`mstsc.exe`) as its own window — not embedded in the app — already connected with the stored credentials. |
-| FR-11 | The password is handed to the client through Windows Credential Manager (`TERMSRV/<host>`), never via command line or `.rdp` file. By default the credential is removed shortly after launch and never survives logoff; a setting can keep it. |
+| FR-11 | The password is handed to the client through Windows Credential Manager (`TERMSRV/<host>`), never via command line or `.rdp` file. By default the credential is removed shortly after launch and never survives logoff; a setting can keep it. Accounts of one host share that credential: a launch's cleanup never removes a credential written by a later launch, and launching an account without a stored password first removes a credential the app wrote moments before for another account (FR-09). |
 | FR-12 | Temporary `.rdp` files are deleted after launch; leftovers from crashes are removed at next start. |
 
 ### 3.3 Storage
@@ -59,10 +60,10 @@ shows who is currently connected to which machine.
 
 | ID | Requirement |
 |---|---|
-| FR-30 | When a user launches an entry and the shared database is reachable, the app writes a presence record: entry, Windows/Entra user name, display name, e-mail, machine name, start time. |
+| FR-30 | When a user launches an entry and the shared database is reachable, the app writes a presence record: entry, the account connected as (FR-09), Windows/Entra user name, display name, e-mail, machine name, start time. |
 | FR-31 | Each record has an expiry (default TTL 120 s). While the RDP client runs, the app refreshes it (default every 45 s). All times use the database clock. |
 | FR-32 | Clients list only non-expired records. A record whose app crashed, lost network or was killed disappears from everyone's view after at most one TTL. |
-| FR-33 | Entries with active sessions show an "In use by …" badge and details (name, e-mail, machine, since). Connecting to an in-use entry asks for confirmation. |
+| FR-33 | Entries with active sessions show an "In use by …" badge and details (name, e-mail, machine, account, since); account rows (FR-09) show the badge for sessions using that account. Connecting asks for confirmation when a session uses the same account — or a record names no account (older clients) or the connection has no user name — because that would take the session over; sessions with other accounts do not block, as the host can run them side by side. |
 | FR-34 | When the RDP client window closes, the record is deleted. Closing the app ends its records (after confirmation if sessions are still open). |
 | FR-35 | If the database is unreachable at launch, the session still starts; presence is published as soon as the database is back. |
 | FR-36 | Expired records older than one day are purged opportunistically. |
@@ -100,7 +101,8 @@ All timestamps are Unix milliseconds (UTC) from the database clock. Ids are GUID
 | Table | Columns | Notes |
 |---|---|---|
 | `Connections` | Id, Name, Folder, Kind, Host, Port, Domain, UserName, RdpSettings, Notes, PasswordCipher, Version, CreatedUtcMs, UpdatedUtcMs, UpdatedBy, IsDeleted | `Version` = optimistic concurrency token; deletes are tombstones so caches learn about them. |
-| `ActiveSessions` | Id, ConnectionId, UserName, DisplayName, Email, MachineName, StartedUtcMs, LastHeartbeatUtcMs, ExpiresUtcMs | Presence (FR-30..36). Only used in the shared DB. |
+| `ConnectionAccounts` | Id, ConnectionId, Position, Domain, UserName, PasswordCipher | Additional accounts of an entry (FR-09), written with the entry in one transaction; the entry's `Version` covers them. Removed when the entry is deleted. |
+| `ActiveSessions` | Id, ConnectionId, UserName, DisplayName, Email, MachineName, StartedUtcMs, LastHeartbeatUtcMs, ExpiresUtcMs, AccountName | Presence (FR-30..36). Only used in the shared DB. `AccountName` is the remote account (FR-09); null from older clients. |
 | `VaultKeys` | Slot, KeyId, Scheme, ProtectedKey, CreatedUtcMs | Wrapped data-encryption key. `Scheme` names the protector. |
 | `Meta` | Key, Value | e.g. sync watermark in the cache. |
 | `SchemaVersion` | Version | Applied migrations. |
@@ -155,6 +157,7 @@ for the full list.
 | Requirement | Implementation | Tests |
 |---|---|---|
 | FR-01..06 | `Core/Model/ConnectionEntry`, `App/ViewModels/*` | `SqlHarborStoreTests` |
+| FR-09 | `Core/Model/ConnectionAccount`, `Core/Model/ConnectionEntry`, `Core/Services/HarborWorkspace`, `Data/SqlHarborStore`, `Data/Providers/*` (migration 2), `Windows/Rdp/MstscLauncher`, `App/ViewModels/EntryViewModel`, `EntryEditorViewModel`, `MainViewModel`, `MainWindow`, `EntryEditorWindow` | `ConnectionAccountTests`, `AccountTests`, `AccountViewModelTests` (Windows) |
 | FR-02 (tree) | `Core/Model/FolderTree`, `App/ViewModels/MainViewModel`, `TreeNodeViewModel`, `MainWindow` | `FolderTreeTests`; UI manual (Windows) |
 | FR-07 | `App/Infrastructure/AppInfo`, `MainWindow`, `SettingsWindow` | manual (Windows) |
 | FR-08 | `Core/HarborSettings`, `App/Infrastructure/ThemeService`, `App/ViewModels/MainViewModel`, `MainWindow` | manual (Windows) |
@@ -166,7 +169,7 @@ for the full list.
 | FR-26 | `App/ViewModels/SettingsViewModel`, `App/Views/SettingsWindow` | `SettingsViewModelTests`, `ViewSourceTests` (Windows) |
 | FR-27 | `Data/Providers/IServerDatabaseProvider`, `Data/Providers/SqlServerProvider`, `App/ViewModels/SettingsViewModel` | `SqlServerConnectionFormTests`, `SettingsViewModelTests` (Windows) |
 | FR-34 (closing the app) | `App/Views/MainWindow` | `ViewSourceTests` (Windows), manual |
-| FR-30..36 | `Core/Services/SessionPresenceService`, `Data/SqlHarborStore` | `PresenceTests` |
+| FR-30..36 | `Core/Services/SessionPresenceService`, `Data/SqlHarborStore` | `PresenceTests`, `AccountTests` (account in use) |
 | FR-40..43 | `Windows/Identity/*`, `App/Infrastructure/AppHost` | manual (Windows) |
 | FR-44 | `Core/Identity/AnonymousIdentityProvider`, `App/ViewModels/SettingsViewModel` | `AnonymousIdentityTests`, `SettingsViewModelTests` |
 | NFR-10..13 | `Core/Security/*`, `Windows/Security/*` | `SecretCipherTests`, `WorkspaceTests` |

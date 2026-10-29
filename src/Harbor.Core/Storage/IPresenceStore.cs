@@ -9,8 +9,9 @@ namespace Harbor.Core.Storage;
 /// </summary>
 public interface IPresenceStore
 {
-    Task<ActiveSession> StartSessionAsync(Guid sessionId, Guid connectionId, UserIdentity user, string machineName,
-        TimeSpan ttl, CancellationToken cancellationToken = default);
+    /// <param name="accountName">The remote account connected as (qualified user name), if any. SPEC FR-09</param>
+    Task<ActiveSession> StartSessionAsync(Guid sessionId, Guid connectionId, string? accountName, UserIdentity user,
+        string machineName, TimeSpan ttl, CancellationToken cancellationToken = default);
 
     /// <summary>Extends the expiry. Returns false if the record no longer exists (e.g. purged).</summary>
     Task<bool> HeartbeatAsync(Guid sessionId, TimeSpan ttl, CancellationToken cancellationToken = default);

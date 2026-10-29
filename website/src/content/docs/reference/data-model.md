@@ -26,6 +26,23 @@ The same schema is used in every store — local vault, local cache and shared d
 | `UpdatedBy` | text, nullable | Signed-in user who last changed the row |
 | `IsDeleted` | int | Tombstone, so deletions reach every cache |
 
+### `ConnectionAccounts`
+
+[Additional accounts](../../guides/managing-entries/#several-accounts-per-entry) of an entry. The entry's own
+`Domain`, `UserName` and `PasswordCipher` are its default account.
+
+| Column | Type | Notes |
+|---|---|---|
+| `Id` | GUID text | Primary key; also the associated data of the password envelope |
+| `ConnectionId` | GUID text | The entry |
+| `Position` | int | Display order |
+| `Domain` | text, nullable | Empty = the entry's domain |
+| `UserName` | text | Required |
+| `PasswordCipher` | binary, nullable | AES-GCM envelope |
+
+Accounts are written in the same transaction as their entry and count as part of it: the entry's `Version` and
+`UpdatedUtcMs` change with them, so sync and concurrency checks cover them. Deleting the entry deletes its accounts.
+
 ### `ActiveSessions`
 
 [Presence](../../team/session-presence/) records. Only used in the shared database.
@@ -35,6 +52,7 @@ The same schema is used in every store — local vault, local cache and shared d
 | `Id` | Primary key |
 | `ConnectionId` | Entry in use |
 | `UserName`, `DisplayName`, `Email` | Who |
+| `AccountName` | Remote account connected as (`DOMAIN\user`); empty in records from older app versions |
 | `MachineName` | From where |
 | `StartedUtcMs`, `LastHeartbeatUtcMs`, `ExpiresUtcMs` | Lease; readers only show rows with `ExpiresUtcMs > now` |
 

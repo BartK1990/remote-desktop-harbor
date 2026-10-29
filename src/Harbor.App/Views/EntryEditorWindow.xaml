@@ -68,6 +68,45 @@
         <PasswordBox x:Name="PasswordBox" IsEnabled="{Binding ChangePassword}" PasswordChanged="PasswordBox_PasswordChanged" />
         <TextBlock Text="Leave empty to store no password. Passwords are encrypted before they are written." FontSize="11" Opacity="0.6" Margin="0,4,0,0" />
 
+        <!-- Additional accounts (SPEC FR-09). -->
+        <TextBlock Text="Additional accounts" Style="{StaticResource FieldLabel}" />
+        <TextBlock Text="For hosts that allow several sessions at once, such as Windows Server. Each account is listed under the entry; an empty domain uses the domain above."
+                   FontSize="11" Opacity="0.6" TextWrapping="Wrap" />
+        <ItemsControl ItemsSource="{Binding Accounts}" Focusable="False">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Border BorderThickness="1" CornerRadius="4" Padding="8" Margin="0,6,0,0" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
+                <StackPanel>
+                  <Grid>
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="*" />
+                      <ColumnDefinition Width="12" />
+                      <ColumnDefinition Width="2*" />
+                      <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                      <TextBlock Text="Domain" FontSize="11" Opacity="0.7" Margin="0,0,0,2" />
+                      <TextBox Text="{Binding Domain, UpdateSourceTrigger=PropertyChanged}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                      <TextBlock Text="User name *" FontSize="11" Opacity="0.7" Margin="0,0,0,2" />
+                      <TextBox Text="{Binding UserName, UpdateSourceTrigger=PropertyChanged}" />
+                    </StackPanel>
+                    <Button Grid.Column="3" Content="Remove" Margin="8,0,0,0" VerticalAlignment="Bottom"
+                            Command="{Binding DataContext.RemoveAccountCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            CommandParameter="{Binding}" />
+                  </Grid>
+                  <TextBlock Text="Password" FontSize="11" Opacity="0.7" Margin="0,6,0,2" />
+                  <CheckBox Content="Change stored password" IsChecked="{Binding ChangePassword}" Margin="0,0,0,6"
+                            Visibility="{Binding HadPassword, Converter={StaticResource BoolToVisibility}}" />
+                  <PasswordBox IsEnabled="{Binding ChangePassword}" PasswordChanged="AccountPasswordBox_PasswordChanged" />
+                </StackPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Button Content="Add account" Command="{Binding AddAccountCommand}" HorizontalAlignment="Left" Margin="0,6,0,0" />
+
         <StackPanel Visibility="{Binding IsRdpConnection, Converter={StaticResource BoolToVisibility}}">
           <TextBlock Text="RDP settings (.rdp lines, key:type:value)" Style="{StaticResource FieldLabel}" />
           <TextBox Text="{Binding RdpSettings, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="NoWrap"
