@@ -7,7 +7,9 @@ With a shared database, Harbor shows which entries are currently in use and by w
 
 > **In use by Jane Doe &lt;jane@contoso.com&gt; on PC-42 since 10:31**
 
-The badge appears in the list; the details pane lists every active session for the selected entry.
+The badge appears in the list; the details pane lists every active session for the selected entry, with the
+account each one is connected as. For an entry with
+[several accounts](../../guides/managing-entries/#several-accounts-per-entry), each account row shows its own badge.
 
 ![Main window showing "In use by Jane Doe" and "In use by Sam Patel" badges in the list, and an "Active sessions" box in the details of the selected entry.](../../../assets/screenshots/main.png)
 
@@ -15,8 +17,8 @@ The badge appears in the list; the details pane lists every active session for t
 
 Presence uses **leases** with an expiry, so crashed or disconnected clients never leave “ghost” sessions behind.
 
-1. When you connect, the app writes a record to `ActiveSessions`: entry, user name, display name, e-mail, machine
-   name and start time, **expiring after the TTL** (default 120 s).
+1. When you connect, the app writes a record to `ActiveSessions`: entry, the account you connect as, your user
+   name, display name, e-mail, machine name and start time, **expiring after the TTL** (default 120 s).
 2. While the Remote Desktop window is open, the app refreshes the record every **heartbeat** (default 45 s).
 3. When the Remote Desktop window closes, the record is deleted.
 4. Everyone's app lists only records that have not expired, refreshing the view every 20 s.
@@ -34,8 +36,10 @@ Expired records older than a day are purged automatically.
 
 ## Connecting to an entry in use
 
-Connecting to an entry that shows **In use** asks for confirmation — on hosts that allow only one session, your
-connection may disconnect the other person.
+Connecting with an account that someone is already using asks for confirmation — your connection would take over
+their session. Connecting with a **different account** of the same entry does not ask: hosts such as Windows Server
+run several sessions side by side. Sessions published by older app versions do not record the account, so they
+always ask; so does connecting without a user name.
 
 ![Confirmation dialog "Connection in use" with Yes and No buttons.](../../../assets/screenshots/inuse.png)
 
@@ -54,4 +58,6 @@ Lower values make crashed sessions disappear faster at the cost of more database
 
 - Only sessions **started from Harbor** are visible — not ones opened directly with `mstsc.exe`.
 - Presence needs the shared database; there is no presence in a local vault.
+- On hosts that allow only one session (e.g. Windows 10/11), connecting with another account still disconnects the
+  other person, without asking.
 - While your client is offline it shows no presence at all, rather than stale data.

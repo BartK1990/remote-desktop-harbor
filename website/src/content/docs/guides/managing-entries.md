@@ -29,15 +29,37 @@ RDP connections.
 | **Host** / **Port** | Host name or IP address (IPv6 literals like `[fe80::1]` work). Port defaults to `3389`. An entry without a host cannot be launched, but you can still copy its credentials. |
 | **Domain** / **User name** | Combined as `DOMAIN\user`. If the user name already contains `\` or `@` (UPN), the domain is not added. |
 | **Password** | Optional. Encrypted before it is written to any database. When editing an entry that already has a password, tick **Change stored password** to replace or clear it. |
+| **Additional accounts** | Optional. More users for the same host — see [Several accounts per entry](#several-accounts-per-entry). |
 | **RDP settings** | RDP connections only. Raw `.rdp` lines in `key:type:value` format, e.g. `screen mode id:i:1`. |
 | **Notes** | Free text. Searchable. |
 
 The details pane also shows who changed the entry last and when.
 
+## Several accounts per entry
+
+Windows Server lets several people — or one person with several accounts — be connected at once. Instead of
+copying an entry for each account, add the accounts to one entry:
+
+1. Open the entry in the editor. The **Domain**, **User name** and **Password** at the top are the entry's
+   **default account**.
+2. Under **Additional accounts**, click **Add account** and fill in the **User name** (required), an optional
+   **Domain** — left empty, the entry's domain is used — and an optional **Password**. Add as many as you need;
+   **Remove** deletes one.
+3. Save.
+
+In the tree, an entry with additional accounts gets an arrow: expand it to see one row per account, the default
+account first. Select an **account row** and **Connect**, **Copy user** or **Copy password** use that account;
+with the **entry row** selected they use the default account. Double-click or <kbd>Enter</kbd> on an account row
+connects as that account.
+
+Every account's password is encrypted on its own, exactly like the default one. In a shared database the accounts
+are shared and synced with their entry; deleting the entry deletes its accounts too.
+
 ## The folder tree
 
 Each folder and entry is one low row showing just its name; folders also show how many entries they contain, and
-entries in use show an **In use by …** badge. Hover an entry for its user and host.
+entries in use show an **In use by …** badge. Hover an entry for its user and host. Entries with
+[several accounts](#several-accounts-per-entry) can be expanded to one row per account.
 
 - Click the arrow next to a folder, double-click it, or press <kbd>←</kbd>/<kbd>→</kbd> to collapse or expand it.
 - Right-click the tree for **Expand all** and **Collapse all** (and the actions for the selected entry).
@@ -66,12 +88,14 @@ Select an entry and click **Delete**, then confirm. In a shared database the ent
 
 ## Search
 
-Type in the search box (<kbd>Ctrl</kbd>+<kbd>F</kbd>). The tree is filtered as you type, by **name, host, user,
-folder and notes**, and every folder with matches is expanded; the status bar shows how many entries match.
+Type in the search box (<kbd>Ctrl</kbd>+<kbd>F</kbd>). The tree is filtered as you type, by **name, host, user
+(any account), folder and notes**, and every folder with matches is expanded; the status bar shows how many entries match.
 <kbd>Esc</kbd> clears the search, <kbd>↓</kbd> moves into the tree. Filtering happens in memory, so it stays
 instant with thousands of entries.
 
 ## Copy user name and password
+
+Both act on the selected account row, or on the entry's default account when the entry row is selected.
 
 - **Copy user** copies the qualified user name (`DOMAIN\user`).
 - **Copy password** (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd>) decrypts the password and puts it on the

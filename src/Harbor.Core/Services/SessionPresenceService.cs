@@ -46,10 +46,14 @@ public sealed class SessionPresenceService(IPresenceStore? store, PresenceOption
         }
     }
 
-    /// <summary>Starts publishing presence. Dispose the lease when the RDP session ends.</summary>
-    public async Task<PresenceLease> BeginAsync(Guid connectionId, UserIdentity user, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Starts publishing presence for <paramref name="user"/> connected to <paramref name="connectionId"/> as the remote
+    /// account <paramref name="accountName"/>. Dispose the lease when the RDP session ends.
+    /// </summary>
+    public async Task<PresenceLease> BeginAsync(Guid connectionId, string? accountName, UserIdentity user,
+        CancellationToken cancellationToken = default)
     {
-        var lease = new PresenceLease(store, options, connectionId, user, machineName, onError);
+        var lease = new PresenceLease(store, options, connectionId, accountName, user, machineName, onError);
         await lease.StartAsync(cancellationToken).ConfigureAwait(false);
         return lease;
     }
@@ -85,12 +89,13 @@ public sealed class PresenceLease : IAsyncDisposable
     private volatile bool _registered; // written by the heartbeat loop, read from the UI thread
     private int _disposed;
 
-    internal PresenceLease(IPresenceStore? store, PresenceOptions options, Guid connectionId, UserIdentity user,
+    internal PresenceLease(IPresenceStore? store, PresenceOptions options, Guid connectionId, string? accountName, UserIdentity user,
         string machineName, Action<Exception>? onError)
     {
         _store = store;
         _options = options;
         ConnectionId = connectionId;
+        AccountName = accountName;
         _user = user;
         _machineName = machineName;
         _onError = onError;
@@ -98,6 +103,7 @@ public sealed class PresenceLease : IAsyncDisposable
 
     public Guid SessionId { get; } = Guid.NewGuid();
     public Guid ConnectionId { get; }
+    public string? AccountName { get; }
 
     /// <summary>True while the shared database holds a live record for this lease.</summary>
     public bool IsPublished => _registered;
@@ -135,7 +141,7 @@ public sealed class PresenceLease : IAsyncDisposable
             // Not yet registered (e.g. database was down at launch) or the record vanished: (re)create it.
             if (!_registered || !await _store!.HeartbeatAsync(SessionId, _options.Ttl, token).ConfigureAwait(false))
             {
-                await _store!.StartSessionAsync(SessionId, ConnectionId, _user, _machineName, _options.Ttl, token).ConfigureAwait(false);
+                await _store!.StartSessionAsync(SessionId, ConnectionId, AccountName, _user, _machineName, _options.Ttl, token).ConfigureAwait(false);
             }
 
             _registered = true;

@@ -71,6 +71,21 @@ public sealed class SqlServerProvider : IServerDatabaseProvider
             [Value] NVARCHAR(MAX)  NOT NULL
         );
         """,
+
+        // 2: additional accounts per entry, account used by a session (SPEC FR-09, ADR-0019).
+        """
+        CREATE TABLE dbo.ConnectionAccounts (
+            Id             NVARCHAR(36)   NOT NULL CONSTRAINT PK_ConnectionAccounts PRIMARY KEY,
+            ConnectionId   NVARCHAR(36)   NOT NULL,
+            Position       INT            NOT NULL,
+            Domain         NVARCHAR(256)  NULL,
+            UserName       NVARCHAR(256)  NOT NULL,
+            PasswordCipher VARBINARY(MAX) NULL
+        );
+        CREATE INDEX IX_ConnectionAccounts_ConnectionId ON dbo.ConnectionAccounts (ConnectionId);
+
+        ALTER TABLE dbo.ActiveSessions ADD AccountName NVARCHAR(512) NULL;
+        """,
     ];
 
     // 2627 = PK/unique constraint, 2601 = unique index

@@ -187,15 +187,20 @@ public sealed class HarborWorkspace : IDisposable
     public Task<IReadOnlyList<ConnectionEntry>> ListAsync(CancellationToken cancellationToken = default) =>
         _local.ListAsync(includeDeleted: false, cancellationToken);
 
-    public async Task<ConnectionEntry> SaveAsync(ConnectionEntry entry, SecretUpdate password, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Saves <paramref name="entry"/> with its accounts. <paramref name="password"/> applies to the default account;
+    /// <paramref name="accountPasswords"/> to additional accounts by id (missing = keep). SPEC FR-04, FR-09
+    /// </summary>
+    public async Task<ConnectionEntry> SaveAsync(ConnectionEntry entry, SecretUpdate password,
+        IReadOnlyDictionary<Guid, SecretUpdate>? accountPasswords = null, CancellationToken cancellationToken = default)
     {
-        var cipher = Cipher;
-        var toStore = password.Mode switch
+        var toStore = entry with
         {
-            SecretUpdateMode.Clear => entry with { PasswordCipher = null },
-            SecretUpdateMode.Set when string.IsNullOrEmpty(password.Value) => entry with { PasswordCipher = null },
-            SecretUpdateMode.Set => entry with { PasswordCipher = cipher.Encrypt(password.Value!, entry.Id) },
-            _ => entry,
+            PasswordCipher = Apply(password, entry.PasswordCipher, entry.Id),
+            Accounts = entry.Accounts.Select(a => a with
+            {
+                PasswordCipher = Apply(accountPasswords?.GetValueOrDefault(a.Id) ?? SecretUpdate.Keep, a.PasswordCipher, a.Id),
+            }).ToList(),
         };
 
         if (_remote is null)
@@ -227,9 +232,29 @@ public sealed class HarborWorkspace : IDisposable
         }
     }
 
-    /// <summary>Decrypts the entry's password. Only call right before use (launch / copy).</summary>
-    public string? RevealPassword(ConnectionEntry entry) =>
-        entry.PasswordCipher is { Length: > 0 } c ? Cipher.Decrypt(c, entry.Id) : null;
+    /// <summary>
+    /// Decrypts the password of the entry's default account, or of its additional account <paramref name="accountId"/>.
+    /// Only call right before use (launch / copy).
+    /// </summary>
+    public string? RevealPassword(ConnectionEntry entry, Guid? accountId = null)
+    {
+        // Each cipher is bound to its own row: the entry id for the default account, the account id otherwise (ADR-0019).
+        if (accountId is not null)
+        {
+            var account = entry.FindAccount(accountId) ?? throw new InvalidOperationException("The account no longer exists.");
+            return account.PasswordCipher is { Length: > 0 } a ? Cipher.Decrypt(a, account.Id) : null;
+        }
+
+        return entry.PasswordCipher is { Length: > 0 } c ? Cipher.Decrypt(c, entry.Id) : null;
+    }
+
+    private byte[]? Apply(SecretUpdate update, byte[]? current, Guid boundTo) => update.Mode switch
+    {
+        SecretUpdateMode.Clear => null,
+        SecretUpdateMode.Set when string.IsNullOrEmpty(update.Value) => null,
+        SecretUpdateMode.Set => Cipher.Encrypt(update.Value!, boundTo),
+        _ => current,
+    };
 
     private SecretCipher Cipher => _cipher ?? throw new InvalidOperationException("Workspace is not open.");
 

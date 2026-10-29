@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Controls;
 using Harbor.App.ViewModels;
 
 namespace Harbor.App.Views;
@@ -16,6 +17,11 @@ public partial class EntryEditorWindow : Window
     }
 
     private void PasswordBox_PasswordChanged(object sender, RoutedEventArgs e) => _viewModel.Password = PasswordBox.Password;
+
+    private void AccountPasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
+    {
+        if (sender is PasswordBox { DataContext: AccountEditorViewModel account } box) account.Password = box.Password;
+    }
 
     private void Save_Click(object sender, RoutedEventArgs e)
     {
