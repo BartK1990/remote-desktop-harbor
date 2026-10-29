@@ -31,6 +31,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     }
 
     public IEnumerable<string> Providers => DatabaseProviders.Names.Where(n => n != SqliteProvider.ProviderName);
+    public string AboutText => $"{AppInfo.ProductName} · {AppInfo.Description}";
     public string DataDirectory => AppPaths.DataDirectory + (AppPaths.IsPortable ? "  (portable mode)" : "");
 
     [ObservableProperty]

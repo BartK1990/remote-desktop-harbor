@@ -68,6 +68,9 @@
 
         <TextBlock Text="Data folder" Style="{StaticResource SectionHeader}" />
         <TextBox Text="{Binding DataDirectory, Mode=OneWay}" IsReadOnly="True" />
+
+        <TextBlock Text="About" Style="{StaticResource SectionHeader}" />
+        <TextBox Text="{Binding AboutText, Mode=OneWay}" IsReadOnly="True" BorderThickness="0" Background="Transparent" Padding="0" />
       </StackPanel>
     </ScrollViewer>
   </DockPanel>
