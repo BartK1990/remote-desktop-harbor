@@ -70,7 +70,7 @@ Use **Test connection** to check the settings before saving. Everything is store
 encrypted for your Windows account (a SQL login password included). The database sign-in is independent of the
 app's own [sign-in](../entra-id/): Windows or Entra ID app sign-in both work with a shared database.
 
-![Settings dialog with "Shared database with offline copy" selected: provider SqlServer, connection string, Test connection, Active Directory group protection with a SID descriptor, schema auto-upgrade, sync interval and presence timings.](../../../assets/screenshots/settings.png)
+![Settings dialog with "Shared database with offline copy" selected: server sql01, database Harbor, SQL Server login with user name and password, Test connection, "Database sign-in – no passphrase" vault protection, schema auto-upgrade, sync interval and presence timings, and "No sign-in" with a name.](../../../assets/screenshots/settings.png)
 
 ### Connection string examples
 
