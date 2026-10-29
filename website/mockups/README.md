@@ -2,7 +2,8 @@
 
 Remote Desktop Harbor is a WPF app and only runs on Windows, so the images in the docs are **mockups**:
 `app-mockups.html` recreates each window from its XAML (`src/Harbor.App/Views/*.xaml`) with the same labels and
-layout, styled like WPF's Fluent theme. The data shown is fictional.
+layout, styled like the WPF UI (lepoco) light theme the app uses (ADR-0020): Fluent title bar, Mica background,
+icon buttons. The data shown is fictional.
 
 When a window's XAML changes, update `app-mockups.html` and re-render:
 
