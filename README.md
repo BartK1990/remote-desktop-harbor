@@ -17,6 +17,8 @@ who is currently connected where.
   an expiry so crashed clients disappear automatically.
 * **Sign-in** — Windows account (automatic SSO) or Microsoft Entra ID via the Windows broker.
 
+📖 **Documentation: <https://bartk1990.github.io/remote-desktop-harbor/>** (source in [`website/`](website/))
+
 ## Download & run
 
 Grab `RemoteDesktopHarbor-<version>-win-x64.zip` from [Releases](../../releases), unzip anywhere, run
@@ -74,6 +76,7 @@ Output: `artifacts/publish/win-x64/RemoteDesktopHarbor.exe`.
 | `src/Harbor.Windows` | DPAPI / DPAPI-NG, Credential Manager, mstsc launcher, Windows & Entra identity |
 | `src/Harbor.App` | WPF UI (MVVM), composition root, settings |
 | `tests/` | xUnit tests (run on Linux/macOS/Windows) |
+| `website/` | User documentation site (Astro Starlight, deployed to GitHub Pages) |
 
 ## Contributing
 

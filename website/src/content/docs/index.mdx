@@ -1,0 +1,77 @@
+---
+title: Introduction
+description: What Remote Desktop Harbor is, what it does and where to start.
+---
+
+import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+**Remote Desktop Harbor** is a fast, portable Windows app that keeps your Remote Desktop connections and
+credentials in one encrypted catalog, opens them in the regular Windows Remote Desktop client with one click, and —
+with a shared database — shows your team who is currently connected where.
+
+<CardGrid>
+	<Card title="No install, no admin" icon="rocket">
+		One self-contained `RemoteDesktopHarbor.exe` for Windows 10 1809+ / Windows 11 (x64). Unzip and run from a
+		standard user account.
+	</Card>
+	<Card title="Encrypted, bound to you" icon="approve-check">
+		Passwords are encrypted with AES-256-GCM. The key is protected with DPAPI for your Windows user *and* this
+		machine.
+	</Card>
+	<Card title="One-click connect" icon="laptop">
+		Launches `mstsc.exe` as a normal window. The password is handed over through Windows Credential Manager —
+		never on a command line or in a file.
+	</Card>
+	<Card title="Team presence" icon="open-book">
+		“In use by Jane Doe &lt;jane@contoso.com&gt; on PC-42 since 10:31” — kept alive by heartbeats, so crashed
+		clients disappear automatically.
+	</Card>
+</CardGrid>
+
+## Features at a glance
+
+- **Two entry kinds** — a full *RDP connection* (host + `.rdp` settings + credentials) or *credentials only*.
+  Existing `.rdp` files can be imported.
+- **Local or shared storage** — a local SQLite vault, or a shared SQL Server / Azure SQL database with an automatic
+  local offline copy. Other SQL engines can be plugged in.
+- **Works offline** — when the shared database is unreachable you can still browse, search, copy and connect from
+  the local copy.
+- **Sign-in** — your Windows account (automatic single sign-on) or Microsoft Entra ID through the Windows broker.
+- **Built for speed** — the main window is visible in under a second, and catalogs with 10 000 entries stay smooth.
+
+## How it works
+
+```
+ ┌──────────────────────────┐   one click   ┌───────────────────────────────┐
+ │ Remote Desktop Harbor    │ ────────────► │ mstsc.exe (normal RDP window) │
+ │  catalog · search · copy │               └───────────────────────────────┘
+ └────────────┬─────────────┘    password via Windows Credential Manager
+              │ encrypted rows only
+     ┌────────┴─────────┐
+     │ local SQLite     │  ◄── sync ──►  shared SQL Server / Azure SQL (optional)
+     │ vault / cache    │                + "who is connected" presence records
+     └──────────────────┘
+```
+
+## Where to go next
+
+<LinkCard
+	title="Install and run"
+	description="Download the zip, pick the right build and start the app."
+	href="getting-started/installation/"
+/>
+<LinkCard
+	title="Quick start"
+	description="Create your first entry and connect in under a minute."
+	href="getting-started/quick-start/"
+/>
+<LinkCard
+	title="Set up a shared database for your team"
+	description="SQL Server / Azure SQL, vault key protection and presence."
+	href="team/shared-database/"
+/>
+<LinkCard
+	title="Security model"
+	description="How passwords are encrypted, where keys live and what is out of scope."
+	href="reference/security-model/"
+/>
