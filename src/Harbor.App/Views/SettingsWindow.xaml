@@ -65,9 +65,9 @@
 
           <TextBlock Text="Shared vault key protection" Style="{StaticResource FieldLabel}" />
           <!-- ADR-0016, ADR-0018 -->
-          <RadioButton GroupName="KeyProtection" Content="Database sign-in – no passphrase" IsChecked="{Binding UseSignInKey}" Margin="0,2" />
+          <RadioButton GroupName="KeyProtection" Content="Database access only – no extra secret" IsChecked="{Binding UseSignInKey}" Margin="0,2" />
           <TextBlock FontSize="11" Opacity="0.6" TextWrapping="Wrap" Margin="24,2,0,4"
-                     Text="Anyone who can sign in to the database (Windows, SQL login or Entra ID) opens the vault, with any app sign-in. Database administrators and database backups can read the stored passwords." />
+                     Text="The vault key is stored in the database itself, so anyone who can read the database opens the vault (Windows, SQL login or Entra ID, with any app sign-in). Database administrators and backups can read the stored passwords too." />
           <RadioButton GroupName="KeyProtection" Content="Active Directory group (DPAPI-NG) – strongest" IsChecked="{Binding UseDpapiNg}" Margin="0,6,0,2" />
           <TextBox Text="{Binding KeyDescriptor, UpdateSourceTrigger=PropertyChanged}" Margin="24,4,0,0"
                    IsEnabled="{Binding UseDpapiNg}" ToolTip="Protection descriptor of the group allowed to decrypt, e.g. SID=S-1-5-21-…-1234" />

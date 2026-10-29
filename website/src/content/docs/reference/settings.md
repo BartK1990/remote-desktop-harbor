@@ -20,7 +20,7 @@ DPAPI-protected for your Windows account, so a copied `settings.json` does not r
 | Server, Database name, Database sign-in, User name, Password, Encrypt, Trust server certificate | `RemoteConnectionStringProtected` | — | Built into a connection string, DPAPI-protected (base64). Edit it in the UI only. |
 | Edit as connection string (advanced) | (same) | off | Edit the raw connection string instead of the fields. Strings the fields cannot describe open here automatically. |
 | Create the database if it does not exist | — (not stored) | off | On **Test connection** and **Save**, create the database if missing. Needs `CREATE DATABASE` rights. |
-| Shared vault key protection | `RemoteKeyScheme` | `sign-in` | `sign-in` (anyone who can sign in to the database, no passphrase), `dpapi-ng` (AD group) or `passphrase`. Used when the shared database has no vault key yet. |
+| Shared vault key protection | `RemoteKeyScheme` | `sign-in` | `sign-in` (*Database access only*: key stored in the database, anyone who can read it opens the vault), `dpapi-ng` (AD group) or `passphrase`. Used when the shared database has no vault key yet. |
 | Convert the existing shared vault to this protection | `RemoteKeyConvert` | `false` | One-time: on the next start, re-protect the existing vault key with the chosen protection; cleared afterwards. See [Vault key protection](../../team/vault-key-protection/). |
 | (descriptor box) | `RemoteKeyDescriptor` | — | DPAPI-NG protection descriptor, e.g. `SID=S-1-5-21-…`. Required for `dpapi-ng`. |
 | Create / upgrade schema automatically | `RemoteAutoMigrate` | `true` | Apply schema migrations at startup. Needs DDL rights. |
