@@ -18,6 +18,15 @@ public enum AuthMode
     Anonymous = 2,
 }
 
+/// <summary>Colour theme of the app. SPEC FR-08</summary>
+public enum AppTheme
+{
+    /// <summary>Follow the Windows light/dark setting.</summary>
+    System = 0,
+    Light = 1,
+    Dark = 2,
+}
+
 /// <summary>User-editable app configuration, persisted as JSON in the data directory. See SPEC section 7.</summary>
 public sealed class HarborSettings
 {
@@ -61,6 +70,9 @@ public sealed class HarborSettings
 
     /// <summary>Keep the TERMSRV credential in Windows Credential Manager after launch (otherwise removed shortly after).</summary>
     public bool KeepCredentialAfterLaunch { get; set; }
+
+    /// <summary>Colour theme, chosen in the main toolbar and applied immediately (SPEC FR-08).</summary>
+    public AppTheme Theme { get; set; } = AppTheme.System;
 
     /// <summary>Canonical paths of the folders collapsed in the entry tree (SPEC FR-02); restored at start.</summary>
     public List<string> CollapsedFolders { get; set; } = [];

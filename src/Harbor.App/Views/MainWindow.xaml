@@ -32,7 +32,10 @@
         <Button Content="New" Command="{Binding AddCommand}" Margin="0,0,6,0" ToolTip="New entry (Ctrl+N)" />
         <Button Content="Import .rdp…" Command="{Binding ImportRdpCommand}" Margin="0,0,6,0" />
         <Button Content="Refresh" Command="{Binding RefreshCommand}" Margin="0,0,6,0" ToolTip="Sync and refresh (F5)" />
-        <Button Content="Settings" Command="{Binding OpenSettingsCommand}" />
+        <Button Content="Settings" Command="{Binding OpenSettingsCommand}" Margin="0,0,6,0" />
+        <!-- Theme selector: applied immediately, remembered across restarts (SPEC FR-08). -->
+        <ComboBox ItemsSource="{Binding Themes}" SelectedItem="{Binding Theme}" MinWidth="100"
+                  ToolTip="Theme: follow Windows, light or dark" AutomationProperties.Name="Theme" />
       </StackPanel>
       <TextBlock Grid.Column="3" Text="{Binding UserText}" VerticalAlignment="Center" Opacity="0.8" />
     </Grid>

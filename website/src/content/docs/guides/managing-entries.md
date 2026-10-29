@@ -84,3 +84,8 @@ Copying works offline too, and is the fallback when a policy prevents Remote Des
 
 When the app uses a shared database that is currently unreachable, **New**, **Import .rdp…**, **Edit** and
 **Delete** are disabled. See [Offline mode](../../team/offline-mode/).
+
+## Light or dark theme
+
+The theme box at the right of the toolbar switches the app between **System** (follows the Windows light/dark
+setting, the default), **Light** and **Dark**. The change applies immediately and is remembered for the next start.

@@ -14,8 +14,10 @@ public partial class App : Application
         DispatcherUnhandledException += OnUnhandledException;
 
         // Show the window first and do sign-in / database work afterwards: fast perceived startup (SPEC NFR-01).
+        var settings = SettingsStore.Load();
+        ThemeService.Apply(settings.Theme); // SPEC FR-08: before the first window, so it never flashes the wrong theme.
         var dialogs = new DialogService();
-        var viewModel = new MainViewModel(SettingsStore.Load(), dialogs);
+        var viewModel = new MainViewModel(settings, dialogs);
         var window = new MainWindow(viewModel);
         dialogs.Owner = window;
         MainWindow = window;
