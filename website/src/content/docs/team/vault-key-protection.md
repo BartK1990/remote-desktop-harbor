@@ -1,6 +1,6 @@
 ---
 title: Vault key protection
-description: How the shared vault key is protected — signed-in users, AD group with DPAPI-NG, or a shared passphrase.
+description: How the shared vault key is protected — database sign-in, AD group with DPAPI-NG, or a shared passphrase.
 ---
 
 Every vault has one random 256-bit **data-encryption key** (DEK) that encrypts all its passwords
@@ -10,12 +10,14 @@ a database administrator or anyone holding a backup. The DEK is therefore stored
 You choose the wrapping when the shared vault is **created**. Later clients read the scheme stored with the key and
 use it automatically, whatever their own settings say.
 
-## Signed-in users — default, no passphrase
+## Database sign-in — default, no passphrase
 
-Anyone who is signed in to the app with a **Windows account** or **Microsoft Entra ID** and can connect to the shared
-database opens the vault. Nobody types a passphrase and there is nothing to set up.
+Anyone who can sign in to the shared database opens the vault — with the **Windows account**, a **SQL Server login**
+(user name + password entered in Settings) or **Microsoft Entra ID**. Nobody types a passphrase and there is nothing
+to set up.
 
-- Users in *No sign-in* mode cannot open such a vault.
+- The app's own sign-in does not matter: Windows, Entra ID and *No sign-in* all work. Your Windows account does not
+  need access to the database when you use a SQL login.
 - The key is stored in the database without further wrapping. **Anyone who can read the database or a backup of it —
   including database administrators — can read the stored passwords.** Protect the database accordingly, or choose
   one of the options below.
@@ -53,7 +55,7 @@ For environments without Active Directory. The DEK is encrypted with a key deriv
 ## Changing the protection of an existing vault
 
 The choice above is used when a vault is **created**. To change an existing vault (for example from a passphrase to
-*Signed-in users*), pick the new protection in **Settings**, tick
+*Database sign-in*), pick the new protection in **Settings**, tick
 **Convert the existing shared vault to this protection on the next start**, save and restart. The app re-protects
 the same key once and then clears the option:
 

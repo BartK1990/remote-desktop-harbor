@@ -50,7 +50,7 @@ public sealed class AppHost : IDisposable
         var passphrase = new PassphraseKeyProtector(() => passphrasePrompt(false));
         var newSharedPassphrase = new PassphraseKeyProtector(() => passphrasePrompt(true));
         var dpapiNg = new DpapiNgKeyProtector(settings.RemoteKeyDescriptor);
-        var signIn = new SignInKeyProtector(user); // ADR-0016
+        var signIn = new SignInKeyProtector(); // ADR-0016, ADR-0018
         var resolver = new KeyProtectorResolver([local, DpapiKeyProtector.User, passphrase, dpapiNg, signIn]);
 
         HarborWorkspace workspace;

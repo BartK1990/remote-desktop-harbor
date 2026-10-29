@@ -140,10 +140,10 @@ public class WorkspaceTests
         using var aliceCache = new TempDb();
         using var bobCache = new TempDb();
         var passphrase = new CountingKeyProtector(Shared);
-        var resolver = new KeyProtectorResolver([AliceLocal, BobLocal, passphrase, new SignInKeyProtector(Users.Bob)]);
+        var resolver = new KeyProtectorResolver([AliceLocal, BobLocal, passphrase, new SignInKeyProtector()]);
 
         using (var alice = HarborWorkspace.CreateRemote(Users.Alice, aliceCache.Store, remoteDb.Store, AliceLocal,
-                   new SignInKeyProtector(Users.Alice), resolver, true))
+                   new SignInKeyProtector(), resolver, true))
         {
             await alice.OpenAsync();
             await alice.SaveAsync(ConnectionEntry.CreateNew("a"), SecretUpdate.Set("pw"));
@@ -159,23 +159,27 @@ public class WorkspaceTests
     }
 
     [Fact]
-    public async Task Sign_in_protected_vault_does_not_open_without_sign_in()
+    public async Task Sign_in_protected_vault_opens_with_database_access_alone() // ADR-0018
     {
         using var remoteDb = new TempDb();
         using var aliceCache = new TempDb();
         using var carolCache = new TempDb();
+        ConnectionEntry saved;
         using (var alice = HarborWorkspace.CreateRemote(Users.Alice, aliceCache.Store, remoteDb.Store, AliceLocal,
-                   new SignInKeyProtector(Users.Alice), Resolver, true))
+                   new SignInKeyProtector(), Resolver, true))
         {
             await alice.OpenAsync();
+            saved = await alice.SaveAsync(ConnectionEntry.CreateNew("srv") with { Host = "srv" }, SecretUpdate.Set("hunter2"));
         }
 
-        var carolResolver = new KeyProtectorResolver([BobLocal, new SignInKeyProtector(Users.Carol)]);
+        // Carol uses no app sign-in (FR-44); being able to sign in to the database is enough, no passphrase.
+        var carolResolver = new KeyProtectorResolver([BobLocal, new SignInKeyProtector()]);
         using var carol = HarborWorkspace.CreateRemote(Users.Carol, carolCache.Store, remoteDb.Store, BobLocal,
-            new SignInKeyProtector(Users.Carol), carolResolver, true);
+            new SignInKeyProtector(), carolResolver, true);
+        await carol.OpenAsync();
 
-        var ex = await Assert.ThrowsAsync<WorkspaceOfflineException>(() => carol.OpenAsync());
-        Assert.IsType<VaultKeyException>(ex.InnerException);
+        Assert.True(carol.IsOnline);
+        Assert.Equal("hunter2", carol.RevealPassword((await carol.ListAsync()).Single(e => e.Id == saved.Id)));
     }
 
     [Fact]
@@ -185,7 +189,7 @@ public class WorkspaceTests
         using var aliceCache = new TempDb();
         using var bobCache = new TempDb();
         var passphrase = new CountingKeyProtector(Shared);
-        var resolver = new KeyProtectorResolver([AliceLocal, BobLocal, passphrase, new SignInKeyProtector(Users.Alice)]);
+        var resolver = new KeyProtectorResolver([AliceLocal, BobLocal, passphrase, new SignInKeyProtector()]);
 
         using (var alice = HarborWorkspace.CreateRemote(Users.Alice, aliceCache.Store, remoteDb.Store, AliceLocal, passphrase, resolver, true))
         {
@@ -198,7 +202,7 @@ public class WorkspaceTests
 
         // Alice converts: her cached key is used, so not even she needs the passphrase.
         using (var alice = HarborWorkspace.CreateRemote(Users.Alice, aliceCache.Store, remoteDb.Store, AliceLocal,
-                   new SignInKeyProtector(Users.Alice), resolver, true))
+                   new SignInKeyProtector(), resolver, true))
         {
             alice.ConvertRemoteKeyProtection = true;
             await alice.OpenAsync();
@@ -226,9 +230,9 @@ public class WorkspaceTests
             await alice.OpenAsync();
         }
 
-        var resolver = new KeyProtectorResolver([AliceLocal, Shared, new SignInKeyProtector(Users.Alice)]);
+        var resolver = new KeyProtectorResolver([AliceLocal, Shared, new SignInKeyProtector()]);
         using (var again = HarborWorkspace.CreateRemote(Users.Alice, aliceCache.Store, remoteDb.Store, AliceLocal,
-                   new SignInKeyProtector(Users.Alice), resolver, true))
+                   new SignInKeyProtector(), resolver, true))
         {
             await again.OpenAsync();
             Assert.False(again.RemoteKeyConverted);

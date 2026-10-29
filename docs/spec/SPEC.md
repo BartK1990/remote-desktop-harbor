@@ -51,7 +51,7 @@ shows who is currently connected to which machine.
 | FR-24 | Concurrent edits are detected (optimistic concurrency); a stale edit is rejected with a message, never silently overwrites. |
 | FR-25 | The remote schema can be created/upgraded automatically by the app (optional; needs DDL rights) and is versioned. |
 | FR-26 | The Settings dialog always opens showing the saved configuration (storage mode, key protection, sign-in). Choosing an option in one section never changes another section. |
-| FR-28 | The shared vault key can be protected by **verified sign-in** (default): any user signed in with Windows or Entra ID who can access the shared database opens the vault without a passphrase; users without sign-in (FR-44) cannot. An existing vault can be converted to another protection once, on request, keeping its key ([ADR-0016](../adr/0016-sign-in-vault-key-protection.md)). |
+| FR-28 | The shared vault key can be protected by **database sign-in** (default, scheme `sign-in`): any user who can sign in to the shared database — Windows integrated, SQL login (user + password) or Entra ID — opens the vault without a passphrase, whatever the app sign-in (Windows, Entra ID or none, FR-44). An existing vault can be converted to another protection once, on request, keeping its key ([ADR-0016](../adr/0016-sign-in-vault-key-protection.md), [ADR-0018](../adr/0018-database-sign-in-opens-vault.md)). |
 | FR-27 | The shared database is configured with simple fields — server (name or IP), database name, database sign-in (Windows, SQL login with user + password, Entra ID), encryption options — with an option to create the database if it does not exist ([ADR-0014](../adr/0014-database-connection-form.md)). A raw connection string can still be edited; strings the fields cannot describe are kept as text. |
 
 ### 3.4 Session presence ("who is connected")
@@ -162,7 +162,6 @@ for the full list.
 | FR-22 (shared key cached per machine) | `Core/Services/HarborWorkspace` | `WorkspaceTests` |
 | FR-28 | `Core/Security/SignInKeyProtector`, `Core/Services/HarborWorkspace`, `App/ViewModels/SettingsViewModel` | `SignInKeyProtectorTests`, `WorkspaceTests`, `SettingsViewModelTests` (Windows) |
 | FR-26 | `App/ViewModels/SettingsViewModel`, `App/Views/SettingsWindow` | `SettingsViewModelTests`, `ViewSourceTests` (Windows) |
-| FR-28 | The shared vault key can be protected by **verified sign-in** (default): any user signed in with Windows or Entra ID who can access the shared database opens the vault without a passphrase; users without sign-in (FR-44) cannot. An existing vault can be converted to another protection once, on request, keeping its key ([ADR-0016](../adr/0016-sign-in-vault-key-protection.md)). |
 | FR-27 | `Data/Providers/IServerDatabaseProvider`, `Data/Providers/SqlServerProvider`, `App/ViewModels/SettingsViewModel` | `SqlServerConnectionFormTests`, `SettingsViewModelTests` (Windows) |
 | FR-34 (closing the app) | `App/Views/MainWindow` | `ViewSourceTests` (Windows), manual |
 | FR-30..36 | `Core/Services/SessionPresenceService`, `Data/SqlHarborStore` | `PresenceTests` |

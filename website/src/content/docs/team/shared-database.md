@@ -41,8 +41,8 @@ integrated, SQL Server login or Entra ID. The app's sign-in identity is used for
 All entries are encrypted with one shared vault key. Decide who can unlock it — see
 [Vault key protection](../vault-key-protection/) for details:
 
-- **Signed-in users (default)** — no passphrase: everyone signed in with Windows or Entra ID who can reach the
-  database opens the vault. Database administrators and backups can then read the passwords too.
+- **Database sign-in (default)** — no passphrase: everyone who can sign in to the database (Windows, SQL login or
+  Entra ID, with any app sign-in) opens the vault. Database administrators and backups can then read the passwords too.
 - **Active Directory group (strongest)** — create an AD security group (e.g. *RDP Vault Users*) and note its SID:
 
   ```powershell
@@ -62,7 +62,7 @@ Open **Settings → Storage** and choose **Shared database with offline copy**:
 | Database name | e.g. `Harbor`. Tick **Create the database if it does not exist** to have it created. |
 | Database sign-in | **Windows account**, **SQL Server login** (user + password), or **Microsoft Entra ID** |
 | Encrypt / Trust server certificate | Encrypt is on by default. Tick *Trust the server certificate* for servers with a self-signed certificate (typical when connecting by IP). |
-| Shared vault key protection | **Signed-in users** (default, no passphrase), **Active Directory group** with `SID=S-1-5-21-…`, or **Shared passphrase** |
+| Shared vault key protection | **Database sign-in** (default, no passphrase), **Active Directory group** with `SID=S-1-5-21-…`, or **Shared passphrase** |
 | Create / upgrade schema automatically | On for the first client (needs DDL rights) |
 | Sync interval | Default `60` seconds (minimum 10) |
 
