@@ -64,8 +64,12 @@
       </Grid.ColumnDefinitions>
 
       <!-- Entry tree: compact rows, collapsible folders, filtered by the search box (SPEC FR-02).
-           Virtualized for large catalogs (SPEC NFR-03). -->
-      <TreeView x:Name="EntryTree" Grid.Column="0" ItemsSource="{Binding Tree}"
+           Virtualized for large catalogs (SPEC NFR-03).
+           Sits on a card (theme-aware fill + stroke) so the explorer area stands out from the window. -->
+      <Border Grid.Column="0" CornerRadius="6" BorderThickness="1" Padding="2"
+              Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+              BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
+      <TreeView x:Name="EntryTree" ItemsSource="{Binding Tree}" Background="Transparent" BorderThickness="0"
                 VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
                 VirtualizingPanel.ScrollUnit="Pixel" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                 Padding="2" SelectedItemChanged="EntryTree_SelectedItemChanged" TreeViewItem.Selected="EntryTree_ItemSelected"
@@ -199,6 +203,7 @@
           </ContextMenu>
         </TreeView.ContextMenu>
       </TreeView>
+      </Border>
 
       <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="Transparent" />
 
