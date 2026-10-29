@@ -1,0 +1,109 @@
+---
+title: Shared database
+description: Share one encrypted catalog with your team through SQL Server or Azure SQL.
+---
+
+In **shared mode** all entries — including their encrypted passwords — live in one SQL database that the whole team
+uses. Every client keeps a local, still-encrypted copy for speed and [offline use](../offline-mode/), and the shared
+database powers [session presence](../session-presence/).
+
+```
+ Alice's PC ──┐                                  ┌── Bob's PC
+  local cache │◄──── sync (ciphertext only) ────►│ local cache
+              └──────► SQL Server / Azure SQL ◄──┘
+                       Connections · VaultKeys · ActiveSessions
+```
+
+Supported engines in v1: **SQL Server** and **Azure SQL**. Other engines can be added as
+[database providers](../../development/database-providers/).
+
+## 1. Create the database
+
+Create an **empty** database (for example `Harbor`) and grant the team:
+
+| Role | Why |
+|---|---|
+| `db_datareader` + `db_datawriter` | Everyday use: read, edit, presence |
+| DDL rights (e.g. `db_ddladmin`) | **First start only**, to create the schema — or for schema upgrades |
+
+If team members should not have DDL rights, have a DBA start the app once with
+**Create / upgrade database schema automatically** enabled, then turn the option off for everyone else.
+The schema is versioned; newer app versions add migrations, never edit old ones.
+
+:::note
+Who may connect to the database is controlled entirely by the database's own authentication — Windows
+integrated or Entra ID in the connection string. The app's sign-in identity is used for presence and audit only.
+:::
+
+## 2. Decide how the vault key is protected
+
+All entries are encrypted with one shared vault key. Decide who can unlock it — see
+[Vault key protection](../vault-key-protection/) for details:
+
+- **Active Directory group (recommended)** — create an AD security group (e.g. *RDP Vault Users*) and note its SID:
+
+  ```powershell
+  Get-ADGroup "RDP Vault Users" | Select-Object SID
+  ```
+
+- **Shared passphrase** — for environments without Active Directory.
+
+## 3. Configure the app
+
+Open **Settings → Storage** and choose **Shared database with offline copy**:
+
+| Field | Value |
+|---|---|
+| Provider | `SqlServer` |
+| Connection string | See examples below. Stored encrypted for your Windows account. |
+| Shared vault key protection | **Active Directory group** with `SID=S-1-5-21-…` — or **Shared passphrase** |
+| Create / upgrade schema automatically | On for the first client (needs DDL rights) |
+| Sync interval | Default `60` seconds (minimum 10) |
+
+Use **Test connection** to check the connection string before saving.
+
+### Connection string examples
+
+SQL Server with Windows authentication:
+
+```text
+Server=sql01;Database=Harbor;Integrated Security=true;Encrypt=true
+```
+
+Azure SQL with Entra ID (uses your signed-in Windows / Entra account):
+
+```text
+Server=tcp:contoso.database.windows.net;Database=Harbor;Authentication=Active Directory Default
+```
+
+Interactive Entra ID sign-in:
+
+```text
+Server=tcp:contoso.database.windows.net;Database=Harbor;Authentication=Active Directory Interactive
+```
+
+## 4. Restart
+
+Click **Save** and confirm the restart. The **first** client to connect creates the schema (if allowed) and the
+vault key; everyone else picks the key up automatically. The status bar shows
+**Shared database · online · synced HH:MM:SS**.
+
+## Rolling it out to the team
+
+Each team member sets the same provider and connection string. The key protection choice only matters for the
+client that creates the vault — existing vaults keep the protection they were created with.
+
+:::tip
+Entries from a previous *local* vault are not moved automatically. Switching storage mode opens a different
+database; the local vault file stays where it is, so you can switch back.
+:::
+
+## How syncing works
+
+- The list is always shown from the local copy first, so startup never waits for the network.
+- Changes are pulled incrementally at start, every sync interval, on <kbd>F5</kbd> and after each of your own
+  changes. Deletions propagate to everyone.
+- Your edits are written to the shared database first and then to your local copy.
+- If two people edit the same entry, the second save is rejected rather than overwriting the first
+  (optimistic concurrency).
+- Each shared database gets its own local cache file, so switching databases never mixes data.

@@ -68,5 +68,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $v = "${{ steps.version.outputs.version }}"
-          $pre = if ($v -match '-') { "--prerelease" } else { "" }
-          gh release create "v$v" dist/* --title "Remote Desktop Harbor $v" --generate-notes --target "${{ github.sha }}" $pre
+          # Build the argument list explicitly: an empty "" argument would be taken by gh as an asset path.
+          $ghArgs = @("release", "create", "v$v", "--title", "Remote Desktop Harbor $v", "--generate-notes", "--target", "${{ github.sha }}")
+          if ($v -match '-') { $ghArgs += "--prerelease" }
+          $ghArgs += (Get-ChildItem dist -File).FullName
+          gh @ghArgs

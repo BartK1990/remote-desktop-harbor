@@ -82,7 +82,7 @@ public sealed class PresenceLease : IAsyncDisposable
     private readonly Action<Exception>? _onError;
     private readonly CancellationTokenSource _stop = new();
     private Task? _loop;
-    private bool _registered;
+    private volatile bool _registered; // written by the heartbeat loop, read from the UI thread
     private int _disposed;
 
     internal PresenceLease(IPresenceStore? store, PresenceOptions options, Guid connectionId, UserIdentity user,

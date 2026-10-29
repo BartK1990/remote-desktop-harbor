@@ -18,3 +18,4 @@ Process: see [spec/README.md](../spec/README.md).
 | [0010](0010-session-presence-heartbeat-ttl.md) | Session presence: heartbeat records with server-clock TTL | Accepted |
 | [0011](0011-ci-release-pipeline.md) | CI and release on GitHub Actions, win-x64 | Accepted |
 | [0012](0012-microsoft-store-readiness.md) | Microsoft Store readiness via MSIX packaging later | Accepted |
+| [0013](0013-documentation-site-starlight.md) | Documentation site: Astro Starlight on GitHub Pages | Accepted |

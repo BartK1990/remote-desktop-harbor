@@ -16,6 +16,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         DataContext = _viewModel = viewModel;
+        Title = Infrastructure.AppInfo.Title;
         FocusSearchCommand = new RelayCommand(() => { SearchBox.Focus(); SearchBox.SelectAll(); });
         Loaded += OnLoaded;
     }
