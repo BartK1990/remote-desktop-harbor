@@ -219,22 +219,39 @@ audiomode:i:2</div>
       <span class="radio on"><i></i>Shared database with offline copy</span>
       <div style="margin-left:24px">
         <div class="lbl">Provider</div><div class="tb combo" style="width:200px">SqlServer</div>
-        <div class="lbl">Connection string</div><div class="tb">Server=sql01;Database=Harbor;Integrated Security=true;Encrypt=true</div>
-        <div class="hint">Examples: Server=sql01;Database=Harbor;Integrated Security=true;Encrypt=true · Server=tcp:x.database.windows.net;Database=Harbor;Authentication=Active Directory Default. Stored encrypted for your Windows account.</div>
+        <div class="lbl">Server (name or IP address)</div><div class="tb">sql01</div>
+        <div class="lbl">Database name</div><div class="tb">Harbor</div>
+        <div class="lbl">Database sign-in</div><div class="tb combo" style="width:300px">SQL Server login (user + password)</div>
+        <div class="lbl">User name</div><div class="tb">harbor_user</div>
+        <div class="lbl">Password</div><div class="tb">●●●●●●●●●●●●</div>
+        <span class="check on" style="margin-top:10px"><i></i>Encrypt the connection</span>
+        <span class="check"><i></i>Trust the server certificate (self-signed certificate, e.g. when connecting by IP)</span>
+        <span class="check" style="margin-top:10px"><i></i>Edit as connection string (advanced)</span>
+        <div class="hint">Stored encrypted for your Windows account. The database sign-in is separate from the app sign-in below.</div>
+        <span class="check" style="margin-top:10px"><i></i>Create the database if it does not exist (on Test connection and Save; needs CREATE DATABASE rights)</span>
         <div style="display:flex;align-items:center;margin-top:8px"><span class="btn">Test connection</span><span style="margin-left:12px">OK – connected to sql01 / Harbor</span></div>
         <div class="lbl">Shared vault key protection</div>
-        <span class="radio on"><i></i>Active Directory group (DPAPI-NG) – recommended</span>
-        <div class="tb" style="margin-left:24px;margin-top:4px">SID=S-1-5-21-1004336348-1177238915-682003330-5126</div>
-        <span class="radio" style="margin-top:8px"><i></i>Shared passphrase</span>
-        <div class="hint">Only used when this database has no vault key yet. Existing vaults keep the protection they were created with.</div>
+        <span class="radio on"><i></i>Database sign-in – no passphrase</span>
+        <div class="hint" style="margin-left:24px;margin-bottom:4px">Anyone who can sign in to the database (Windows, SQL login or Entra ID) opens the vault, with any app sign-in. Database administrators and database backups can read the stored passwords.</div>
+        <span class="radio" style="margin-top:6px"><i></i>Active Directory group (DPAPI-NG) – strongest</span>
+        <div class="tb dim" style="margin-left:24px;margin-top:4px"></div>
+        <span class="radio" style="margin-top:6px"><i></i>Shared passphrase</span>
+        <div class="hint">Used when this database has no vault key yet. Existing vaults keep their protection unless you convert them:</div>
+        <span class="check"><i></i>Convert the existing shared vault to this protection on the next start</span>
         <span class="check on" style="margin-top:10px"><i></i>Create / upgrade database schema automatically (needs DDL rights)</span>
         <div class="lbl">Sync interval (seconds)</div><div class="tb" style="width:100px">60</div>
         <div class="lbl">Session presence timeout / heartbeat (seconds)</div>
         <div style="display:flex;align-items:center"><div class="tb" style="width:100px">120</div><span style="margin:0 12px">/</span><div class="tb" style="width:100px">45</div></div>
       </div>
       <div class="hdr">Sign-in</div>
-      <span class="radio on"><i></i>Windows account (domain / local, automatic single sign-on)</span>
+      <div class="hint" style="margin-top:0;margin-bottom:4px">Who you are for session presence and audit. Works with both local and shared storage.</div>
+      <span class="radio"><i></i>Windows account (domain / local, automatic single sign-on) – recommended</span>
       <span class="radio"><i></i>Microsoft Entra ID (work account via Windows broker, SSO when available)</span>
+      <span class="radio on"><i></i>No sign-in – just enter your name</span>
+      <div style="margin-left:24px">
+        <div class="lbl">Your name</div><div class="tb">Alex Kim</div>
+        <div class="hint">Shown to others as "in use by &lt;name&gt; (not signed in)" and in "Last changed by". Not verified – anyone can type any name, so prefer a Windows or Entra ID sign-in.</div>
+      </div>
       <div class="hdr">Remote Desktop</div>
       <span class="check"><i></i>Keep the password in Windows Credential Manager after connecting</span>
       <div class="hint">Off (default): the credential is removed ~30 s after Remote Desktop starts and never survives logoff. On: reconnects work without the app, but the password stays in Credential Manager.</div>
