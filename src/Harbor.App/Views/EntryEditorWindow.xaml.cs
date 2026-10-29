@@ -1,10 +1,10 @@
 using System.Windows;
-using System.Windows.Controls;
 using Harbor.App.ViewModels;
+using FluentWindow = Wpf.Ui.Controls.FluentWindow;
 
 namespace Harbor.App.Views;
 
-public partial class EntryEditorWindow : Window
+public partial class EntryEditorWindow : FluentWindow
 {
     private readonly EntryEditorViewModel _viewModel;
 
@@ -20,7 +20,7 @@ public partial class EntryEditorWindow : Window
 
     private void AccountPasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
     {
-        if (sender is PasswordBox { DataContext: AccountEditorViewModel account } box) account.Password = box.Password;
+        if (sender is Wpf.Ui.Controls.PasswordBox { DataContext: AccountEditorViewModel account } box) account.Password = box.Password;
     }
 
     private void Save_Click(object sender, RoutedEventArgs e)

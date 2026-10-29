@@ -11,8 +11,8 @@ public class AccountViewModelTests
     {
         public bool EditEntry(EntryEditorViewModel editor) => false;
         public bool EditSettings(SettingsViewModel settings) => false;
-        public bool Confirm(string title, string message) => false;
-        public void ShowError(string title, string message) { }
+        public Task<bool> ConfirmAsync(string title, string message) => Task.FromResult(false);
+        public Task ShowErrorAsync(string title, string message) => Task.CompletedTask;
         public string? PickRdpFile() => null;
     }
 

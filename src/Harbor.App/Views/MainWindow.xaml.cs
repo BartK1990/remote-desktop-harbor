@@ -6,20 +6,23 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Media3D;
 using CommunityToolkit.Mvvm.Input;
+using Harbor.App.Infrastructure;
 using Harbor.App.ViewModels;
+using FluentWindow = Wpf.Ui.Controls.FluentWindow;
 
 namespace Harbor.App.Views;
 
-public partial class MainWindow : Window
+public partial class MainWindow : FluentWindow
 {
     private readonly MainViewModel _viewModel;
     private bool _disposed;
+    private bool _closing;
 
     public MainWindow(MainViewModel viewModel)
     {
         InitializeComponent();
         DataContext = _viewModel = viewModel;
-        Title = Infrastructure.AppInfo.Title;
+        Title = AppInfo.Title;
         FocusSearchCommand = new RelayCommand(() => { SearchBox.Focus(); SearchBox.SelectAll(); });
         Loaded += OnLoaded;
     }
@@ -28,6 +31,7 @@ public partial class MainWindow : Window
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
+        ThemeService.Follow(this); // SPEC FR-08: "System" follows Windows light/dark changes while the app runs.
         var handle = new WindowInteropHelper(this).Handle;
         await _viewModel.InitializeAsync(() => handle, PromptPassphrase);
         SearchBox.Focus();
@@ -121,21 +125,29 @@ public partial class MainWindow : Window
         base.OnClosing(e);
         if (_disposed) return;
 
-        // Presence is published by this app; closing it ends the "in use" records (SPEC FR-34).
-        if (_viewModel.ActiveLaunchCount > 0 && MessageBox.Show(this,
-                $"{_viewModel.ActiveLaunchCount} Remote Desktop session(s) started from this app are still open. " +
-                "After closing, other users will no longer see them as in use. Close anyway?",
-                "Remote Desktop Harbor", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
-        {
-            e.Cancel = true;
-            return;
-        }
-
+        // The confirmation is asynchronous, so cancel now and close again once it is answered and the app has shut down.
         e.Cancel = true;
-        await _viewModel.DisposeAsync();
-        _disposed = true;
-        // DisposeAsync often completes synchronously, so we may still be inside this Closing event, where Close()
-        // throws "Cannot ... Close ... while a Window is closing". Close again once the event has finished.
-        _ = Dispatcher.BeginInvoke(Close);
+        if (_closing) return;
+        _closing = true;
+        try
+        {
+            // Presence is published by this app; closing it ends the "in use" records (SPEC FR-34).
+            if (_viewModel.ActiveLaunchCount > 0 && !await DialogService.ConfirmAsync(this, "Remote Desktop Harbor",
+                    $"{_viewModel.ActiveLaunchCount} Remote Desktop session(s) started from this app are still open. " +
+                    "After closing, other users will no longer see them as in use. Close anyway?"))
+            {
+                return;
+            }
+
+            await _viewModel.DisposeAsync();
+            _disposed = true;
+            // DisposeAsync often completes synchronously, so we may still be inside this Closing event, where Close()
+            // throws "Cannot ... Close ... while a Window is closing". Close again once the event has finished.
+            _ = Dispatcher.BeginInvoke(Close);
+        }
+        finally
+        {
+            _closing = false;
+        }
     }
 }
