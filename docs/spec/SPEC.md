@@ -50,6 +50,8 @@ shows who is currently connected to which machine.
 | FR-23 | The local copy is refreshed incrementally at start, periodically (default 60 s), on demand (F5), and after each own change. Deletions propagate. |
 | FR-24 | Concurrent edits are detected (optimistic concurrency); a stale edit is rejected with a message, never silently overwrites. |
 | FR-25 | The remote schema can be created/upgraded automatically by the app (optional; needs DDL rights) and is versioned. |
+| FR-26 | The Settings dialog always opens showing the saved configuration (storage mode, key protection, sign-in). Choosing an option in one section never changes another section. |
+| FR-27 | The shared database is configured with simple fields — server (name or IP), database name, database sign-in (Windows, SQL login with user + password, Entra ID), encryption options — with an option to create the database if it does not exist ([ADR-0014](../adr/0014-database-connection-form.md)). A raw connection string can still be edited; strings the fields cannot describe are kept as text. |
 
 ### 3.4 Session presence ("who is connected")
 
@@ -70,7 +72,7 @@ shows who is currently connected to which machine.
 | FR-40 | Default sign-in uses the current Windows account without a prompt (domain or local). E-mail and display name come from Active Directory when reachable, otherwise from the UPN. |
 | FR-41 | Optional Microsoft Entra ID sign-in via the Windows account broker (WAM): silent SSO on Entra/hybrid-joined devices, interactive otherwise. |
 | FR-42 | The signed-in identity is used for presence (FR-30) and audit (`UpdatedBy` on entries). |
-| FR-43 | Access to the shared SQL database uses the connection string's authentication: Windows integrated or Entra ID (`Authentication=Active Directory …`). |
+| FR-43 | Access to the shared SQL database uses the connection string's authentication: Windows integrated, SQL Server login, or Entra ID (`Authentication=Active Directory …`). It is independent of the app sign-in (FR-40/41): every sign-in works with both storage modes. |
 
 ## 4. Non-functional requirements
 
@@ -131,7 +133,8 @@ All timestamps are Unix milliseconds (UTC) from the database clock. Ids are GUID
 ## 7. Settings
 
 Stored as JSON in the data folder (`%LOCALAPPDATA%\RemoteDesktopHarbor\settings.json`, or `.\data` in portable mode).
-The remote connection string is DPAPI-protected. See `HarborSettings` for the full list.
+The remote connection string — including a SQL login password, if used — is DPAPI-protected. See `HarborSettings`
+for the full list.
 
 ## 8. Open questions
 
@@ -151,6 +154,8 @@ The remote connection string is DPAPI-protected. See `HarborSettings` for the fu
 | FR-03, FR-05, FR-10, FR-12 | `Core/Rdp/RdpFile`, `Windows/Rdp/MstscLauncher` | `RdpFileTests` |
 | FR-11 | `Windows/Rdp/WindowsCredentialStore` | manual (Windows) |
 | FR-20..25 | `Core/Services/HarborWorkspace`, `Data/SqlHarborStore`, `Data/Providers/*` | `WorkspaceTests`, `SqlHarborStoreTests` |
+| FR-26 | `App/ViewModels/SettingsViewModel`, `App/Views/SettingsWindow` | manual (Windows) |
+| FR-27 | `Data/Providers/IServerDatabaseProvider`, `Data/Providers/SqlServerProvider`, `App/ViewModels/SettingsViewModel` | `SqlServerConnectionFormTests` |
 | FR-30..36 | `Core/Services/SessionPresenceService`, `Data/SqlHarborStore` | `PresenceTests` |
 | FR-40..43 | `Windows/Identity/*`, `App/Infrastructure/AppHost` | manual (Windows) |
 | NFR-10..13 | `Core/Security/*`, `Windows/Security/*` | `SecretCipherTests`, `WorkspaceTests` |

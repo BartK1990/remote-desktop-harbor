@@ -17,7 +17,9 @@ DPAPI-protected for your Windows account, so a copied `settings.json` does not r
 |---|---|---|---|
 | Local vault / Shared database | `StorageMode` | `Local` | `Local` — SQLite file on this computer. `Remote` — shared database with offline copy. |
 | Provider | `RemoteProvider` | `SqlServer` | Registered database provider for the shared database. |
-| Connection string | `RemoteConnectionStringProtected` | — | Connection string, DPAPI-protected (base64). Edit it in the UI only. |
+| Server, Database name, Database sign-in, User name, Password, Encrypt, Trust server certificate | `RemoteConnectionStringProtected` | — | Built into a connection string, DPAPI-protected (base64). Edit it in the UI only. |
+| Edit as connection string (advanced) | (same) | off | Edit the raw connection string instead of the fields. Strings the fields cannot describe open here automatically. |
+| Create the database if it does not exist | — (not stored) | off | On **Test connection** and **Save**, create the database if missing. Needs `CREATE DATABASE` rights. |
 | Shared vault key protection | `RemoteKeyScheme` | `dpapi-ng` | `dpapi-ng` (AD group) or `passphrase`. Only used when the shared database has no vault key yet. |
 | (descriptor box) | `RemoteKeyDescriptor` | — | DPAPI-NG protection descriptor, e.g. `SID=S-1-5-21-…`. Required for `dpapi-ng`. |
 | Create / upgrade schema automatically | `RemoteAutoMigrate` | `true` | Apply schema migrations at startup. Needs DDL rights. |
@@ -29,7 +31,7 @@ DPAPI-protected for your Windows account, so a copied `settings.json` does not r
 
 | UI | JSON property | Default | Description |
 |---|---|---|---|
-| Windows account / Microsoft Entra ID | `AuthMode` | `Windows` | `Windows` or `EntraId`. |
+| Windows account / Microsoft Entra ID | `AuthMode` | `Windows` | `Windows` or `EntraId`. Who you are for presence and audit; independent of storage and of the database sign-in. |
 | Application (client) ID | `EntraClientId` | — | Required for Entra ID. See [Entra ID sign-in](../../team/entra-id/). |
 | Tenant ID or domain | `EntraTenantId` | `organizations` | Tenant ID, domain, or `organizations`. |
 
@@ -48,7 +50,9 @@ is active.
 
 The dialog refuses to save when:
 
-- shared storage is selected without a connection string,
+- shared storage is selected without a server, database name or (for a SQL login) user name — or, when editing the
+  raw string, without a connection string,
+- the database should be created but that fails (untick the option to save anyway),
 - AD-group protection is selected without a descriptor,
 - Entra ID is selected without a client ID,
 - the heartbeat is more than half of the presence timeout.

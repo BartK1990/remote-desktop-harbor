@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Windows;
 using Harbor.App.ViewModels;
 
@@ -11,13 +12,36 @@ public partial class SettingsWindow : Window
     {
         InitializeComponent();
         DataContext = _viewModel = viewModel;
+        DbPasswordBox.Password = viewModel.DbPassword ?? "";
+        viewModel.PropertyChanged += ViewModel_PropertyChanged;
+        Closed += (_, _) => viewModel.PropertyChanged -= ViewModel_PropertyChanged;
     }
 
-    private void Save_Click(object sender, RoutedEventArgs e)
+    // PasswordBox cannot be bound; mirror it both ways (the view model reloads it when leaving the raw editor).
+    private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (_viewModel.Validate())
+        if (e.PropertyName == nameof(SettingsViewModel.DbPassword) && DbPasswordBox.Password != (_viewModel.DbPassword ?? ""))
         {
-            DialogResult = true;
+            DbPasswordBox.Password = _viewModel.DbPassword ?? "";
+        }
+    }
+
+    private void DbPasswordBox_PasswordChanged(object sender, RoutedEventArgs e) => _viewModel.DbPassword = DbPasswordBox.Password;
+
+    private async void Save_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_viewModel.Validate()) return;
+        IsEnabled = false;
+        try
+        {
+            if (await _viewModel.PrepareSaveAsync())
+            {
+                DialogResult = true;
+            }
+        }
+        finally
+        {
+            IsEnabled = true;
         }
     }
 }

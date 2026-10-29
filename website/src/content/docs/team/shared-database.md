@@ -19,7 +19,8 @@ Supported engines in v1: **SQL Server** and **Azure SQL**. Other engines can be 
 
 ## 1. Create the database
 
-Create an **empty** database (for example `Harbor`) and grant the team:
+Create an **empty** database (for example `Harbor`) — or let the app create it with **Create the database if it does
+not exist** in Settings (needs `CREATE DATABASE` rights) — and grant the team:
 
 | Role | Why |
 |---|---|
@@ -32,7 +33,7 @@ The schema is versioned; newer app versions add migrations, never edit old ones.
 
 :::note
 Who may connect to the database is controlled entirely by the database's own authentication — Windows
-integrated or Entra ID in the connection string. The app's sign-in identity is used for presence and audit only.
+integrated, SQL Server login or Entra ID. The app's sign-in identity is used for presence and audit only.
 :::
 
 ## 2. Decide how the vault key is protected
@@ -55,16 +56,23 @@ Open **Settings → Storage** and choose **Shared database with offline copy**:
 | Field | Value |
 |---|---|
 | Provider | `SqlServer` |
-| Connection string | See examples below. Stored encrypted for your Windows account. |
+| Server | Name or IP address, e.g. `10.0.0.5`, `sql01\SQLEXPRESS`, `10.0.0.5,1433`, `contoso.database.windows.net` |
+| Database name | e.g. `Harbor`. Tick **Create the database if it does not exist** to have it created. |
+| Database sign-in | **Windows account**, **SQL Server login** (user + password), or **Microsoft Entra ID** |
+| Encrypt / Trust server certificate | Encrypt is on by default. Tick *Trust the server certificate* for servers with a self-signed certificate (typical when connecting by IP). |
 | Shared vault key protection | **Active Directory group** with `SID=S-1-5-21-…` — or **Shared passphrase** |
 | Create / upgrade schema automatically | On for the first client (needs DDL rights) |
 | Sync interval | Default `60` seconds (minimum 10) |
 
-Use **Test connection** to check the connection string before saving.
+Use **Test connection** to check the settings before saving. Everything is stored as one connection string,
+encrypted for your Windows account (a SQL login password included). The database sign-in is independent of the
+app's own [sign-in](../entra-id/): Windows or Entra ID app sign-in both work with a shared database.
 
 ![Settings dialog with "Shared database with offline copy" selected: provider SqlServer, connection string, Test connection, Active Directory group protection with a SID descriptor, schema auto-upgrade, sync interval and presence timings.](../../../assets/screenshots/settings.png)
 
 ### Connection string examples
+
+Tick **Edit as connection string (advanced)** to type a raw connection string instead of the fields:
 
 SQL Server with Windows authentication:
 
@@ -76,6 +84,12 @@ Azure SQL with Entra ID (uses your signed-in Windows / Entra account):
 
 ```text
 Server=tcp:contoso.database.windows.net;Database=Harbor;Authentication=Active Directory Default
+```
+
+SQL Server login on a server reached by IP:
+
+```text
+Server=10.0.0.5;Database=Harbor;User ID=harbor;Password=…;Encrypt=true;TrustServerCertificate=true
 ```
 
 Interactive Entra ID sign-in:
