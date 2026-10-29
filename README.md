@@ -26,7 +26,7 @@ Grab `RemoteDesktopHarbor-<version>-win-x64.zip` from [Releases](../../releases)
 
 * **Portable mode:** create an empty `portable.txt` next to the exe → data goes to `.\data`.
   (Passwords still only decrypt for the same Windows user on the same machine.)
-* The `-fdd` zip is a ~10× smaller build for machines that already have the .NET 10 Desktop Runtime.
+* The `-requires-dotnet10` zip is a ~10× smaller build for machines that already have the .NET 10 Desktop Runtime.
 
 ## Shared database setup (team)
 

@@ -13,7 +13,7 @@ rights.
 | Operating system | Windows 10 version 1809 or later, or Windows 11 |
 | Architecture | x64 |
 | Rights | A standard (non-admin) Windows account is enough |
-| Runtime | None for the default build; the `-fdd` build needs the .NET 10 Desktop Runtime |
+| Runtime | None for the default build; the `-requires-dotnet10` build needs the .NET 10 Desktop Runtime |
 
 ## Download
 
@@ -23,7 +23,7 @@ Get the latest release from the
 | File | When to use it |
 |---|---|
 | `RemoteDesktopHarbor-<version>-win-x64.zip` | **Recommended.** Self-contained — includes the .NET runtime, nothing else to install. |
-| `RemoteDesktopHarbor-<version>-win-x64-fdd.zip` | About 10× smaller. Only for machines that already have the **.NET 10 Desktop Runtime**. |
+| `RemoteDesktopHarbor-<version>-win-x64-requires-dotnet10.zip` | About 10× smaller. Only for machines that already have the **.NET 10 Desktop Runtime**. |
 | `SHA256SUMS.txt` | SHA-256 checksums of both zips. |
 
 To verify a download in PowerShell:

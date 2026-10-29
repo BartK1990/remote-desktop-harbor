@@ -58,7 +58,7 @@ jobs:
             Copy-Item README.md -Destination "out/$d"
           }
           Compress-Archive -Path out/sc/* -DestinationPath "dist/RemoteDesktopHarbor-$v-win-x64.zip"
-          Compress-Archive -Path out/fdd/* -DestinationPath "dist/RemoteDesktopHarbor-$v-win-x64-fdd.zip"
+          Compress-Archive -Path out/fdd/* -DestinationPath "dist/RemoteDesktopHarbor-$v-win-x64-requires-dotnet10.zip"
           Get-ChildItem dist/*.zip | ForEach-Object { "$((Get-FileHash $_ -Algorithm SHA256).Hash.ToLower())  $($_.Name)" } |
             Set-Content dist/SHA256SUMS.txt
 
