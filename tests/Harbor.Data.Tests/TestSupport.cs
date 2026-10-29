@@ -84,4 +84,5 @@ internal static class Users
 {
     public static readonly UserIdentity Alice = new("CONTOSO\\alice", "Alice Smith", "alice@contoso.com", IdentitySource.Windows);
     public static readonly UserIdentity Bob = new("bob@contoso.com", "Bob Jones", "bob@contoso.com", IdentitySource.EntraId);
+    public static readonly UserIdentity Carol = new("Carol", "Carol (not signed in)", null, IdentitySource.Anonymous);
 }

@@ -98,6 +98,14 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     {
         if (_host is null) return;
         var ws = _host.Workspace;
+        if (Settings.RemoteKeyConvert && ws.RemoteKeyConverted)
+        {
+            // One-time request done (SPEC FR-28); do not convert again on the next start.
+            Settings.RemoteKeyConvert = false;
+            SettingsStore.Save(Settings);
+            StatusText = "Shared vault protection changed.";
+        }
+
         CanWrite = ws.CanWrite;
         IsOffline = ws.IsRemote && !ws.IsOnline;
         StoreText = !ws.IsRemote

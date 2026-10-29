@@ -29,8 +29,17 @@ public sealed class HarborSettings
     /// <summary>Remote connection string, DPAPI-protected (base64) at rest.</summary>
     public string? RemoteConnectionStringProtected { get; set; }
 
-    /// <summary>How a new shared vault key is protected: <c>dpapi-ng</c> or <c>passphrase</c>.</summary>
-    public string RemoteKeyScheme { get; set; } = "dpapi-ng";
+    /// <summary>
+    /// How a new shared vault key is protected: <c>sign-in</c> (verified Windows/Entra sign-in, no passphrase),
+    /// <c>dpapi-ng</c> or <c>passphrase</c>. See ADR-0016.
+    /// </summary>
+    public string RemoteKeyScheme { get; set; } = "sign-in";
+
+    /// <summary>
+    /// One-time request: on the next connection, re-protect an existing shared vault key with
+    /// <see cref="RemoteKeyScheme"/>. Cleared once done. SPEC FR-28
+    /// </summary>
+    public bool RemoteKeyConvert { get; set; }
 
     /// <summary>DPAPI-NG protection descriptor, e.g. <c>SID=S-1-5-21-...</c> of an AD group.</summary>
     public string? RemoteKeyDescriptor { get; set; }

@@ -19,7 +19,12 @@ public sealed partial class SettingsViewModel : ObservableObject
         _remoteProvider = settings.RemoteProvider;
         _connectionString = SafeGetConnectionString(settings);
         LoadFields(_connectionString);
-        _useDpapiNg = settings.RemoteKeyScheme != PassphraseKeyProtector.SchemeName;
+        _keyScheme = settings.RemoteKeyScheme switch
+        {
+            PassphraseKeyProtector.SchemeName or DpapiNgKeyProtector.SchemeName => settings.RemoteKeyScheme,
+            _ => SignInKeyProtector.SchemeName,
+        };
+        _convertKey = settings.RemoteKeyConvert;
         _keyDescriptor = settings.RemoteKeyDescriptor;
         _autoMigrate = settings.RemoteAutoMigrate;
         _syncIntervalSeconds = settings.RemoteSyncIntervalSeconds;
@@ -76,8 +81,10 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private bool _createDatabaseIfMissing;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(UsePassphrase))]
-    private bool _useDpapiNg;
+    [NotifyPropertyChangedFor(nameof(UseSignInKey), nameof(UseDpapiNg), nameof(UsePassphrase))]
+    private string _keyScheme;
+
+    [ObservableProperty] private bool _convertKey;
 
     [ObservableProperty] private string? _keyDescriptor;
     [ObservableProperty] private bool _autoMigrate;
@@ -105,10 +112,23 @@ public sealed partial class SettingsViewModel : ObservableObject
         set { if (value) IsRemote = false; }
     }
 
+    // ADR-0016: no passphrase for users signed in with Windows / Entra ID.
+    public bool UseSignInKey
+    {
+        get => KeyScheme == SignInKeyProtector.SchemeName;
+        set { if (value) KeyScheme = SignInKeyProtector.SchemeName; }
+    }
+
+    public bool UseDpapiNg
+    {
+        get => KeyScheme == DpapiNgKeyProtector.SchemeName;
+        set { if (value) KeyScheme = DpapiNgKeyProtector.SchemeName; }
+    }
+
     public bool UsePassphrase
     {
-        get => !UseDpapiNg;
-        set { if (value) UseDpapiNg = false; }
+        get => KeyScheme == PassphraseKeyProtector.SchemeName;
+        set { if (value) KeyScheme = PassphraseKeyProtector.SchemeName; }
     }
 
     public bool UseWindowsAuth
@@ -261,6 +281,8 @@ public sealed partial class SettingsViewModel : ObservableObject
             Error = "Enter a DPAPI-NG descriptor, e.g. SID=S-1-5-21-…, of the AD group that may read the vault.";
         else if (UseEntraId && string.IsNullOrWhiteSpace(EntraClientId)) Error = "Entra ID sign-in needs the app registration's client id.";
         else if (UseAnonymous && string.IsNullOrWhiteSpace(AnonymousName)) Error = "Enter your name so others can see who is connected.";
+        else if (IsRemote && UseAnonymous && UseSignInKey)
+            Error = "\"Signed-in users\" vault protection needs a Windows or Entra ID sign-in. Sign in, or use a passphrase or AD group.";
         else if (PresenceHeartbeatSeconds * 2 > PresenceTtlSeconds) Error = "Heartbeat must be at most half of the session timeout.";
         return Error is null;
     }
@@ -275,7 +297,8 @@ public sealed partial class SettingsViewModel : ObservableObject
             SettingsStore.SetRemoteConnectionString(_settings, EffectiveConnectionString);
         }
 
-        _settings.RemoteKeyScheme = UseDpapiNg ? DpapiNgKeyProtector.SchemeName : PassphraseKeyProtector.SchemeName;
+        _settings.RemoteKeyScheme = KeyScheme;
+        _settings.RemoteKeyConvert = IsRemote && ConvertKey;
         _settings.RemoteKeyDescriptor = string.IsNullOrWhiteSpace(KeyDescriptor) ? null : KeyDescriptor.Trim();
         _settings.RemoteAutoMigrate = AutoMigrate;
         _settings.RemoteSyncIntervalSeconds = Math.Max(10, SyncIntervalSeconds);

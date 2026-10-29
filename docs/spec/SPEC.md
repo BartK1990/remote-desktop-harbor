@@ -51,6 +51,7 @@ shows who is currently connected to which machine.
 | FR-24 | Concurrent edits are detected (optimistic concurrency); a stale edit is rejected with a message, never silently overwrites. |
 | FR-25 | The remote schema can be created/upgraded automatically by the app (optional; needs DDL rights) and is versioned. |
 | FR-26 | The Settings dialog always opens showing the saved configuration (storage mode, key protection, sign-in). Choosing an option in one section never changes another section. |
+| FR-28 | The shared vault key can be protected by **verified sign-in** (default): any user signed in with Windows or Entra ID who can access the shared database opens the vault without a passphrase; users without sign-in (FR-44) cannot. An existing vault can be converted to another protection once, on request, keeping its key ([ADR-0016](../adr/0016-sign-in-vault-key-protection.md)). |
 | FR-27 | The shared database is configured with simple fields — server (name or IP), database name, database sign-in (Windows, SQL login with user + password, Entra ID), encryption options — with an option to create the database if it does not exist ([ADR-0014](../adr/0014-database-connection-form.md)). A raw connection string can still be edited; strings the fields cannot describe are kept as text. |
 
 ### 3.4 Session presence ("who is connected")
@@ -87,7 +88,7 @@ shows who is currently connected to which machine.
 | NFR-10 | Secrets are encrypted with AES-256-GCM. Local keys are bound to the **Windows user and the machine** (DPAPI); a copied database cannot be decrypted elsewhere. |
 | NFR-11 | Ciphertexts are bound to their entry (associated data); swapped or tampered ciphertexts fail to decrypt. |
 | NFR-12 | No plaintext secret on disk, in `.rdp` files, on command lines or in logs. |
-| NFR-13 | A database administrator of the shared database without vault access sees only ciphertext. |
+| NFR-13 | With AD-group or passphrase protection, a database administrator of the shared database without vault access sees only ciphertext. With sign-in protection (FR-28) database access is vault access — an accepted trade-off chosen in Settings. |
 | NFR-20 | SQL engine specifics are isolated in one provider class per engine. |
 | NFR-30 | Business logic, storage and crypto are covered by automated tests that run in CI on any OS. View-model tests that need WPF or DPAPI (`Harbor.App.Tests`) run on Windows only (CI). |
 
@@ -123,7 +124,9 @@ All timestamps are Unix milliseconds (UTC) from the database clock. Ids are GUID
   key (DEK) per vault encrypts all passwords (AES-256-GCM, entry id as associated data).
 * **Local binding:** the DEK in any local SQLite file is wrapped with DPAPI *CurrentUser* and then *LocalMachine*:
   only this Windows user on this computer can unwrap it.
-* **Shared binding** ([ADR-0006](../adr/0006-shared-vault-key-protection.md)): in the shared DB the DEK is wrapped with
+* **Shared binding** ([ADR-0006](../adr/0006-shared-vault-key-protection.md), [ADR-0016](../adr/0016-sign-in-vault-key-protection.md)):
+  by default the DEK is stored for **verified sign-in** (no passphrase; anyone with database access and a Windows/Entra
+  sign-in can open it, including a DBA). Alternatively in the shared DB the DEK is wrapped with
   DPAPI-NG to an AD security group (recommended) or with a passphrase-derived key (PBKDF2-SHA256, 600k iterations).
   After the first successful unwrap, each client caches the DEK locally (DPAPI user + machine) so offline mode works.
 * **Threats addressed:** stolen laptop disk/DB copy (DPAPI binding), DB admin reading passwords (ciphertext only),
@@ -156,7 +159,9 @@ for the full list.
 | FR-11 | `Windows/Rdp/WindowsCredentialStore` | manual (Windows) |
 | FR-20..25 | `Core/Services/HarborWorkspace`, `Data/SqlHarborStore`, `Data/Providers/*` | `WorkspaceTests`, `SqlHarborStoreTests` |
 | FR-22 (shared key cached per machine) | `Core/Services/HarborWorkspace` | `WorkspaceTests` |
+| FR-28 | `Core/Security/SignInKeyProtector`, `Core/Services/HarborWorkspace`, `App/ViewModels/SettingsViewModel` | `SignInKeyProtectorTests`, `WorkspaceTests`, `SettingsViewModelTests` (Windows) |
 | FR-26 | `App/ViewModels/SettingsViewModel`, `App/Views/SettingsWindow` | `SettingsViewModelTests`, `ViewSourceTests` (Windows) |
+| FR-28 | The shared vault key can be protected by **verified sign-in** (default): any user signed in with Windows or Entra ID who can access the shared database opens the vault without a passphrase; users without sign-in (FR-44) cannot. An existing vault can be converted to another protection once, on request, keeping its key ([ADR-0016](../adr/0016-sign-in-vault-key-protection.md)). |
 | FR-27 | `Data/Providers/IServerDatabaseProvider`, `Data/Providers/SqlServerProvider`, `App/ViewModels/SettingsViewModel` | `SqlServerConnectionFormTests`, `SettingsViewModelTests` (Windows) |
 | FR-34 (closing the app) | `App/Views/MainWindow` | `ViewSourceTests` (Windows), manual |
 | FR-30..36 | `Core/Services/SessionPresenceService`, `Data/SqlHarborStore` | `PresenceTests` |

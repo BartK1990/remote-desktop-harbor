@@ -58,6 +58,15 @@ public sealed class HarborWorkspace : IDisposable
     /// <summary>Writes are allowed in local mode and in remote mode while online.</summary>
     public bool CanWrite => !IsRemote || IsOnline;
 
+    /// <summary>
+    /// Remote mode: on the next successful connection, re-protect the existing shared vault key with the protector for
+    /// new keys (keeping the key itself). SPEC FR-28, ADR-0016
+    /// </summary>
+    public bool ConvertRemoteKeyProtection { get; set; }
+
+    /// <summary>True once <see cref="ConvertRemoteKeyProtection"/> has been carried out (or was not needed).</summary>
+    public bool RemoteKeyConverted { get; private set; }
+
     public DateTimeOffset? LastSyncUtc { get; private set; }
     public Exception? LastRemoteError { get; private set; }
 
@@ -147,6 +156,19 @@ public sealed class HarborWorkspace : IDisposable
                 }
 
                 _remoteKeyVerified = true;
+            }
+
+            if (ConvertRemoteKeyProtection && !RemoteKeyConverted && _cipher is not null)
+            {
+                var current = await _remote.GetVaultKeyAsync(VaultKeyRecord.PrimarySlot, cancellationToken).ConfigureAwait(false);
+                if (current is not null && current.KeyId == _cipher.KeyId &&
+                    !string.Equals(current.Scheme, _remoteProtectorForNewKey!.Scheme, StringComparison.OrdinalIgnoreCase))
+                {
+                    // Same key, new wrapping: other clients' cached copies stay valid.
+                    await VaultKeyManager.CacheAsync(_remote, _cipher, _remoteProtectorForNewKey, cancellationToken).ConfigureAwait(false);
+                }
+
+                RemoteKeyConverted = true;
             }
 
             await PullAsync(cancellationToken).ConfigureAwait(false);

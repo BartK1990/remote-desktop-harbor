@@ -35,6 +35,7 @@ public class SettingsViewModelTests
         Assert.False(vm.IsLocal);
         Assert.True(vm.UsePassphrase);
         Assert.False(vm.UseDpapiNg);
+        Assert.False(vm.UseSignInKey);
         Assert.True(vm.UseEntraId);
         Assert.False(vm.UseWindowsAuth);
         Assert.False(vm.UseAnonymous);
@@ -99,12 +100,13 @@ public class SettingsViewModelTests
         var vm = new SettingsViewModel(Remote(SqlLoginString));
 
         vm.IsLocal = false;
+        vm.UseDpapiNg = false;
         vm.UsePassphrase = false;
         vm.UseEntraId = false;
         vm.UseAnonymous = false;
 
         Assert.True(vm.IsRemote);
-        Assert.True(vm.UseDpapiNg);
+        Assert.True(vm.UseSignInKey);
         Assert.True(vm.UseWindowsAuth);
     }
 
@@ -234,6 +236,8 @@ public class SettingsViewModelTests
         { "connection string", vm => { vm.EditRawConnectionString = true; vm.ConnectionString = ""; } },
         { "client id", vm => { vm.UseEntraId = true; vm.EntraClientId = ""; } },
         { "your name", vm => { vm.UseAnonymous = true; vm.AnonymousName = "  "; } },
+        { "descriptor", vm => { vm.UseDpapiNg = true; vm.KeyDescriptor = ""; } },
+        { "needs a Windows or Entra ID sign-in", vm => { vm.UseAnonymous = true; vm.AnonymousName = "Bart"; vm.UseSignInKey = true; } },
     };
 
     [Theory]
@@ -247,6 +251,53 @@ public class SettingsViewModelTests
 
         Assert.False(vm.Validate());
         Assert.Contains(expected, vm.Error, StringComparison.OrdinalIgnoreCase);
+    }
+
+    // ------------------------------------------------------------------ FR-28: vault key protection
+
+    [Fact]
+    public void New_vaults_default_to_sign_in_protection_without_a_passphrase()
+    {
+        var vm = new SettingsViewModel(new HarborSettings());
+
+        Assert.True(vm.UseSignInKey);
+        Assert.False(vm.UseDpapiNg);
+        Assert.False(vm.UsePassphrase);
+        Assert.False(vm.ConvertKey);
+    }
+
+    [Theory]
+    [InlineData(SignInKeyProtector.SchemeName)]
+    [InlineData("dpapi-ng")]
+    [InlineData(PassphraseKeyProtector.SchemeName)]
+    public void Key_protection_choice_and_convert_request_are_saved(string scheme)
+    {
+        var settings = Remote(SqlLoginString);
+        var vm = new SettingsViewModel(settings)
+        {
+            UseSignInKey = scheme == SignInKeyProtector.SchemeName,
+            UseDpapiNg = scheme == "dpapi-ng",
+            UsePassphrase = scheme == PassphraseKeyProtector.SchemeName,
+            ConvertKey = true,
+        };
+
+        Assert.True(vm.Validate(), vm.Error);
+        vm.Apply();
+
+        Assert.Equal(scheme, settings.RemoteKeyScheme);
+        Assert.True(settings.RemoteKeyConvert);
+        Assert.True(new SettingsViewModel(settings).ConvertKey);
+    }
+
+    [Fact]
+    public void Convert_request_is_dropped_in_local_mode()
+    {
+        var settings = new HarborSettings();
+        var vm = new SettingsViewModel(settings) { ConvertKey = true };
+
+        vm.Apply();
+
+        Assert.False(settings.RemoteKeyConvert);
     }
 
     // ------------------------------------------------------------------ FR-44: no sign-in

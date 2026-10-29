@@ -18,7 +18,7 @@ public class ViewSourceTests
 
         Assert.All(radios, r => Assert.False(string.IsNullOrEmpty((string?)r.Attribute("GroupName")), (string?)r.Attribute("Content")));
         var groups = radios.GroupBy(r => (string)r.Attribute("GroupName")!).ToDictionary(g => g.Key, g => g.Count());
-        Assert.Equal(new Dictionary<string, int> { ["Storage"] = 2, ["KeyProtection"] = 2, ["SignIn"] = 3 }, groups);
+        Assert.Equal(new Dictionary<string, int> { ["Storage"] = 2, ["KeyProtection"] = 3, ["SignIn"] = 3 }, groups);
     }
 
     // Closing the main window: Close() inside the Closing event throws

@@ -50,7 +50,8 @@ public sealed class AppHost : IDisposable
         var passphrase = new PassphraseKeyProtector(() => passphrasePrompt(false));
         var newSharedPassphrase = new PassphraseKeyProtector(() => passphrasePrompt(true));
         var dpapiNg = new DpapiNgKeyProtector(settings.RemoteKeyDescriptor);
-        var resolver = new KeyProtectorResolver([local, DpapiKeyProtector.User, passphrase, dpapiNg]);
+        var signIn = new SignInKeyProtector(user); // ADR-0016
+        var resolver = new KeyProtectorResolver([local, DpapiKeyProtector.User, passphrase, dpapiNg, signIn]);
 
         HarborWorkspace workspace;
         IPresenceStore? presenceStore = null;
@@ -68,8 +69,14 @@ public sealed class AppHost : IDisposable
             var cache = new SqlHarborStore(DatabaseProviders.Sqlite,
                 SqliteProvider.ConnectionStringForFile(AppPaths.CacheDatabase(settings.RemoteProvider, remoteConnectionString)));
             var remote = new SqlHarborStore(DatabaseProviders.Get(settings.RemoteProvider), remoteConnectionString);
-            IKeyProtector forNewKey = settings.RemoteKeyScheme == PassphraseKeyProtector.SchemeName ? newSharedPassphrase : dpapiNg;
+            IKeyProtector forNewKey = settings.RemoteKeyScheme switch
+            {
+                PassphraseKeyProtector.SchemeName => newSharedPassphrase,
+                DpapiNgKeyProtector.SchemeName => dpapiNg,
+                _ => signIn,
+            };
             workspace = HarborWorkspace.CreateRemote(user, cache, remote, local, forNewKey, resolver, settings.RemoteAutoMigrate);
+            workspace.ConvertRemoteKeyProtection = settings.RemoteKeyConvert;
             presenceStore = remote;
         }
 
