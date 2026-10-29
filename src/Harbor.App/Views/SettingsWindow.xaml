@@ -1,0 +1,73 @@
+<Window x:Class="Harbor.App.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Settings" Width="620" Height="760" MinHeight="480"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False" ResizeMode="CanResizeWithGrip">
+  <DockPanel Margin="16">
+    <StackPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
+      <TextBlock Text="{Binding Error}" Foreground="OrangeRed" TextWrapping="Wrap" Margin="0,0,0,8" />
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+        <Button Content="Save" IsDefault="True" Click="Save_Click" Style="{DynamicResource AccentButtonStyle}" MinWidth="90" Margin="0,0,8,0" />
+        <Button Content="Cancel" IsCancel="True" MinWidth="90" />
+      </StackPanel>
+    </StackPanel>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel>
+        <TextBlock Text="Storage" Style="{StaticResource SectionHeader}" Margin="0,0,0,4" />
+        <RadioButton Content="Local vault on this computer (SQLite)" IsChecked="{Binding IsLocal}" Margin="0,4" />
+        <RadioButton Content="Shared database with offline copy" IsChecked="{Binding IsRemote}" Margin="0,4" />
+
+        <StackPanel Visibility="{Binding IsRemote, Converter={StaticResource BoolToVisibility}}" Margin="24,0,0,0">
+          <TextBlock Text="Provider" Style="{StaticResource FieldLabel}" />
+          <ComboBox ItemsSource="{Binding Providers}" SelectedItem="{Binding RemoteProvider}" Width="200" HorizontalAlignment="Left" />
+          <TextBlock Text="Connection string" Style="{StaticResource FieldLabel}" />
+          <TextBox Text="{Binding ConnectionString, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" />
+          <TextBlock FontSize="11" Opacity="0.6" TextWrapping="Wrap" Margin="0,4,0,0"
+                     Text="Examples: Server=sql01;Database=Harbor;Integrated Security=true;Encrypt=true  ·  Server=tcp:x.database.windows.net;Database=Harbor;Authentication=Active Directory Default. Stored encrypted for your Windows account." />
+          <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+            <Button Content="Test connection" Command="{Binding TestConnectionCommand}" />
+            <TextBlock Text="{Binding TestResult}" Margin="12,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="380" />
+          </StackPanel>
+
+          <TextBlock Text="Shared vault key protection" Style="{StaticResource FieldLabel}" />
+          <RadioButton Content="Active Directory group (DPAPI-NG) – recommended" IsChecked="{Binding UseDpapiNg}" Margin="0,2" />
+          <TextBox Text="{Binding KeyDescriptor, UpdateSourceTrigger=PropertyChanged}" Margin="24,4,0,0"
+                   IsEnabled="{Binding UseDpapiNg}" ToolTip="Protection descriptor of the group allowed to decrypt, e.g. SID=S-1-5-21-…-1234" />
+          <RadioButton Content="Shared passphrase" IsChecked="{Binding UsePassphrase}" Margin="0,6,0,2" />
+          <TextBlock FontSize="11" Opacity="0.6" TextWrapping="Wrap" Margin="0,4,0,0"
+                     Text="Only used when this database has no vault key yet. Existing vaults keep the protection they were created with." />
+
+          <CheckBox Content="Create / upgrade database schema automatically (needs DDL rights)" IsChecked="{Binding AutoMigrate}" Margin="0,10,0,0" />
+          <TextBlock Text="Sync interval (seconds)" Style="{StaticResource FieldLabel}" />
+          <TextBox Text="{Binding SyncIntervalSeconds}" Width="100" HorizontalAlignment="Left" />
+
+          <TextBlock Text="Session presence timeout / heartbeat (seconds)" Style="{StaticResource FieldLabel}" />
+          <StackPanel Orientation="Horizontal">
+            <TextBox Text="{Binding PresenceTtlSeconds}" Width="100" ToolTip="A session record not refreshed within this time is treated as ended." />
+            <TextBlock Text=" / " VerticalAlignment="Center" Margin="6,0" />
+            <TextBox Text="{Binding PresenceHeartbeatSeconds}" Width="100" ToolTip="How often a running session refreshes its record." />
+          </StackPanel>
+        </StackPanel>
+
+        <TextBlock Text="Sign-in" Style="{StaticResource SectionHeader}" />
+        <RadioButton Content="Windows account (domain / local, automatic single sign-on)" IsChecked="{Binding UseWindowsAuth}" Margin="0,4" />
+        <RadioButton Content="Microsoft Entra ID (work account via Windows broker, SSO when available)" IsChecked="{Binding UseEntraId}" Margin="0,4" />
+        <StackPanel Visibility="{Binding UseEntraId, Converter={StaticResource BoolToVisibility}}" Margin="24,0,0,0">
+          <TextBlock Text="Application (client) ID" Style="{StaticResource FieldLabel}" />
+          <TextBox Text="{Binding EntraClientId, UpdateSourceTrigger=PropertyChanged}" />
+          <TextBlock Text="Tenant ID or domain" Style="{StaticResource FieldLabel}" />
+          <TextBox Text="{Binding EntraTenantId, UpdateSourceTrigger=PropertyChanged}" />
+        </StackPanel>
+
+        <TextBlock Text="Remote Desktop" Style="{StaticResource SectionHeader}" />
+        <CheckBox Content="Keep the password in Windows Credential Manager after connecting" IsChecked="{Binding KeepCredential}" Margin="0,4" />
+        <TextBlock FontSize="11" Opacity="0.6" TextWrapping="Wrap"
+                   Text="Off (default): the credential is removed ~30 s after Remote Desktop starts and never survives logoff. On: reconnects work without the app, but the password stays in Credential Manager." />
+
+        <TextBlock Text="Data folder" Style="{StaticResource SectionHeader}" />
+        <TextBox Text="{Binding DataDirectory, Mode=OneWay}" IsReadOnly="True" />
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</Window>
