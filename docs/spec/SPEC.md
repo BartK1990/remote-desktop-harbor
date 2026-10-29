@@ -160,7 +160,7 @@ for the full list.
 | FR-09 | `Core/Model/ConnectionAccount`, `Core/Model/ConnectionEntry`, `Core/Services/HarborWorkspace`, `Data/SqlHarborStore`, `Data/Providers/*` (migration 2), `Windows/Rdp/MstscLauncher`, `App/ViewModels/EntryViewModel`, `EntryEditorViewModel`, `MainViewModel`, `MainWindow`, `EntryEditorWindow` | `ConnectionAccountTests`, `AccountTests`, `AccountViewModelTests` (Windows) |
 | FR-02 (tree) | `Core/Model/FolderTree`, `App/ViewModels/MainViewModel`, `TreeNodeViewModel`, `MainWindow` | `FolderTreeTests`; UI manual (Windows) |
 | FR-07 | `App/Infrastructure/AppInfo`, `MainWindow`, `SettingsWindow` | manual (Windows) |
-| FR-08 | `Core/HarborSettings`, `App/Infrastructure/ThemeService` (WPF UI, ADR-0020), `App/ViewModels/MainViewModel`, `MainWindow`, `App/Views/EnumToBooleanConverter` | manual (Windows) |
+| FR-08 | `Core/HarborSettings`, `App/Infrastructure/ThemeService`, `App/ViewModels/MainViewModel`, `MainWindow`, `App/Views/EnumToBooleanConverter` | manual (Windows) |
 | FR-03, FR-05, FR-10, FR-12 | `Core/Rdp/RdpFile`, `Windows/Rdp/MstscLauncher` | `RdpFileTests` |
 | FR-11 | `Windows/Rdp/WindowsCredentialStore` | manual (Windows) |
 | FR-20..25 | `Core/Services/HarborWorkspace`, `Data/SqlHarborStore`, `Data/Providers/*` | `WorkspaceTests`, `SqlHarborStoreTests` |
@@ -174,4 +174,3 @@ for the full list.
 | FR-44 | `Core/Identity/AnonymousIdentityProvider`, `App/ViewModels/SettingsViewModel` | `AnonymousIdentityTests`, `SettingsViewModelTests` |
 | NFR-10..13 | `Core/Security/*`, `Windows/Security/*` | `SecretCipherTests`, `WorkspaceTests` |
 | NFR-01..05 | `App/*`, publish profile, workflows | CI publish |
-| ADR-0020 (WPF UI windows) | `App/App.xaml`, `App/Views/*Window`, `App/Views/DialogService` | `ViewSourceTests` (Windows) |

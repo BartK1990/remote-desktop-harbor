@@ -1,6 +1,6 @@
 # ADR-0002: UI framework — WPF on .NET 10
 
-* Status: Accepted, amended by ADR-0020 (WPF UI library instead of the built-in Fluent theme)
+* Status: Accepted
 * Date: 2026-10-29
 * Requirements: NFR-01, NFR-02, NFR-03, NFR-05
 
