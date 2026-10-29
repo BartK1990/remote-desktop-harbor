@@ -34,6 +34,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         Settings = settings;
         _dialogs = dialogs;
         _collapsed = new HashSet<string>(settings.CollapsedFolders, StringComparer.CurrentCultureIgnoreCase);
+        _theme = settings.Theme;
         _syncTimer.Tick += async (_, _) => await SyncAsync();
         _presenceTimer.Tick += async (_, _) => await RefreshPresenceAsync();
     }
@@ -46,6 +47,12 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     public TreeChildren Tree { get; } = [];
 
     [ObservableProperty] private string _searchText = "";
+
+    /// <summary>Choices for the theme selector in the toolbar (SPEC FR-08).</summary>
+    public IReadOnlyList<AppTheme> Themes { get; } = Enum.GetValues<AppTheme>();
+
+    /// <summary>Colour theme; applied immediately and remembered across restarts (SPEC FR-08).</summary>
+    [ObservableProperty] private AppTheme _theme;
 
     /// <summary>The selected tree row (folder or entry); kept in sync with <see cref="Selected"/>.</summary>
     [ObservableProperty] private TreeNodeViewModel? _selectedNode;
@@ -488,6 +495,21 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         {
             System.Diagnostics.Process.Start(Environment.ProcessPath!);
             Application.Current.Shutdown();
+        }
+    }
+
+    partial void OnThemeChanged(AppTheme value)
+    {
+        ThemeService.Apply(value);
+        if (Settings.Theme == value) return;
+        Settings.Theme = value;
+        try
+        {
+            SettingsStore.Save(Settings);
+        }
+        catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException)
+        {
+            Log.Error("Theme could not be saved", ex);
         }
     }
 

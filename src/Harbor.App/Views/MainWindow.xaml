@@ -32,7 +32,10 @@
         <Button Content="New" Command="{Binding AddCommand}" Margin="0,0,6,0" ToolTip="New entry (Ctrl+N)" />
         <Button Content="Import .rdp…" Command="{Binding ImportRdpCommand}" Margin="0,0,6,0" />
         <Button Content="Refresh" Command="{Binding RefreshCommand}" Margin="0,0,6,0" ToolTip="Sync and refresh (F5)" />
-        <Button Content="Settings" Command="{Binding OpenSettingsCommand}" />
+        <Button Content="Settings" Command="{Binding OpenSettingsCommand}" Margin="0,0,6,0" />
+        <!-- Theme selector: applied immediately, remembered across restarts (SPEC FR-08). -->
+        <ComboBox ItemsSource="{Binding Themes}" SelectedItem="{Binding Theme}" MinWidth="100"
+                  ToolTip="Theme: follow Windows, light or dark" AutomationProperties.Name="Theme" />
       </StackPanel>
       <TextBlock Grid.Column="3" Text="{Binding UserText}" VerticalAlignment="Center" Opacity="0.8" />
     </Grid>
@@ -64,8 +67,12 @@
       </Grid.ColumnDefinitions>
 
       <!-- Entry tree: compact rows, collapsible folders, filtered by the search box (SPEC FR-02).
-           Virtualized for large catalogs (SPEC NFR-03). -->
-      <TreeView x:Name="EntryTree" Grid.Column="0" ItemsSource="{Binding Tree}"
+           Virtualized for large catalogs (SPEC NFR-03).
+           Sits on a card (theme-aware fill + stroke) so the explorer area stands out from the window. -->
+      <Border Grid.Column="0" CornerRadius="6" BorderThickness="1" Padding="2"
+              Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+              BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
+      <TreeView x:Name="EntryTree" ItemsSource="{Binding Tree}" Background="Transparent" BorderThickness="0"
                 VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
                 VirtualizingPanel.ScrollUnit="Pixel" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                 Padding="2" SelectedItemChanged="EntryTree_SelectedItemChanged" TreeViewItem.Selected="EntryTree_ItemSelected"
@@ -199,6 +206,7 @@
           </ContextMenu>
         </TreeView.ContextMenu>
       </TreeView>
+      </Border>
 
       <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="Transparent" />
 
