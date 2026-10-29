@@ -13,6 +13,9 @@ public enum AuthMode
 {
     Windows = 0,
     EntraId = 1,
+
+    /// <summary>No sign-in; the user enters a name (<see cref="HarborSettings.AnonymousName"/>). SPEC FR-44</summary>
+    Anonymous = 2,
 }
 
 /// <summary>User-editable app configuration, persisted as JSON in the data directory. See SPEC section 7.</summary>
@@ -26,8 +29,17 @@ public sealed class HarborSettings
     /// <summary>Remote connection string, DPAPI-protected (base64) at rest.</summary>
     public string? RemoteConnectionStringProtected { get; set; }
 
-    /// <summary>How a new shared vault key is protected: <c>dpapi-ng</c> or <c>passphrase</c>.</summary>
-    public string RemoteKeyScheme { get; set; } = "dpapi-ng";
+    /// <summary>
+    /// How a new shared vault key is protected: <c>sign-in</c> (verified Windows/Entra sign-in, no passphrase),
+    /// <c>dpapi-ng</c> or <c>passphrase</c>. See ADR-0016.
+    /// </summary>
+    public string RemoteKeyScheme { get; set; } = "sign-in";
+
+    /// <summary>
+    /// One-time request: on the next connection, re-protect an existing shared vault key with
+    /// <see cref="RemoteKeyScheme"/>. Cleared once done. SPEC FR-28
+    /// </summary>
+    public bool RemoteKeyConvert { get; set; }
 
     /// <summary>DPAPI-NG protection descriptor, e.g. <c>SID=S-1-5-21-...</c> of an AD group.</summary>
     public string? RemoteKeyDescriptor { get; set; }
@@ -40,6 +52,9 @@ public sealed class HarborSettings
     public AuthMode AuthMode { get; set; } = AuthMode.Windows;
     public string? EntraClientId { get; set; }
     public string? EntraTenantId { get; set; } = "organizations";
+
+    /// <summary>Name shown for presence and audit when <see cref="AuthMode"/> is <see cref="AuthMode.Anonymous"/>.</summary>
+    public string? AnonymousName { get; set; }
 
     public int PresenceTtlSeconds { get; set; } = 120;
     public int PresenceHeartbeatSeconds { get; set; } = 45;

@@ -127,6 +127,8 @@ public partial class MainWindow : Window
         e.Cancel = true;
         await _viewModel.DisposeAsync();
         _disposed = true;
-        Close();
+        // DisposeAsync often completes synchronously, so we may still be inside this Closing event, where Close()
+        // throws "Cannot ... Close ... while a Window is closing". Close again once the event has finished.
+        _ = Dispatcher.BeginInvoke(Close);
     }
 }

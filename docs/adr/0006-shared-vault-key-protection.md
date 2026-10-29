@@ -1,6 +1,6 @@
 # ADR-0006: Shared vault key — DPAPI-NG to an AD group, passphrase fallback
 
-* Status: Accepted
+* Status: Accepted; amended by [ADR-0016](0016-sign-in-vault-key-protection.md) (sign-in protection is now the default)
 * Date: 2026-10-29
 * Requirements: FR-21, FR-22, NFR-13
 

@@ -1,4 +1,4 @@
-# ADR-0014: Compact folder tree for the entry list
+# ADR-0017: Compact folder tree for the entry list
 
 * Status: Accepted
 * Date: 2026-10-29

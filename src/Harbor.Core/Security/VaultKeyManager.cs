@@ -51,7 +51,10 @@ public static class VaultKeyManager
         return existing is null ? null : Unwrap(existing, resolver);
     }
 
-    /// <summary>Stores <paramref name="cipher"/>'s key in <paramref name="store"/>, wrapped for this user/machine.</summary>
+    /// <summary>
+    /// Stores <paramref name="cipher"/>'s key in <paramref name="store"/>, wrapped with <paramref name="protector"/>
+    /// (this user/machine for a cache; the shared scheme when re-protecting a shared vault).
+    /// </summary>
     public static Task CacheAsync(
         IConnectionStore store, SecretCipher cipher, IKeyProtector protector, CancellationToken cancellationToken = default)
     {

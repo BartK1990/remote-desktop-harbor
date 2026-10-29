@@ -106,6 +106,138 @@ public class WorkspaceTests
     }
 
     [Fact]
+    public async Task Shared_key_is_unwrapped_once_per_machine_then_taken_from_the_cache()
+    {
+        // ADR-0006: after the first unwrap no passphrase prompt (or DC) is needed on later starts.
+        using var remoteDb = new TempDb();
+        using var aliceCache = new TempDb();
+        using var bobCache = new TempDb();
+        var shared = new CountingKeyProtector(Shared);
+        var resolver = new KeyProtectorResolver([AliceLocal, BobLocal, shared]);
+
+        using (var alice = HarborWorkspace.CreateRemote(Users.Alice, aliceCache.Store, remoteDb.Store, AliceLocal, shared, resolver, true))
+        {
+            await alice.OpenAsync();
+            await alice.SaveAsync(ConnectionEntry.CreateNew("a"), SecretUpdate.Set("pw"));
+        }
+
+        for (var start = 0; start < 3; start++)
+        {
+            using var bob = HarborWorkspace.CreateRemote(Users.Bob, bobCache.Store, remoteDb.Store, BobLocal, shared, resolver, true);
+            await bob.OpenAsync();
+            Assert.True(bob.IsOnline);
+            Assert.Equal("pw", bob.RevealPassword(Assert.Single(await bob.ListAsync())));
+        }
+
+        Assert.Equal(1, shared.UnprotectCount);
+    }
+
+    // SPEC FR-28, ADR-0016
+    [Fact]
+    public async Task Sign_in_protected_vault_opens_for_signed_in_users_without_a_passphrase()
+    {
+        using var remoteDb = new TempDb();
+        using var aliceCache = new TempDb();
+        using var bobCache = new TempDb();
+        var passphrase = new CountingKeyProtector(Shared);
+        var resolver = new KeyProtectorResolver([AliceLocal, BobLocal, passphrase, new SignInKeyProtector(Users.Bob)]);
+
+        using (var alice = HarborWorkspace.CreateRemote(Users.Alice, aliceCache.Store, remoteDb.Store, AliceLocal,
+                   new SignInKeyProtector(Users.Alice), resolver, true))
+        {
+            await alice.OpenAsync();
+            await alice.SaveAsync(ConnectionEntry.CreateNew("a"), SecretUpdate.Set("pw"));
+        }
+
+        using var bob = HarborWorkspace.CreateRemote(Users.Bob, bobCache.Store, remoteDb.Store, BobLocal, passphrase, resolver, true);
+        await bob.OpenAsync();
+
+        Assert.True(bob.IsOnline);
+        Assert.Equal("pw", bob.RevealPassword(Assert.Single(await bob.ListAsync())));
+        Assert.Equal(SignInKeyProtector.SchemeName, (await remoteDb.Store.GetVaultKeyAsync(VaultKeyRecord.PrimarySlot))!.Scheme);
+        Assert.Equal(0, passphrase.UnprotectCount);
+    }
+
+    [Fact]
+    public async Task Sign_in_protected_vault_does_not_open_without_sign_in()
+    {
+        using var remoteDb = new TempDb();
+        using var aliceCache = new TempDb();
+        using var carolCache = new TempDb();
+        using (var alice = HarborWorkspace.CreateRemote(Users.Alice, aliceCache.Store, remoteDb.Store, AliceLocal,
+                   new SignInKeyProtector(Users.Alice), Resolver, true))
+        {
+            await alice.OpenAsync();
+        }
+
+        var carolResolver = new KeyProtectorResolver([BobLocal, new SignInKeyProtector(Users.Carol)]);
+        using var carol = HarborWorkspace.CreateRemote(Users.Carol, carolCache.Store, remoteDb.Store, BobLocal,
+            new SignInKeyProtector(Users.Carol), carolResolver, true);
+
+        var ex = await Assert.ThrowsAsync<WorkspaceOfflineException>(() => carol.OpenAsync());
+        Assert.IsType<VaultKeyException>(ex.InnerException);
+    }
+
+    [Fact]
+    public async Task Existing_passphrase_vault_is_converted_once_and_keeps_its_key()
+    {
+        using var remoteDb = new TempDb();
+        using var aliceCache = new TempDb();
+        using var bobCache = new TempDb();
+        var passphrase = new CountingKeyProtector(Shared);
+        var resolver = new KeyProtectorResolver([AliceLocal, BobLocal, passphrase, new SignInKeyProtector(Users.Alice)]);
+
+        using (var alice = HarborWorkspace.CreateRemote(Users.Alice, aliceCache.Store, remoteDb.Store, AliceLocal, passphrase, resolver, true))
+        {
+            await alice.OpenAsync();
+            await alice.SaveAsync(ConnectionEntry.CreateNew("a"), SecretUpdate.Set("pw"));
+        }
+
+        var before = (await remoteDb.Store.GetVaultKeyAsync(VaultKeyRecord.PrimarySlot))!;
+        Assert.Equal(Shared.Scheme, before.Scheme);
+
+        // Alice converts: her cached key is used, so not even she needs the passphrase.
+        using (var alice = HarborWorkspace.CreateRemote(Users.Alice, aliceCache.Store, remoteDb.Store, AliceLocal,
+                   new SignInKeyProtector(Users.Alice), resolver, true))
+        {
+            alice.ConvertRemoteKeyProtection = true;
+            await alice.OpenAsync();
+            Assert.True(alice.RemoteKeyConverted);
+        }
+
+        var after = (await remoteDb.Store.GetVaultKeyAsync(VaultKeyRecord.PrimarySlot))!;
+        Assert.Equal(SignInKeyProtector.SchemeName, after.Scheme);
+        Assert.Equal(before.KeyId, after.KeyId);
+
+        // Bob has never opened the vault and is never asked for the passphrase.
+        using var bob = HarborWorkspace.CreateRemote(Users.Bob, bobCache.Store, remoteDb.Store, BobLocal, passphrase, resolver, true);
+        await bob.OpenAsync();
+        Assert.Equal("pw", bob.RevealPassword(Assert.Single(await bob.ListAsync())));
+        Assert.Equal(0, passphrase.UnprotectCount);
+    }
+
+    [Fact]
+    public async Task Without_the_convert_request_an_existing_vault_keeps_its_protection()
+    {
+        using var remoteDb = new TempDb();
+        using var aliceCache = new TempDb();
+        using (var alice = HarborWorkspace.CreateRemote(Users.Alice, aliceCache.Store, remoteDb.Store, AliceLocal, Shared, Resolver, true))
+        {
+            await alice.OpenAsync();
+        }
+
+        var resolver = new KeyProtectorResolver([AliceLocal, Shared, new SignInKeyProtector(Users.Alice)]);
+        using (var again = HarborWorkspace.CreateRemote(Users.Alice, aliceCache.Store, remoteDb.Store, AliceLocal,
+                   new SignInKeyProtector(Users.Alice), resolver, true))
+        {
+            await again.OpenAsync();
+            Assert.False(again.RemoteKeyConverted);
+        }
+
+        Assert.Equal(Shared.Scheme, (await remoteDb.Store.GetVaultKeyAsync(VaultKeyRecord.PrimarySlot))!.Scheme);
+    }
+
+    [Fact]
     public async Task Remote_mode_without_cache_fails_when_offline()
     {
         using var remoteDb = new TempDb();

@@ -40,7 +40,9 @@ public interface IDatabaseProvider
    [Data model](../../reference/data-model/).
 3. Register it in `DatabaseProviders` (or call `DatabaseProviders.Register(...)`). It then appears in
    **Settings → Storage → Provider**.
-4. Add tests and update the spec.
+4. For a server engine, also implement `IServerDatabaseProvider` (build/parse the connection string from the
+   Settings fields, create the database). Without it, Settings offers only the raw connection string.
+5. Add tests and update the spec.
 
 No business logic changes are needed.
 
