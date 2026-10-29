@@ -6,6 +6,7 @@
     <RootNamespace>Harbor.App</RootNamespace>
     <AssemblyName>RemoteDesktopHarbor</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
     <Title>Remote Desktop Harbor</Title>
     <!-- Startup performance (ADR-0002 / ADR-0003). -->
     <TieredPGO>true</TieredPGO>
@@ -22,5 +23,8 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Assets\AppIcon.ico" />
   </ItemGroup>
 </Project>
