@@ -71,6 +71,7 @@ shows who is currently connected to which machine.
 |---|---|
 | FR-40 | Default sign-in uses the current Windows account without a prompt (domain or local). E-mail and display name come from Active Directory when reachable, otherwise from the UPN. |
 | FR-41 | Optional Microsoft Entra ID sign-in via the Windows account broker (WAM): silent SSO on Entra/hybrid-joined devices, interactive otherwise. |
+| FR-44 | Optional **no sign-in** mode: the user enters a name (required), used for presence and audit and shown as "(not signed in)". It is unverified, so Windows or Entra ID sign-in stays the default and recommended ([ADR-0015](../adr/0015-anonymous-named-mode.md)). |
 | FR-42 | The signed-in identity is used for presence (FR-30) and audit (`UpdatedBy` on entries). |
 | FR-43 | Access to the shared SQL database uses the connection string's authentication: Windows integrated, SQL Server login, or Entra ID (`Authentication=Active Directory …`). It is independent of the app sign-in (FR-40/41): every sign-in works with both storage modes. |
 
@@ -88,7 +89,7 @@ shows who is currently connected to which machine.
 | NFR-12 | No plaintext secret on disk, in `.rdp` files, on command lines or in logs. |
 | NFR-13 | A database administrator of the shared database without vault access sees only ciphertext. |
 | NFR-20 | SQL engine specifics are isolated in one provider class per engine. |
-| NFR-30 | Business logic, storage and crypto are covered by automated tests that run in CI on any OS. |
+| NFR-30 | Business logic, storage and crypto are covered by automated tests that run in CI on any OS. View-model tests that need WPF or DPAPI (`Harbor.App.Tests`) run on Windows only (CI). |
 
 ## 5. Data model
 
@@ -154,9 +155,12 @@ for the full list.
 | FR-03, FR-05, FR-10, FR-12 | `Core/Rdp/RdpFile`, `Windows/Rdp/MstscLauncher` | `RdpFileTests` |
 | FR-11 | `Windows/Rdp/WindowsCredentialStore` | manual (Windows) |
 | FR-20..25 | `Core/Services/HarborWorkspace`, `Data/SqlHarborStore`, `Data/Providers/*` | `WorkspaceTests`, `SqlHarborStoreTests` |
-| FR-26 | `App/ViewModels/SettingsViewModel`, `App/Views/SettingsWindow` | manual (Windows) |
-| FR-27 | `Data/Providers/IServerDatabaseProvider`, `Data/Providers/SqlServerProvider`, `App/ViewModels/SettingsViewModel` | `SqlServerConnectionFormTests` |
+| FR-22 (shared key cached per machine) | `Core/Services/HarborWorkspace` | `WorkspaceTests` |
+| FR-26 | `App/ViewModels/SettingsViewModel`, `App/Views/SettingsWindow` | `SettingsViewModelTests`, `ViewSourceTests` (Windows) |
+| FR-27 | `Data/Providers/IServerDatabaseProvider`, `Data/Providers/SqlServerProvider`, `App/ViewModels/SettingsViewModel` | `SqlServerConnectionFormTests`, `SettingsViewModelTests` (Windows) |
+| FR-34 (closing the app) | `App/Views/MainWindow` | `ViewSourceTests` (Windows), manual |
 | FR-30..36 | `Core/Services/SessionPresenceService`, `Data/SqlHarborStore` | `PresenceTests` |
 | FR-40..43 | `Windows/Identity/*`, `App/Infrastructure/AppHost` | manual (Windows) |
+| FR-44 | `Core/Identity/AnonymousIdentityProvider`, `App/ViewModels/SettingsViewModel` | `AnonymousIdentityTests`, `SettingsViewModelTests` |
 | NFR-10..13 | `Core/Security/*`, `Windows/Security/*` | `SecretCipherTests`, `WorkspaceTests` |
 | NFR-01..05 | `App/*`, publish profile, workflows | CI publish |

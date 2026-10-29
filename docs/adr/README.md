@@ -20,3 +20,4 @@ Process: see [spec/README.md](../spec/README.md).
 | [0012](0012-microsoft-store-readiness.md) | Microsoft Store readiness via MSIX packaging later | Accepted |
 | [0013](0013-documentation-site-starlight.md) | Documentation site: Astro Starlight on GitHub Pages | Accepted |
 | [0014](0014-database-connection-form.md) | Shared database configured by form fields via the provider; optional database creation | Accepted |
+| [0015](0015-anonymous-named-mode.md) | Optional no-sign-in mode with a user-entered name | Accepted |

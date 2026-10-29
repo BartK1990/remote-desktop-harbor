@@ -75,25 +75,30 @@ public sealed class HarborWorkspace : IDisposable
             return;
         }
 
+        // Start from the key cached on this machine: shown offline, and SyncAsync then needs no passphrase or DC
+        // when the shared key is unchanged (ADR-0006).
+        Exception? cacheError = null;
+        try
+        {
+            _cipher = await VaultKeyManager.TryOpenAsync(_local, _resolver, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            cacheError = ex; // e.g. a cache copied from another user/machine; replaced once online
+        }
+
         await SyncAsync(cancellationToken).ConfigureAwait(false);
 
         if (_cipher is null)
         {
-            try
+            if (cacheError is not null)
             {
-                _cipher = await VaultKeyManager.TryOpenAsync(_local, _resolver, cancellationToken).ConfigureAwait(false);
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
-                throw new WorkspaceOfflineException("The offline copy cannot be decrypted on this machine/user.", ex);
+                throw new WorkspaceOfflineException("The offline copy cannot be decrypted on this machine/user.", cacheError);
             }
 
-            if (_cipher is null)
-            {
-                throw new WorkspaceOfflineException(
-                    "The shared database is unreachable and there is no offline copy on this machine yet. " +
-                    $"Connect once while online. ({LastRemoteError?.Message})", LastRemoteError);
-            }
+            throw new WorkspaceOfflineException(
+                "The shared database is unreachable and there is no offline copy on this machine yet. " +
+                $"Connect once while online. ({LastRemoteError?.Message})", LastRemoteError);
         }
     }
 
@@ -118,22 +123,27 @@ public sealed class HarborWorkspace : IDisposable
                     await _remote.InitializeAsync(cancellationToken).ConfigureAwait(false);
                 }
 
-                var cipher = await VaultKeyManager.OpenOrCreateAsync(_remote, _remoteProtectorForNewKey!, _resolver, cancellationToken)
-                    .ConfigureAwait(false);
-                var cached = await _local.GetVaultKeyAsync(VaultKeyRecord.PrimarySlot, cancellationToken).ConfigureAwait(false);
-                if (cached?.KeyId != cipher.KeyId)
+                var remoteKey = await _remote.GetVaultKeyAsync(VaultKeyRecord.PrimarySlot, cancellationToken).ConfigureAwait(false);
+                if (remoteKey is null || _cipher?.KeyId != remoteKey.KeyId)
                 {
-                    await VaultKeyManager.CacheAsync(_local, cipher, _localProtector, cancellationToken).ConfigureAwait(false);
-                }
+                    // Only unwrap the shared key (passphrase prompt / DC) when this machine has not cached it yet.
+                    var cipher = await VaultKeyManager.OpenOrCreateAsync(_remote, _remoteProtectorForNewKey!, _resolver, cancellationToken)
+                        .ConfigureAwait(false);
+                    var cached = await _local.GetVaultKeyAsync(VaultKeyRecord.PrimarySlot, cancellationToken).ConfigureAwait(false);
+                    if (cached?.KeyId != cipher.KeyId)
+                    {
+                        await VaultKeyManager.CacheAsync(_local, cipher, _localProtector, cancellationToken).ConfigureAwait(false);
+                    }
 
-                if (_cipher?.KeyId == cipher.KeyId)
-                {
-                    cipher.Dispose(); // same key as the cached one already in use
-                }
-                else
-                {
-                    // Not disposing the previous cipher: a UI call may still be using it; it is unreachable from now on.
-                    _cipher = cipher;
+                    if (_cipher?.KeyId == cipher.KeyId)
+                    {
+                        cipher.Dispose(); // same key as the cached one already in use
+                    }
+                    else
+                    {
+                        // Not disposing the previous cipher: a UI call may still be using it; it is unreachable from now on.
+                        _cipher = cipher;
+                    }
                 }
 
                 _remoteKeyVerified = true;

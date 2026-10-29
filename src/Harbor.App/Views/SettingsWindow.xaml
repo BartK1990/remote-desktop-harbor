@@ -84,15 +84,23 @@
         </StackPanel>
 
         <TextBlock Text="Sign-in" Style="{StaticResource SectionHeader}" />
-        <RadioButton GroupName="SignIn" Content="Windows account (domain / local, automatic single sign-on)" IsChecked="{Binding UseWindowsAuth}" Margin="0,4" />
-        <RadioButton GroupName="SignIn" Content="Microsoft Entra ID (work account via Windows broker, SSO when available)" IsChecked="{Binding UseEntraId}" Margin="0,4" />
         <TextBlock FontSize="11" Opacity="0.6" TextWrapping="Wrap" Margin="0,0,0,4"
                    Text="Who you are for session presence and audit. Works with both local and shared storage." />
+        <RadioButton GroupName="SignIn" Content="Windows account (domain / local, automatic single sign-on) – recommended" IsChecked="{Binding UseWindowsAuth}" Margin="0,4" />
+        <RadioButton GroupName="SignIn" Content="Microsoft Entra ID (work account via Windows broker, SSO when available)" IsChecked="{Binding UseEntraId}" Margin="0,4" />
         <StackPanel Visibility="{Binding UseEntraId, Converter={StaticResource BoolToVisibility}}" Margin="24,0,0,0">
           <TextBlock Text="Application (client) ID" Style="{StaticResource FieldLabel}" />
           <TextBox Text="{Binding EntraClientId, UpdateSourceTrigger=PropertyChanged}" />
           <TextBlock Text="Tenant ID or domain" Style="{StaticResource FieldLabel}" />
           <TextBox Text="{Binding EntraTenantId, UpdateSourceTrigger=PropertyChanged}" />
+        </StackPanel>
+        <!-- SPEC FR-44 -->
+        <RadioButton GroupName="SignIn" Content="No sign-in – just enter your name" IsChecked="{Binding UseAnonymous}" Margin="0,4" />
+        <StackPanel Visibility="{Binding UseAnonymous, Converter={StaticResource BoolToVisibility}}" Margin="24,0,0,0">
+          <TextBlock Text="Your name" Style="{StaticResource FieldLabel}" />
+          <TextBox Text="{Binding AnonymousName, UpdateSourceTrigger=PropertyChanged}" />
+          <TextBlock FontSize="11" Opacity="0.6" TextWrapping="Wrap" Margin="0,4,0,0"
+                     Text="Shown to others as &quot;in use by &lt;name&gt; (not signed in)&quot; and in &quot;Last changed by&quot;. Not verified – anyone can type any name, so prefer a Windows or Entra ID sign-in." />
         </StackPanel>
 
         <TextBlock Text="Remote Desktop" Style="{StaticResource SectionHeader}" />

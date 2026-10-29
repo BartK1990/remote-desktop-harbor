@@ -31,9 +31,10 @@ DPAPI-protected for your Windows account, so a copied `settings.json` does not r
 
 | UI | JSON property | Default | Description |
 |---|---|---|---|
-| Windows account / Microsoft Entra ID | `AuthMode` | `Windows` | `Windows` or `EntraId`. Who you are for presence and audit; independent of storage and of the database sign-in. |
+| Windows account / Microsoft Entra ID / No sign-in | `AuthMode` | `Windows` | `Windows` (recommended), `EntraId` or `Anonymous`. Who you are for presence and audit; independent of storage and of the database sign-in. |
 | Application (client) ID | `EntraClientId` | — | Required for Entra ID. See [Entra ID sign-in](../../team/entra-id/). |
 | Tenant ID or domain | `EntraTenantId` | `organizations` | Tenant ID, domain, or `organizations`. |
+| Your name | `AnonymousName` | — | Required for *No sign-in*. Shown to others as “*name* (not signed in)” and in “Last changed by”. Not verified. |
 
 ## Remote Desktop
 
@@ -55,6 +56,7 @@ The dialog refuses to save when:
 - the database should be created but that fails (untick the option to save anyway),
 - AD-group protection is selected without a descriptor,
 - Entra ID is selected without a client ID,
+- *No sign-in* is selected without a name,
 - the heartbeat is more than half of the presence timeout.
 
 ## Example `settings.json`
@@ -71,6 +73,7 @@ The dialog refuses to save when:
   "AuthMode": "Windows",
   "EntraClientId": null,
   "EntraTenantId": "organizations",
+  "AnonymousName": null,
   "PresenceTtlSeconds": 120,
   "PresenceHeartbeatSeconds": 45,
   "KeepCredentialAfterLaunch": false

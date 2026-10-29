@@ -13,6 +13,9 @@ public enum AuthMode
 {
     Windows = 0,
     EntraId = 1,
+
+    /// <summary>No sign-in; the user enters a name (<see cref="HarborSettings.AnonymousName"/>). SPEC FR-44</summary>
+    Anonymous = 2,
 }
 
 /// <summary>User-editable app configuration, persisted as JSON in the data directory. See SPEC section 7.</summary>
@@ -40,6 +43,9 @@ public sealed class HarborSettings
     public AuthMode AuthMode { get; set; } = AuthMode.Windows;
     public string? EntraClientId { get; set; }
     public string? EntraTenantId { get; set; } = "organizations";
+
+    /// <summary>Name shown for presence and audit when <see cref="AuthMode"/> is <see cref="AuthMode.Anonymous"/>.</summary>
+    public string? AnonymousName { get; set; }
 
     public int PresenceTtlSeconds { get; set; } = 120;
     public int PresenceHeartbeatSeconds { get; set; } = 45;

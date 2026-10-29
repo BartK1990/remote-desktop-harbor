@@ -23,7 +23,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         _keyDescriptor = settings.RemoteKeyDescriptor;
         _autoMigrate = settings.RemoteAutoMigrate;
         _syncIntervalSeconds = settings.RemoteSyncIntervalSeconds;
-        _useEntraId = settings.AuthMode == AuthMode.EntraId;
+        _authMode = settings.AuthMode;
+        _anonymousName = settings.AnonymousName;
         _entraClientId = settings.EntraClientId;
         _entraTenantId = settings.EntraTenantId;
         _presenceTtlSeconds = settings.PresenceTtlSeconds;
@@ -83,8 +84,10 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private int _syncIntervalSeconds;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(UseWindowsAuth))]
-    private bool _useEntraId;
+    [NotifyPropertyChangedFor(nameof(UseWindowsAuth), nameof(UseEntraId), nameof(UseAnonymous))]
+    private AuthMode _authMode;
+
+    [ObservableProperty] private string? _anonymousName;
 
     [ObservableProperty] private string? _entraClientId;
     [ObservableProperty] private string? _entraTenantId;
@@ -110,8 +113,20 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     public bool UseWindowsAuth
     {
-        get => !UseEntraId;
-        set { if (value) UseEntraId = false; }
+        get => AuthMode == AuthMode.Windows;
+        set { if (value) AuthMode = AuthMode.Windows; }
+    }
+
+    public bool UseEntraId
+    {
+        get => AuthMode == AuthMode.EntraId;
+        set { if (value) AuthMode = AuthMode.EntraId; }
+    }
+
+    public bool UseAnonymous
+    {
+        get => AuthMode == AuthMode.Anonymous;
+        set { if (value) AuthMode = AuthMode.Anonymous; }
     }
 
     private IServerDatabaseProvider? ServerProvider =>
@@ -245,6 +260,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         else if (IsRemote && UseDpapiNg && string.IsNullOrWhiteSpace(KeyDescriptor))
             Error = "Enter a DPAPI-NG descriptor, e.g. SID=S-1-5-21-…, of the AD group that may read the vault.";
         else if (UseEntraId && string.IsNullOrWhiteSpace(EntraClientId)) Error = "Entra ID sign-in needs the app registration's client id.";
+        else if (UseAnonymous && string.IsNullOrWhiteSpace(AnonymousName)) Error = "Enter your name so others can see who is connected.";
         else if (PresenceHeartbeatSeconds * 2 > PresenceTtlSeconds) Error = "Heartbeat must be at most half of the session timeout.";
         return Error is null;
     }
@@ -263,7 +279,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         _settings.RemoteKeyDescriptor = string.IsNullOrWhiteSpace(KeyDescriptor) ? null : KeyDescriptor.Trim();
         _settings.RemoteAutoMigrate = AutoMigrate;
         _settings.RemoteSyncIntervalSeconds = Math.Max(10, SyncIntervalSeconds);
-        _settings.AuthMode = UseEntraId ? AuthMode.EntraId : AuthMode.Windows;
+        _settings.AuthMode = AuthMode;
+        _settings.AnonymousName = string.IsNullOrWhiteSpace(AnonymousName) ? null : AnonymousName.Trim();
         _settings.EntraClientId = string.IsNullOrWhiteSpace(EntraClientId) ? null : EntraClientId.Trim();
         _settings.EntraTenantId = string.IsNullOrWhiteSpace(EntraTenantId) ? "organizations" : EntraTenantId.Trim();
         _settings.PresenceTtlSeconds = PresenceTtlSeconds;

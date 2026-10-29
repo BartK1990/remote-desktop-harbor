@@ -39,6 +39,19 @@ internal sealed class TestKeyProtector(string scheme, string secret) : IKeyProte
     public byte[] Unprotect(ReadOnlySpan<byte> protectedKey) => _inner.Unprotect(protectedKey);
 }
 
+internal sealed class CountingKeyProtector(IKeyProtector inner) : IKeyProtector
+{
+    public int UnprotectCount { get; private set; }
+    public string Scheme => inner.Scheme;
+    public byte[] Protect(ReadOnlySpan<byte> key) => inner.Protect(key);
+
+    public byte[] Unprotect(ReadOnlySpan<byte> protectedKey)
+    {
+        UnprotectCount++;
+        return inner.Unprotect(protectedKey);
+    }
+}
+
 internal sealed class FakeDbException(string message) : DbException(message);
 
 /// <summary>Remote store whose connectivity can be switched off.</summary>

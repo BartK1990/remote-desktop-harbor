@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <IsPackable>false</IsPackable>
+    <!-- WPF + DPAPI: builds everywhere (EnableWindowsTargeting) but only runs on Windows, e.g. in CI. -->
+    <IsTestProject Condition="'$(OS)' != 'Windows_NT'">false</IsTestProject>
+    <NoWarn>$(NoWarn);CA1707;CA2201;CA1861;CA1416</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Harbor.App\Harbor.App.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\src\Harbor.App\Views\SettingsWindow.xaml" Link="Xaml\SettingsWindow.xaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\src\Harbor.App\Views\MainWindow.xaml.cs" Link="Xaml\MainWindow.xaml.cs" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+</Project>

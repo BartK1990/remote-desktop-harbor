@@ -31,10 +31,13 @@ public sealed class AppHost : IDisposable
     public SessionPresenceService Presence { get; }
     public IRdpLauncher Launcher { get; }
 
-    public static IIdentityProvider CreateIdentityProvider(HarborSettings settings, Func<nint> parentWindow) =>
-        settings.AuthMode == AuthMode.EntraId && !string.IsNullOrWhiteSpace(settings.EntraClientId)
-            ? new EntraIdIdentityProvider(settings.EntraClientId, settings.EntraTenantId, parentWindow)
-            : new WindowsIdentityProvider();
+    public static IIdentityProvider CreateIdentityProvider(HarborSettings settings, Func<nint> parentWindow) => settings.AuthMode switch
+    {
+        AuthMode.EntraId when !string.IsNullOrWhiteSpace(settings.EntraClientId) =>
+            new EntraIdIdentityProvider(settings.EntraClientId, settings.EntraTenantId, parentWindow),
+        AuthMode.Anonymous => new AnonymousIdentityProvider(settings.AnonymousName ?? ""), // SPEC FR-44
+        _ => new WindowsIdentityProvider(),
+    };
 
     public static async Task<AppHost> StartAsync(HarborSettings settings, Func<nint> parentWindow,
         Func<bool, string?> passphrasePrompt, CancellationToken cancellationToken = default)

@@ -106,6 +106,33 @@ public class WorkspaceTests
     }
 
     [Fact]
+    public async Task Shared_key_is_unwrapped_once_per_machine_then_taken_from_the_cache()
+    {
+        // ADR-0006: after the first unwrap no passphrase prompt (or DC) is needed on later starts.
+        using var remoteDb = new TempDb();
+        using var aliceCache = new TempDb();
+        using var bobCache = new TempDb();
+        var shared = new CountingKeyProtector(Shared);
+        var resolver = new KeyProtectorResolver([AliceLocal, BobLocal, shared]);
+
+        using (var alice = HarborWorkspace.CreateRemote(Users.Alice, aliceCache.Store, remoteDb.Store, AliceLocal, shared, resolver, true))
+        {
+            await alice.OpenAsync();
+            await alice.SaveAsync(ConnectionEntry.CreateNew("a"), SecretUpdate.Set("pw"));
+        }
+
+        for (var start = 0; start < 3; start++)
+        {
+            using var bob = HarborWorkspace.CreateRemote(Users.Bob, bobCache.Store, remoteDb.Store, BobLocal, shared, resolver, true);
+            await bob.OpenAsync();
+            Assert.True(bob.IsOnline);
+            Assert.Equal("pw", bob.RevealPassword(Assert.Single(await bob.ListAsync())));
+        }
+
+        Assert.Equal(1, shared.UnprotectCount);
+    }
+
+    [Fact]
     public async Task Remote_mode_without_cache_fails_when_offline()
     {
         using var remoteDb = new TempDb();
