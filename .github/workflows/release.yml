@@ -1,0 +1,72 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version without leading v (e.g. 0.2.0). Creates tag v<version>."
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Determine version
+        id: version
+        shell: pwsh
+        run: |
+          $v = if ("${{ github.event_name }}" -eq "workflow_dispatch") { "${{ inputs.version }}" } else { "${{ github.ref_name }}".TrimStart('v') }
+          if ($v -notmatch '^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$') { throw "Invalid version '$v'" }
+          "version=$v" >> $env:GITHUB_OUTPUT
+
+      - name: Test
+        run: dotnet test RemoteDesktopHarbor.slnx -c Release
+
+      - name: Publish self-contained (no runtime needed)
+        run: >
+          dotnet publish src/Harbor.App/Harbor.App.csproj -p:PublishProfile=win-x64
+          -p:Version=${{ steps.version.outputs.version }} -o out/sc
+
+      - name: Publish framework-dependent (needs .NET 10 Desktop Runtime)
+        run: >
+          dotnet publish src/Harbor.App/Harbor.App.csproj -c Release -r win-x64 --self-contained false
+          -p:PublishSingleFile=true -p:PublishReadyToRun=true -p:DebugType=embedded
+          -p:Version=${{ steps.version.outputs.version }} -o out/fdd
+
+      - name: Package
+        shell: pwsh
+        run: |
+          $v = "${{ steps.version.outputs.version }}"
+          New-Item -ItemType Directory -Force dist | Out-Null
+          foreach ($d in @("sc", "fdd")) {
+            Get-ChildItem "out/$d" -Filter *.pdb | Remove-Item
+            Copy-Item README.md -Destination "out/$d"
+          }
+          Compress-Archive -Path out/sc/* -DestinationPath "dist/RemoteDesktopHarbor-$v-win-x64.zip"
+          Compress-Archive -Path out/fdd/* -DestinationPath "dist/RemoteDesktopHarbor-$v-win-x64-fdd.zip"
+          Get-ChildItem dist/*.zip | ForEach-Object { "$((Get-FileHash $_ -Algorithm SHA256).Hash.ToLower())  $($_.Name)" } |
+            Set-Content dist/SHA256SUMS.txt
+
+      - name: Create GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $v = "${{ steps.version.outputs.version }}"
+          $pre = if ($v -match '-') { "--prerelease" } else { "" }
+          gh release create "v$v" dist/* --title "Remote Desktop Harbor $v" --generate-notes --target "${{ github.sha }}" $pre

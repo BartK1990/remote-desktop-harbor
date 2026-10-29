@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>Harbor.App</RootNamespace>
+    <AssemblyName>RemoteDesktopHarbor</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Title>Remote Desktop Harbor</Title>
+    <!-- Startup performance (ADR-0002 / ADR-0003). -->
+    <TieredPGO>true</TieredPGO>
+    <TieredCompilation>true</TieredCompilation>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <UseSystemResourceKeys>false</UseSystemResourceKeys>
+    <!-- WPF Fluent theme (ThemeMode) is flagged experimental. -->
+    <NoWarn>$(NoWarn);WPF0001</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Harbor.Core\Harbor.Core.csproj" />
+    <ProjectReference Include="..\Harbor.Data\Harbor.Data.csproj" />
+    <ProjectReference Include="..\Harbor.Windows\Harbor.Windows.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+  </ItemGroup>
+</Project>

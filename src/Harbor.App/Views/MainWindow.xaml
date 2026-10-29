@@ -1,0 +1,179 @@
+<Window x:Class="Harbor.App.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:Harbor.App.ViewModels"
+        Title="Remote Desktop Harbor" Width="1100" Height="700" MinWidth="720" MinHeight="420"
+        WindowStartupLocation="CenterScreen">
+  <Window.InputBindings>
+    <KeyBinding Key="F" Modifiers="Ctrl" Command="{Binding FocusSearchCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+    <KeyBinding Key="N" Modifiers="Ctrl" Command="{Binding AddCommand}" />
+    <KeyBinding Key="F5" Command="{Binding RefreshCommand}" />
+    <KeyBinding Key="C" Modifiers="Ctrl+Shift" Command="{Binding CopyPasswordCommand}" />
+  </Window.InputBindings>
+
+  <DockPanel>
+    <!-- Toolbar -->
+    <Grid DockPanel.Dock="Top" Margin="12,12,12,6">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" MaxWidth="420" />
+        <ColumnDefinition Width="Auto" />
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
+      <TextBox x:Name="SearchBox" Grid.Column="0" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+               ToolTip="Search by name, host, user, folder or notes (Ctrl+F)" VerticalContentAlignment="Center" />
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="8,0,0,0">
+        <Button Content="New" Command="{Binding AddCommand}" Margin="0,0,6,0" ToolTip="New entry (Ctrl+N)" />
+        <Button Content="Import .rdp…" Command="{Binding ImportRdpCommand}" Margin="0,0,6,0" />
+        <Button Content="Refresh" Command="{Binding RefreshCommand}" Margin="0,0,6,0" ToolTip="Sync and refresh (F5)" />
+        <Button Content="Settings" Command="{Binding OpenSettingsCommand}" />
+      </StackPanel>
+      <TextBlock Grid.Column="3" Text="{Binding UserText}" VerticalAlignment="Center" Opacity="0.8" />
+    </Grid>
+
+    <!-- Status bar -->
+    <Border DockPanel.Dock="Bottom" Padding="12,6" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}">
+      <DockPanel>
+        <TextBlock DockPanel.Dock="Right" Text="{Binding StoreText}">
+          <TextBlock.Style>
+            <Style TargetType="TextBlock">
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding IsOffline}" Value="True">
+                  <Setter Property="Foreground" Value="OrangeRed" />
+                  <Setter Property="FontWeight" Value="SemiBold" />
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </TextBlock.Style>
+        </TextBlock>
+        <TextBlock Text="{Binding StatusText}" TextTrimming="CharacterEllipsis" />
+      </DockPanel>
+    </Border>
+
+    <Grid Margin="12,6,12,12">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="2*" MinWidth="280" />
+        <ColumnDefinition Width="Auto" />
+        <ColumnDefinition Width="3*" MinWidth="300" />
+      </Grid.ColumnDefinitions>
+
+      <!-- Entry list: virtualized even when grouped, for large catalogs (SPEC NFR-03). -->
+      <ListBox x:Name="EntryList" Grid.Column="0" ItemsSource="{Binding EntriesView}" SelectedItem="{Binding Selected}"
+               VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
+               VirtualizingPanel.IsVirtualizingWhenGrouping="True" VirtualizingPanel.ScrollUnit="Pixel"
+               MouseDoubleClick="EntryList_MouseDoubleClick" KeyDown="EntryList_KeyDown"
+               HorizontalContentAlignment="Stretch">
+        <ListBox.GroupStyle>
+          <GroupStyle>
+            <GroupStyle.HeaderTemplate>
+              <DataTemplate>
+                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Margin="6,10,0,2" Opacity="0.7" />
+              </DataTemplate>
+            </GroupStyle.HeaderTemplate>
+          </GroupStyle>
+        </ListBox.GroupStyle>
+        <ListBox.ItemTemplate>
+          <DataTemplate DataType="{x:Type vm:EntryViewModel}">
+            <Grid Margin="2,4">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <StackPanel>
+                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                <TextBlock Text="{Binding Subtitle}" Opacity="0.7" FontSize="12" TextTrimming="CharacterEllipsis" />
+              </StackPanel>
+              <Border Grid.Column="1" Background="#33FF8C00" CornerRadius="4" Padding="6,2" VerticalAlignment="Center"
+                      Visibility="{Binding IsInUse, Converter={StaticResource BoolToVisibility}}" ToolTip="{Binding PresenceDetails}">
+                <TextBlock Text="{Binding PresenceText}" FontSize="11" />
+              </Border>
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+
+      <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="Transparent" />
+
+      <!-- Details -->
+      <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto" Padding="12,0,0,0">
+        <Grid>
+          <TextBlock Text="Select an entry, or create one with New / Import .rdp." Opacity="0.6" Margin="0,8">
+            <TextBlock.Style>
+              <Style TargetType="TextBlock">
+                <Setter Property="Visibility" Value="Collapsed" />
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding Selected}" Value="{x:Null}">
+                    <Setter Property="Visibility" Value="Visible" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </TextBlock.Style>
+          </TextBlock>
+
+          <StackPanel DataContext="{Binding Selected}">
+            <StackPanel.Style>
+              <Style TargetType="StackPanel">
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding}" Value="{x:Null}">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </StackPanel.Style>
+
+            <TextBlock Text="{Binding Name}" FontSize="22" FontWeight="SemiBold" TextWrapping="Wrap" />
+            <TextBlock Text="{Binding KindLabel}" Opacity="0.7" Margin="0,2,0,0" />
+
+            <Border Margin="0,12,0,0" Padding="10" CornerRadius="6" Background="#22FF8C00"
+                    Visibility="{Binding IsInUse, Converter={StaticResource BoolToVisibility}}">
+              <StackPanel>
+                <TextBlock Text="Active sessions" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding PresenceDetails}" TextWrapping="Wrap" Margin="0,4,0,0" />
+              </StackPanel>
+            </Border>
+
+            <StackPanel Orientation="Horizontal" Margin="0,16,0,0"
+                        DataContext="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Window}}">
+              <Button Content="Connect" Command="{Binding ConnectCommand}" Style="{DynamicResource AccentButtonStyle}"
+                      Padding="20,6" Margin="0,0,8,0" ToolTip="Open in Remote Desktop (Enter / double-click)" />
+              <Button Content="Copy password" Command="{Binding CopyPasswordCommand}" Margin="0,0,8,0" ToolTip="Ctrl+Shift+C" />
+              <Button Content="Copy user" Command="{Binding CopyUserNameCommand}" Margin="0,0,8,0" />
+              <Button Content="Edit" Command="{Binding EditCommand}" Margin="0,0,8,0" />
+              <Button Content="Delete" Command="{Binding DeleteCommand}" />
+            </StackPanel>
+
+            <TextBlock Text="Host" Style="{StaticResource FieldLabel}" />
+            <TextBlock Text="{Binding Model.Host, TargetNullValue='—'}" />
+            <TextBlock Text="Port" Style="{StaticResource FieldLabel}" />
+            <TextBlock Text="{Binding Model.Port}" />
+            <TextBlock Text="User" Style="{StaticResource FieldLabel}" />
+            <TextBox Text="{Binding Model.QualifiedUserName, Mode=OneWay, TargetNullValue='—'}" IsReadOnly="True" BorderThickness="0" Background="Transparent" Padding="0" />
+            <TextBlock Text="Password" Style="{StaticResource FieldLabel}" />
+            <TextBlock>
+              <TextBlock.Style>
+                <Style TargetType="TextBlock">
+                  <Setter Property="Text" Value="Not stored" />
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding HasPassword}" Value="True">
+                      <Setter Property="Text" Value="•••••••• (encrypted)" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </TextBlock.Style>
+            </TextBlock>
+            <TextBlock Text="Folder" Style="{StaticResource FieldLabel}" />
+            <TextBlock Text="{Binding GroupName}" />
+            <TextBlock Text="Notes" Style="{StaticResource FieldLabel}" />
+            <TextBox Text="{Binding Model.Notes, Mode=OneWay, TargetNullValue='—'}" IsReadOnly="True" TextWrapping="Wrap" BorderThickness="0" Background="Transparent" Padding="0" />
+            <TextBlock Style="{StaticResource FieldLabel}" FontSize="11">
+              <Run Text="Last changed by" />
+              <Run Text="{Binding Model.UpdatedBy, Mode=OneWay, TargetNullValue='—'}" />
+              <Run Text="·" />
+              <Run Text="{Binding Model.UpdatedUtc.LocalDateTime, Mode=OneWay, StringFormat='g'}" />
+            </TextBlock>
+          </StackPanel>
+        </Grid>
+      </ScrollViewer>
+    </Grid>
+  </DockPanel>
+</Window>
