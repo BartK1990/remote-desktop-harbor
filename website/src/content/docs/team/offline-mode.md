@@ -19,6 +19,8 @@ from that copy.
 
 The status bar shows **Shared database · OFFLINE (read-only cached copy)** in orange, and the reason on the left.
 
+![Main window while offline: New, Import .rdp…, Edit and Delete are disabled; Connect and the copy buttons still work; the status bar shows the offline reason and "Shared database · OFFLINE (read-only cached copy)" in orange.](../../../assets/screenshots/offline.png)
+
 ## Getting back online
 
 The app retries on every sync tick (default every 60 s) and switches back automatically. Press <kbd>F5</kbd> to retry

@@ -36,6 +36,8 @@ For environments without Active Directory. The DEK is encrypted with a key deriv
 
 - The creator chooses the passphrase (at least **12 characters**, entered twice).
 - Every other user enters it **once per machine** when the app first opens the vault.
+
+![Passphrase dialog shown when a new shared vault is created: passphrase and repeat fields with OK and Cancel.](../../../assets/screenshots/passphrase.png)
 - Distribute it through a secure channel (e.g. your password manager), never by e-mail or chat.
 
 ## Cached key on each client

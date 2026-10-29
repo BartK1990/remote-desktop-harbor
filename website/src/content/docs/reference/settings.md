@@ -6,6 +6,8 @@ description: Every setting in the Settings dialog and settings.json.
 Open **Settings** from the toolbar. After **Save**, the app offers to restart, because storage and sign-in changes
 take effect at startup.
 
+![The Settings dialog with its Storage, Sign-in, Remote Desktop and Data folder sections.](../../../assets/screenshots/settings.png)
+
 Settings are stored as JSON in `settings.json` in the [data folder](../data-and-files/). The remote connection string is
 DPAPI-protected for your Windows account, so a copied `settings.json` does not reveal it.
 

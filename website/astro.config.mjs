@@ -11,8 +11,8 @@ export default defineConfig({
 			title: 'Remote Desktop Harbor',
 			description:
 				'A fast, portable Windows app that keeps Remote Desktop connections and credentials in one encrypted catalog.',
-			logo: { src: './src/assets/logo.svg' },
-			favicon: '/favicon.svg',
+			logo: { src: './src/assets/logo.png' },
+			favicon: '/favicon.png',
 			customCss: ['./src/styles/custom.css'],
 			social: [
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/BartK1990/remote-desktop-harbor' },

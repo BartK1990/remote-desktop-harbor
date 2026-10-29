@@ -6,6 +6,8 @@ description: Create, edit, organise, search, copy and delete connection entries.
 Every item in the catalog is an **entry**. The main window shows the entries on the left, grouped by folder, and the
 details of the selected entry on the right.
 
+![Main window: search box and toolbar at the top, entry list grouped by folder on the left, details and actions of the selected entry on the right, status bar at the bottom.](../../../assets/screenshots/main.png)
+
 ## Entry kinds
 
 | Kind | Stores | Connecting uses |
@@ -17,6 +19,8 @@ Pick the kind at the top of the editor. You can switch it later; the `.rdp` sett
 RDP connections.
 
 ## Fields
+
+![The entry editor for an RDP connection.](../../../assets/screenshots/editor.png)
 
 | Field | Notes |
 |---|---|

@@ -1,0 +1,249 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  /* Approximates WPF's Fluent theme (ThemeMode="System", light) for documentation mockups. */
+  :root {
+    --bg: #f3f3f3; --surface: #fbfbfb; --card: #ffffff; --stroke: #e5e5e5; --stroke-strong: #d1d1d1;
+    --text: #1a1a1a; --muted: #5d5d5d; --accent: #005fb8; --accent-hover: #0067c0;
+    --orange-soft: rgba(255,140,0,.20); --orange-softer: rgba(255,140,0,.13);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 40px; background: transparent; font-family: Inter, "Segoe UI", sans-serif; font-size: 14px; color: var(--text); }
+  .shot { display: inline-block; padding: 28px; }
+  .win { background: var(--bg); border: 1px solid #c8c8c8; border-radius: 8px; overflow: hidden;
+         box-shadow: 0 8px 32px rgba(0,0,0,.18), 0 2px 6px rgba(0,0,0,.08); display: flex; flex-direction: column; }
+  .titlebar { height: 32px; display: flex; align-items: center; padding-left: 12px; font-size: 12px; flex: none; }
+  .titlebar img { width: 16px; height: 16px; margin-right: 10px; }
+  .titlebar .t { flex: 1; }
+  .caps { display: flex; height: 100%; }
+  .caps span { width: 46px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #333; }
+  .caps svg { width: 10px; height: 10px; stroke: #333; stroke-width: 1; fill: none; }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; height: 32px; padding: 0 12px; border-radius: 4px;
+         background: var(--card); border: 1px solid var(--stroke); border-bottom-color: var(--stroke-strong); font-size: 14px; white-space: nowrap; }
+  .btn.accent { background: var(--accent); border-color: var(--accent); color: #fff; padding: 0 20px; }
+  .btn.disabled { color: #a0a0a0; background: #f9f9f9; }
+  .tb { height: 32px; border-radius: 4px; background: var(--card); border: 1px solid var(--stroke); border-bottom: 1px solid #8a8a8a;
+        display: flex; align-items: center; padding: 0 10px; font-size: 14px; }
+  .tb.focus { border-bottom: 2px solid var(--accent); }
+  .tb.mono { font-family: "JetBrains Mono", monospace; font-size: 12.5px; align-items: flex-start; padding-top: 6px; line-height: 1.55; white-space: pre; }
+  .tb.multi { align-items: flex-start; padding-top: 6px; line-height: 1.45; }
+  .tb.ro { background: #f9f9f9; color: var(--muted); }
+  .tb .caret { display: inline-block; width: 1px; height: 16px; background: var(--text); margin-left: 1px; }
+  .combo { justify-content: space-between; }
+  .combo::after { content: ""; width: 7px; height: 7px; border-right: 1.3px solid #555; border-bottom: 1.3px solid #555; transform: rotate(45deg) translateY(-3px); }
+  .lbl { margin: 10px 0 4px; opacity: .8; }
+  .hdr { font-size: 16px; font-weight: 600; margin: 16px 0 4px; }
+  .hint { font-size: 11px; opacity: .6; margin-top: 4px; line-height: 1.4; }
+  .radio, .check { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+  .radio i { width: 20px; height: 20px; border-radius: 50%; border: 1px solid #8a8a8a; background: #f5f5f5; flex: none; }
+  .radio.on i { border: 6px solid var(--accent); background: #fff; }
+  .check i { width: 20px; height: 20px; border-radius: 4px; border: 1px solid #8a8a8a; background: #f5f5f5; flex: none; position: relative; }
+  .check.on i { background: var(--accent); border-color: var(--accent); }
+  .check.on i::after { content: ""; position: absolute; left: 6px; top: 2px; width: 5px; height: 10px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+  .row { display: flex; gap: 12px; }
+  .grow { flex: 1; }
+  .dim { opacity: .45; }
+
+  /* Main window */
+  .toolbar { display: flex; align-items: center; margin: 12px 12px 6px; }
+  .toolbar .search { width: 420px; }
+  .toolbar .btns { display: flex; gap: 6px; margin-left: 8px; }
+  .toolbar .user { margin-left: auto; opacity: .8; }
+  .body { flex: 1; display: flex; margin: 6px 12px 12px; min-height: 0; }
+  .list { width: 40%; background: var(--surface); border: 1px solid var(--stroke); border-radius: 6px; padding: 2px 4px; overflow: hidden; }
+  .grp { font-weight: 600; opacity: .7; margin: 10px 0 2px 6px; }
+  .item { display: flex; align-items: center; padding: 5px 10px; border-radius: 4px; margin: 2px 0; position: relative; }
+  .item.sel { background: #eaeaea; }
+  .item.sel::before { content: ""; position: absolute; left: 0; top: 50%; height: 16px; margin-top: -8px; width: 3px; border-radius: 2px; background: var(--accent); }
+  .item .n { font-weight: 600; }
+  .item .s { font-size: 12px; opacity: .7; }
+  .badge { margin-left: auto; background: var(--orange-soft); border-radius: 4px; padding: 2px 6px; font-size: 11px; white-space: nowrap; }
+  .details { flex: 1; padding: 0 0 0 18px; }
+  .details h1 { font-size: 22px; font-weight: 600; margin: 0; }
+  .presence { margin-top: 12px; padding: 10px; border-radius: 6px; background: var(--orange-softer); }
+  .actions { display: flex; gap: 8px; margin-top: 16px; }
+  .status { border-top: 1px solid var(--stroke-strong); padding: 6px 12px; display: flex; font-size: 14px; flex: none; }
+  .status > span:first-child { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: 24px; }
+  .status .r { margin-left: auto; white-space: nowrap; }
+  .status .off { color: orangered; font-weight: 600; }
+
+  .dlgfoot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+  .msg { display: flex; gap: 14px; padding: 22px 22px 18px; background: #fff; }
+  .msg .ic { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700; font-size: 20px; display: flex; align-items: center; justify-content: center; flex: none; }
+  .msgfoot { background: var(--bg); border-top: 1px solid var(--stroke); padding: 16px 22px; display: flex; gap: 8px; justify-content: flex-end; }
+  .msgfoot .btn { min-width: 110px; }
+</style>
+</head>
+<body>
+
+<template id="caps">
+  <div class="caps">
+    <span><svg viewBox="0 0 10 10"><path d="M0 5h10"/></svg></span>
+    <span><svg viewBox="0 0 10 10"><rect x=".5" y=".5" width="9" height="9" rx="1"/></svg></span>
+    <span><svg viewBox="0 0 10 10"><path d="M0 0l10 10M10 0L0 10"/></svg></span>
+  </div>
+</template>
+
+<!-- ============================================================ main window (online, shared DB) -->
+<div class="shot" id="main"><div class="win" style="width:1100px;height:700px">
+  <div class="titlebar"><img src="appicon.png"><span class="t">Remote Desktop Harbor</span><slot-caps></slot-caps></div>
+  <div class="toolbar">
+    <div class="tb search focus"><span class="caret"></span></div>
+    <div class="btns"><span class="btn">New</span><span class="btn">Import .rdp…</span><span class="btn">Refresh</span><span class="btn">Settings</span></div>
+    <span class="user">Alex Kim &lt;alex.kim@contoso.com&gt;</span>
+  </div>
+  <div class="body">
+    <div class="list">
+      <div class="grp">Production</div>
+      <div class="item"><div><div class="n">APP01 – Line of business</div><div class="s">CONTOSO\svc-admin @ srv-app01.contoso.local</div></div></div>
+      <div class="item sel"><div><div class="n">APP02 – Reporting</div><div class="s">CONTOSO\svc-admin @ srv-app02.contoso.local</div></div><span class="badge">In use by Jane Doe</span></div>
+      <div class="item"><div><div class="n">DC01</div><div class="s">CONTOSO\alex.admin @ dc01.contoso.local</div></div></div>
+      <div class="item"><div><div class="n">SQL01</div><div class="s">CONTOSO\sql-admin @ sql01.contoso.local</div></div><span class="badge">In use by Sam Patel</span></div>
+      <div class="grp">Staging</div>
+      <div class="item"><div><div class="n">APP01-STG</div><div class="s">CONTOSO\svc-admin @ stg-app01.contoso.local</div></div></div>
+      <div class="item"><div><div class="n">Jump host (external)</div><div class="s">admin @ jump.fabrikam.com:3390</div></div></div>
+      <div class="grp">Lab</div>
+      <div class="item"><div><div class="n">Hyper-V host</div><div class="s">LAB\administrator @ 10.20.0.5</div></div></div>
+      <div class="item"><div><div class="n">Local admin (workstations)</div><div class="s">.\localadmin</div></div></div>
+    </div>
+    <div class="details">
+      <h1>APP02 – Reporting</h1>
+      <div style="opacity:.7;margin-top:2px">RDP connection</div>
+      <div class="presence"><div style="font-weight:600">Active sessions</div>
+        <div style="margin-top:4px">Jane Doe (CONTOSO\jane.doe) &lt;jane.doe@contoso.com&gt; on PC-42, since 10:31</div></div>
+      <div class="actions"><span class="btn accent">Connect</span><span class="btn">Copy password</span><span class="btn">Copy user</span><span class="btn">Edit</span><span class="btn">Delete</span></div>
+      <div class="lbl">Host</div><div>srv-app02.contoso.local</div>
+      <div class="lbl">Port</div><div>3389</div>
+      <div class="lbl">User</div><div>CONTOSO\svc-admin</div>
+      <div class="lbl">Password</div><div>•••••••• (encrypted)</div>
+      <div class="lbl">Folder</div><div>Production</div>
+      <div class="lbl">Notes</div><div>Reporting Services + SSRS portal. Maintenance window Sun 02:00–04:00.</div>
+      <div class="lbl" style="font-size:11px">Last changed by CONTOSO\alex.kim · 10/27/2026 4:12 PM</div>
+    </div>
+  </div>
+  <div class="status"><span>8 entries</span><span class="r">Shared database · online · synced 10:42:15 AM</span></div>
+</div></div>
+
+<!-- ============================================================ main window (offline) -->
+<div class="shot" id="offline"><div class="win" style="width:1100px;height:420px">
+  <div class="titlebar"><img src="appicon.png"><span class="t">Remote Desktop Harbor</span><slot-caps></slot-caps></div>
+  <div class="toolbar">
+    <div class="tb search">sql</div>
+    <div class="btns"><span class="btn disabled">New</span><span class="btn disabled">Import .rdp…</span><span class="btn">Refresh</span><span class="btn">Settings</span></div>
+    <span class="user">Alex Kim &lt;alex.kim@contoso.com&gt;</span>
+  </div>
+  <div class="body">
+    <div class="list">
+      <div class="grp">Production</div>
+      <div class="item sel"><div><div class="n">SQL01</div><div class="s">CONTOSO\sql-admin @ sql01.contoso.local</div></div></div>
+      <div class="item"><div><div class="n">SQL02 – Analysis</div><div class="s">CONTOSO\sql-admin @ sql02.contoso.local</div></div></div>
+    </div>
+    <div class="details">
+      <h1>SQL01</h1>
+      <div style="opacity:.7;margin-top:2px">RDP connection</div>
+      <div class="actions"><span class="btn accent">Connect</span><span class="btn">Copy password</span><span class="btn">Copy user</span><span class="btn disabled">Edit</span><span class="btn disabled">Delete</span></div>
+      <div class="lbl">Host</div><div>sql01.contoso.local</div>
+      <div class="lbl">User</div><div>CONTOSO\sql-admin</div>
+    </div>
+  </div>
+  <div class="status"><span>Offline: A network-related or instance-specific error occurred while establishing a connection to SQL Server.</span><span class="r off">Shared database · OFFLINE (read-only cached copy)</span></div>
+</div></div>
+
+<!-- ============================================================ entry editor -->
+<div class="shot" id="editor"><div class="win" style="width:560px">
+  <div class="titlebar"><img src="appicon.png"><span class="t">Edit – APP02 – Reporting</span><slot-caps></slot-caps></div>
+  <div style="flex:1;display:flex;flex-direction:column;padding:16px">
+    <div style="flex:1">
+      <div class="lbl" style="margin-top:0">Type</div>
+      <div class="row" style="gap:16px"><span class="radio on"><i></i>RDP connection</span><span class="radio"><i></i>Credentials only</span></div>
+      <div class="lbl">Name *</div><div class="tb">APP02 – Reporting</div>
+      <div class="lbl">Folder</div><div class="tb combo">Production</div>
+      <div class="row"><div class="grow"><div class="lbl">Host</div><div class="tb">srv-app02.contoso.local</div></div>
+        <div style="width:100px"><div class="lbl">Port</div><div class="tb">3389</div></div></div>
+      <div class="row"><div style="flex:1"><div class="lbl">Domain</div><div class="tb">CONTOSO</div></div>
+        <div style="flex:2"><div class="lbl">User name</div><div class="tb">svc-admin</div></div></div>
+      <div class="lbl">Password</div>
+      <span class="check"><i></i>Change stored password</span>
+      <div class="tb ro"></div>
+      <div class="hint">Leave empty to store no password. Passwords are encrypted before they are written.</div>
+      <div class="lbl">RDP settings (.rdp lines, key:type:value)</div>
+      <div class="tb mono" style="height:110px">screen mode id:i:1
+desktopwidth:i:1920
+desktopheight:i:1080
+redirectdrives:i:0
+audiomode:i:2</div>
+      <div class="lbl">Notes</div>
+      <div class="tb multi" style="height:60px">Reporting Services + SSRS portal. Maintenance window Sun 02:00–04:00.</div>
+    </div>
+    <div class="dlgfoot"><span class="btn" style="margin-right:16px">Import .rdp…</span><span class="btn accent" style="min-width:90px">Save</span><span class="btn" style="min-width:90px">Cancel</span></div>
+  </div>
+</div></div>
+
+<!-- ============================================================ settings -->
+<div class="shot" id="settings"><div class="win" style="width:620px">
+  <div class="titlebar"><img src="appicon.png"><span class="t">Settings</span><slot-caps></slot-caps></div>
+  <div style="flex:1;display:flex;flex-direction:column;padding:16px">
+    <div style="flex:1">
+      <div class="hdr" style="margin-top:0">Storage</div>
+      <span class="radio"><i></i>Local vault on this computer (SQLite)</span>
+      <span class="radio on"><i></i>Shared database with offline copy</span>
+      <div style="margin-left:24px">
+        <div class="lbl">Provider</div><div class="tb combo" style="width:200px">SqlServer</div>
+        <div class="lbl">Connection string</div><div class="tb">Server=sql01;Database=Harbor;Integrated Security=true;Encrypt=true</div>
+        <div class="hint">Examples: Server=sql01;Database=Harbor;Integrated Security=true;Encrypt=true · Server=tcp:x.database.windows.net;Database=Harbor;Authentication=Active Directory Default. Stored encrypted for your Windows account.</div>
+        <div style="display:flex;align-items:center;margin-top:8px"><span class="btn">Test connection</span><span style="margin-left:12px">OK – connected to sql01 / Harbor</span></div>
+        <div class="lbl">Shared vault key protection</div>
+        <span class="radio on"><i></i>Active Directory group (DPAPI-NG) – recommended</span>
+        <div class="tb" style="margin-left:24px;margin-top:4px">SID=S-1-5-21-1004336348-1177238915-682003330-5126</div>
+        <span class="radio" style="margin-top:8px"><i></i>Shared passphrase</span>
+        <div class="hint">Only used when this database has no vault key yet. Existing vaults keep the protection they were created with.</div>
+        <span class="check on" style="margin-top:10px"><i></i>Create / upgrade database schema automatically (needs DDL rights)</span>
+        <div class="lbl">Sync interval (seconds)</div><div class="tb" style="width:100px">60</div>
+        <div class="lbl">Session presence timeout / heartbeat (seconds)</div>
+        <div style="display:flex;align-items:center"><div class="tb" style="width:100px">120</div><span style="margin:0 12px">/</span><div class="tb" style="width:100px">45</div></div>
+      </div>
+      <div class="hdr">Sign-in</div>
+      <span class="radio on"><i></i>Windows account (domain / local, automatic single sign-on)</span>
+      <span class="radio"><i></i>Microsoft Entra ID (work account via Windows broker, SSO when available)</span>
+      <div class="hdr">Remote Desktop</div>
+      <span class="check"><i></i>Keep the password in Windows Credential Manager after connecting</span>
+      <div class="hint">Off (default): the credential is removed ~30 s after Remote Desktop starts and never survives logoff. On: reconnects work without the app, but the password stays in Credential Manager.</div>
+      <div class="hdr">Data folder</div>
+      <div class="tb">C:\Users\alex.kim\AppData\Local\RemoteDesktopHarbor</div>
+    </div>
+    <div class="dlgfoot"><span class="btn accent" style="min-width:90px">Save</span><span class="btn" style="min-width:90px">Cancel</span></div>
+  </div>
+</div></div>
+
+<!-- ============================================================ passphrase (new vault) -->
+<div class="shot" id="passphrase"><div class="win" style="width:440px">
+  <div class="titlebar"><img src="appicon.png"><span class="t">Shared vault passphrase</span><slot-caps class="closeonly"></slot-caps></div>
+  <div style="padding:16px">
+    <div style="line-height:1.45">This shared database has no vault key yet. Choose a passphrase (at least 12 characters) and share it securely with your team. Each user enters it once; afterwards it is cached for their Windows account on their machine.</div>
+    <div class="tb focus" style="margin-top:12px;letter-spacing:2px">●●●●●●●●●●●●●●●●</div>
+    <div class="lbl">Repeat passphrase</div>
+    <div class="tb" style="letter-spacing:2px">●●●●●●●●●●●●●●●●</div>
+    <div class="dlgfoot" style="margin-top:20px"><span class="btn accent" style="min-width:90px">OK</span><span class="btn" style="min-width:90px">Cancel</span></div>
+  </div>
+</div></div>
+
+<!-- ============================================================ in-use confirmation -->
+<div class="shot" id="inuse"><div class="win" style="width:520px">
+  <div class="titlebar" style="background:#fff"><span class="t">Connection in use</span><slot-caps class="closeonly"></slot-caps></div>
+  <div class="msg"><div class="ic">?</div><div style="line-height:1.5">Jane Doe (CONTOSO\jane.doe) &lt;jane.doe@contoso.com&gt; on PC-42, since 10:31<br><br>Connect anyway? This may disconnect the other user.</div></div>
+  <div class="msgfoot"><span class="btn accent">Yes</span><span class="btn">No</span></div>
+</div></div>
+
+<script>
+  const caps = document.getElementById('caps').content;
+  document.querySelectorAll('slot-caps').forEach(s => {
+    const c = caps.cloneNode(true);
+    if (s.classList.contains('closeonly')) { const spans = c.querySelectorAll('span'); spans[0].remove(); spans[1].remove(); }
+    s.replaceWith(c);
+  });
+</script>
+</body>
+</html>
