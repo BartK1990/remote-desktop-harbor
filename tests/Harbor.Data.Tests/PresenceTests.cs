@@ -60,12 +60,13 @@ public class PresenceTests
     {
         using var db = new TempDb();
         await db.Store.InitializeAsync();
-        var service = new SessionPresenceService(db.Store, new PresenceOptions(TimeSpan.FromSeconds(1), TimeSpan.FromMilliseconds(200)), "PC-03");
+        // TTL 2 s, heartbeat 200 ms: ~10 beats per TTL, so a slow runner can't let the record lapse between beats.
+        var service = new SessionPresenceService(db.Store, new PresenceOptions(TimeSpan.FromSeconds(2), TimeSpan.FromMilliseconds(200)), "PC-03");
         var connectionId = Guid.NewGuid();
 
         var lease = await service.BeginAsync(connectionId, Users.Alice);
         Assert.True(lease.IsPublished);
-        await Task.Delay(1500); // longer than the TTL: only heartbeats keep it alive
+        await Task.Delay(2500); // longer than the TTL: only heartbeats keep it alive
         var s = Assert.Single(await service.ListActiveAsync());
         Assert.Equal(connectionId, s.ConnectionId);
 
@@ -88,8 +89,20 @@ public class PresenceTests
         Assert.True(errors > 0);
 
         remote.Offline = false;
-        await Task.Delay(500);
-        Assert.True(lease.IsPublished);
+        // Heartbeats run on the thread pool; poll instead of a fixed delay so a busy CI runner can't make this flaky.
+        Assert.True(await WaitUntilAsync(() => lease.IsPublished, TimeSpan.FromSeconds(10)));
         Assert.Single(await service.ListActiveAsync());
+    }
+
+    private static async Task<bool> WaitUntilAsync(Func<bool> condition, TimeSpan timeout)
+    {
+        var deadline = DateTime.UtcNow + timeout;
+        while (!condition())
+        {
+            if (DateTime.UtcNow > deadline) return false;
+            await Task.Delay(50);
+        }
+
+        return true;
     }
 }
