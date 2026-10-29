@@ -11,7 +11,7 @@ database powers [session presence](../session-presence/).
  Alice's PC ──┐                                  ┌── Bob's PC
   local cache │◄──── sync (ciphertext only) ────►│ local cache
               └──────► SQL Server / Azure SQL ◄──┘
-                       Connections · VaultKeys · ActiveSessions
+     Connections · ConnectionAccounts · VaultKeys · ActiveSessions
 ```
 
 Supported engines in v1: **SQL Server** and **Azure SQL**. Other engines can be added as

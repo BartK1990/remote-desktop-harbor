@@ -98,7 +98,7 @@
                 VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
                 VirtualizingPanel.ScrollUnit="Pixel" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                 Padding="2" SelectedItemChanged="EntryTree_SelectedItemChanged" TreeViewItem.Selected="EntryTree_ItemSelected"
-                MouseDoubleClick="EntryTree_MouseDoubleClick" KeyDown="EntryTree_KeyDown"
+                PreviewMouseDoubleClick="EntryTree_PreviewMouseDoubleClick" KeyDown="EntryTree_KeyDown"
                 PreviewMouseRightButtonDown="EntryTree_PreviewMouseRightButtonDown">
         <TreeView.Resources>
           <!-- Expand/collapse chevron. -->
@@ -134,13 +134,28 @@
             </StackPanel>
           </HierarchicalDataTemplate>
 
-          <DataTemplate DataType="{x:Type vm:EntryViewModel}">
+          <!-- An entry with several accounts has one child row per account (SPEC FR-09). -->
+          <HierarchicalDataTemplate DataType="{x:Type vm:EntryViewModel}" ItemsSource="{Binding Children}">
             <Grid ToolTip="{Binding Subtitle}">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
               </Grid.ColumnDefinitions>
               <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+              <Border Grid.Column="1" Background="#33FF8C00" CornerRadius="3" Padding="4,0" Margin="6,0,0,0" VerticalAlignment="Center"
+                      Visibility="{Binding IsInUse, Converter={StaticResource BoolToVisibility}}" ToolTip="{Binding PresenceDetails}">
+                <TextBlock Text="{Binding PresenceText}" FontSize="11" />
+              </Border>
+            </Grid>
+          </HierarchicalDataTemplate>
+
+          <DataTemplate DataType="{x:Type vm:AccountViewModel}">
+            <Grid ToolTip="Connect or copy with this account">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Opacity="0.85" />
               <Border Grid.Column="1" Background="#33FF8C00" CornerRadius="3" Padding="4,0" Margin="6,0,0,0" VerticalAlignment="Center"
                       Visibility="{Binding IsInUse, Converter={StaticResource BoolToVisibility}}" ToolTip="{Binding PresenceDetails}">
                 <TextBlock Text="{Binding PresenceText}" FontSize="11" />
@@ -284,21 +299,27 @@
             <TextBlock Text="{Binding Model.Host, TargetNullValue='—'}" />
             <TextBlock Text="Port" Style="{StaticResource FieldLabel}" />
             <TextBlock Text="{Binding Model.Port}" />
-            <TextBlock Text="User" Style="{StaticResource FieldLabel}" />
-            <TextBox Text="{Binding Model.QualifiedUserName, Mode=OneWay, TargetNullValue='—'}" IsReadOnly="True" BorderThickness="0" Background="Transparent" Padding="0" />
-            <TextBlock Text="Password" Style="{StaticResource FieldLabel}" />
-            <TextBlock>
-              <TextBlock.Style>
-                <Style TargetType="TextBlock">
-                  <Setter Property="Text" Value="Not stored" />
-                  <Style.Triggers>
-                    <DataTrigger Binding="{Binding HasPassword}" Value="True">
-                      <Setter Property="Text" Value="•••••••• (encrypted)" />
-                    </DataTrigger>
-                  </Style.Triggers>
-                </Style>
-              </TextBlock.Style>
-            </TextBlock>
+            <!-- The account Connect and Copy use: the selected account row, else the default account (SPEC FR-09). -->
+            <StackPanel DataContext="{Binding DataContext.SelectedAccount, RelativeSource={RelativeSource AncestorType=Window}}">
+              <TextBlock Text="User" Style="{StaticResource FieldLabel}" />
+              <TextBox Text="{Binding QualifiedUserName, Mode=OneWay, TargetNullValue='—'}" IsReadOnly="True" BorderThickness="0" Background="Transparent" Padding="0" />
+              <TextBlock Text="Password" Style="{StaticResource FieldLabel}" />
+              <TextBlock>
+                <TextBlock.Style>
+                  <Style TargetType="TextBlock">
+                    <Setter Property="Text" Value="Not stored" />
+                    <Style.Triggers>
+                      <DataTrigger Binding="{Binding HasPassword}" Value="True">
+                        <Setter Property="Text" Value="•••••••• (encrypted)" />
+                      </DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </TextBlock.Style>
+              </TextBlock>
+            </StackPanel>
+            <TextBlock Text="This entry has several accounts. Expand it in the list and select an account to connect or copy with it."
+                       FontSize="11" Opacity="0.6" TextWrapping="Wrap" Margin="0,4,0,0"
+                       Visibility="{Binding HasAccounts, Converter={StaticResource BoolToVisibility}}" />
             <TextBlock Text="Folder" Style="{StaticResource FieldLabel}" />
             <TextBlock Text="{Binding GroupName}" />
             <TextBlock Text="Notes" Style="{StaticResource FieldLabel}" />

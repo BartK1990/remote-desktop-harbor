@@ -13,7 +13,7 @@ public class PresenceTests
         var connectionId = Guid.NewGuid();
         var sessionId = Guid.NewGuid();
 
-        await db.Store.StartSessionAsync(sessionId, connectionId, Users.Alice, "PC-01", TimeSpan.FromMinutes(2));
+        await db.Store.StartSessionAsync(sessionId, connectionId, null, Users.Alice, "PC-01", TimeSpan.FromMinutes(2));
         var s = Assert.Single(await db.Store.ListActiveAsync());
         Assert.Equal(connectionId, s.ConnectionId);
         Assert.Equal("CONTOSO\\alice", s.UserName);
@@ -33,7 +33,7 @@ public class PresenceTests
         await db.Store.InitializeAsync();
         var sessionId = Guid.NewGuid();
 
-        await db.Store.StartSessionAsync(sessionId, Guid.NewGuid(), Users.Bob, "PC-02", TimeSpan.FromSeconds(-1));
+        await db.Store.StartSessionAsync(sessionId, Guid.NewGuid(), null, Users.Bob, "PC-02", TimeSpan.FromSeconds(-1));
         Assert.Empty(await db.Store.ListActiveAsync());
 
         Assert.True(await db.Store.HeartbeatAsync(sessionId, TimeSpan.FromMinutes(1)));
@@ -47,9 +47,9 @@ public class PresenceTests
     {
         using var db = new TempDb();
         await db.Store.InitializeAsync();
-        await db.Store.StartSessionAsync(Guid.NewGuid(), Guid.NewGuid(), Users.Bob, "PC", TimeSpan.FromDays(-2));
-        await db.Store.StartSessionAsync(Guid.NewGuid(), Guid.NewGuid(), Users.Bob, "PC", TimeSpan.FromSeconds(-5));
-        await db.Store.StartSessionAsync(Guid.NewGuid(), Guid.NewGuid(), Users.Bob, "PC", TimeSpan.FromMinutes(5));
+        await db.Store.StartSessionAsync(Guid.NewGuid(), Guid.NewGuid(), null, Users.Bob, "PC", TimeSpan.FromDays(-2));
+        await db.Store.StartSessionAsync(Guid.NewGuid(), Guid.NewGuid(), null, Users.Bob, "PC", TimeSpan.FromSeconds(-5));
+        await db.Store.StartSessionAsync(Guid.NewGuid(), Guid.NewGuid(), null, Users.Bob, "PC", TimeSpan.FromMinutes(5));
 
         Assert.Equal(1, await db.Store.PurgeExpiredAsync(TimeSpan.FromDays(1)));
         Assert.Single(await db.Store.ListActiveAsync());
@@ -64,11 +64,12 @@ public class PresenceTests
         var service = new SessionPresenceService(db.Store, new PresenceOptions(TimeSpan.FromSeconds(2), TimeSpan.FromMilliseconds(200)), "PC-03");
         var connectionId = Guid.NewGuid();
 
-        var lease = await service.BeginAsync(connectionId, Users.Alice);
+        var lease = await service.BeginAsync(connectionId, "CONTOSO\\admin", Users.Alice);
         Assert.True(lease.IsPublished);
         await Task.Delay(2500); // longer than the TTL: only heartbeats keep it alive
         var s = Assert.Single(await service.ListActiveAsync());
         Assert.Equal(connectionId, s.ConnectionId);
+        Assert.Equal("CONTOSO\\admin", s.AccountName); // SPEC FR-09
 
         await lease.DisposeAsync();
         Assert.Empty(await service.ListActiveAsync());
@@ -84,7 +85,7 @@ public class PresenceTests
         var service = new SessionPresenceService(remote, new PresenceOptions(TimeSpan.FromSeconds(5), TimeSpan.FromMilliseconds(100)), "PC",
             _ => Interlocked.Increment(ref errors));
 
-        await using var lease = await service.BeginAsync(Guid.NewGuid(), Users.Alice);
+        await using var lease = await service.BeginAsync(Guid.NewGuid(), null, Users.Alice);
         Assert.False(lease.IsPublished);
         Assert.True(errors > 0);
 

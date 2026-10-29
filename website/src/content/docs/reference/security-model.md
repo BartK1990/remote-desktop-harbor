@@ -24,8 +24,8 @@ description: How passwords are encrypted, where the keys live and which threats 
 - Each vault has one random **256-bit data-encryption key (DEK)**.
 - Every password is encrypted with **AES-256-GCM** under the DEK. Envelope format v1:
   `[version][keyId 16][nonce 12][tag 16][ciphertext]`.
-- The **entry id is authenticated associated data**: a ciphertext copied to another row, or modified in any way,
-  fails to decrypt.
+- The **entry id is authenticated associated data** (for an entry's additional accounts, the account id): a
+  ciphertext copied to another row or account, or modified in any way, fails to decrypt.
 - The key id detects a wrong key early and makes future key rotation possible.
 - Passwords are decrypted only at the moment of use (connect, copy); buffers are zeroed where the API allows.
 

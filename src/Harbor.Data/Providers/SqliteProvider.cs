@@ -69,6 +69,21 @@ public sealed class SqliteProvider : IDatabaseProvider
             [Value] TEXT NOT NULL
         );
         """,
+
+        // 2: additional accounts per entry, account used by a session (SPEC FR-09, ADR-0019).
+        """
+        CREATE TABLE ConnectionAccounts (
+            Id             TEXT    NOT NULL PRIMARY KEY,
+            ConnectionId   TEXT    NOT NULL,
+            Position       INTEGER NOT NULL,
+            Domain         TEXT    NULL,
+            UserName       TEXT    NOT NULL,
+            PasswordCipher BLOB    NULL
+        );
+        CREATE INDEX IX_ConnectionAccounts_ConnectionId ON ConnectionAccounts (ConnectionId);
+
+        ALTER TABLE ActiveSessions ADD COLUMN AccountName TEXT NULL;
+        """,
     ];
 
     // SQLITE_CONSTRAINT = 19

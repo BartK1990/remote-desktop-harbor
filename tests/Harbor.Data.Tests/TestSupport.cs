@@ -73,7 +73,7 @@ internal sealed class SwitchableStore(SqlHarborStore inner) : IConnectionStore, 
     public Task ReplaceVaultKeyAsync(VaultKeyRecord record, CancellationToken ct = default) => Guard(() => inner.ReplaceVaultKeyAsync(record, ct));
     public Task<string?> GetMetaAsync(string key, CancellationToken ct = default) => Guard(() => inner.GetMetaAsync(key, ct));
     public Task SetMetaAsync(string key, string value, CancellationToken ct = default) => Guard(() => inner.SetMetaAsync(key, value, ct));
-    public Task<ActiveSession> StartSessionAsync(Guid sessionId, Guid connectionId, UserIdentity user, string machineName, TimeSpan ttl, CancellationToken ct = default) => Guard(() => inner.StartSessionAsync(sessionId, connectionId, user, machineName, ttl, ct));
+    public Task<ActiveSession> StartSessionAsync(Guid sessionId, Guid connectionId, string? accountName, UserIdentity user, string machineName, TimeSpan ttl, CancellationToken ct = default) => Guard(() => inner.StartSessionAsync(sessionId, connectionId, accountName, user, machineName, ttl, ct));
     public Task<bool> HeartbeatAsync(Guid sessionId, TimeSpan ttl, CancellationToken ct = default) => Guard(() => inner.HeartbeatAsync(sessionId, ttl, ct));
     public Task EndSessionAsync(Guid sessionId, CancellationToken ct = default) => Guard(() => inner.EndSessionAsync(sessionId, ct));
     public Task<IReadOnlyList<ActiveSession>> ListActiveAsync(CancellationToken ct = default) => Guard(() => inner.ListActiveAsync(ct));

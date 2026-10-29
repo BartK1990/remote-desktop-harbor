@@ -43,14 +43,48 @@ public sealed record ConnectionEntry
     public string? UpdatedBy { get; init; }
     public bool IsDeleted { get; init; }
 
+    /// <summary>
+    /// Accounts besides the default one (<see cref="UserName"/>, <see cref="Domain"/>, <see cref="PasswordCipher"/>),
+    /// in display order. See SPEC FR-09, ADR-0019.
+    /// </summary>
+    public IReadOnlyList<ConnectionAccount> Accounts { get; init; } = [];
+
     public bool HasPassword => PasswordCipher is { Length: > 0 };
     public bool CanLaunch => !string.IsNullOrWhiteSpace(Host);
 
     /// <summary>User name as Windows expects it: <c>DOMAIN\user</c> when a domain is set.</summary>
-    public string? QualifiedUserName =>
-        string.IsNullOrWhiteSpace(UserName) ? null
-        : string.IsNullOrWhiteSpace(Domain) || UserName.Contains('\\') || UserName.Contains('@') ? UserName
-        : $"{Domain}\\{UserName}";
+    public string? QualifiedUserName => Qualify(Domain, UserName);
+
+    /// <summary>
+    /// The user name <paramref name="account"/> connects as; an account without a domain uses the entry's.
+    /// <c>null</c> selects the default account.
+    /// </summary>
+    public string? QualifiedUserNameFor(ConnectionAccount? account) =>
+        account is null ? QualifiedUserName : Qualify(string.IsNullOrWhiteSpace(account.Domain) ? Domain : account.Domain, account.UserName);
+
+    /// <summary>The additional account with <paramref name="accountId"/>, or <c>null</c> (the default account).</summary>
+    public ConnectionAccount? FindAccount(Guid? accountId) =>
+        accountId is { } id ? Accounts.FirstOrDefault(a => a.Id == id) : null;
+
+    /// <summary>
+    /// This entry as it connects with <paramref name="account"/>: that account's user and domain, no other accounts and
+    /// no password cipher (the cipher is bound to the account, see <c>HarborWorkspace.RevealPassword</c>).
+    /// <c>null</c> returns the entry itself.
+    /// </summary>
+    public ConnectionEntry ForAccount(ConnectionAccount? account) => account is null
+        ? this
+        : this with
+        {
+            Domain = string.IsNullOrWhiteSpace(account.Domain) ? Domain : account.Domain,
+            UserName = account.UserName,
+            PasswordCipher = null,
+            Accounts = [],
+        };
+
+    private static string? Qualify(string? domain, string? userName) =>
+        string.IsNullOrWhiteSpace(userName) ? null
+        : string.IsNullOrWhiteSpace(domain) || userName.Contains('\\') || userName.Contains('@') ? userName
+        : $"{domain}\\{userName}";
 
     public static ConnectionEntry CreateNew(string name, EntryKind kind = EntryKind.RdpConnection) =>
         new() { Id = Guid.NewGuid(), Name = name, Kind = kind };
