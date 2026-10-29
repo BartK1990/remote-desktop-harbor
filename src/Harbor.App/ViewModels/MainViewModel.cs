@@ -48,9 +48,6 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
 
     [ObservableProperty] private string _searchText = "";
 
-    /// <summary>Choices for the theme selector in the toolbar (SPEC FR-08).</summary>
-    public IReadOnlyList<AppTheme> Themes { get; } = Enum.GetValues<AppTheme>();
-
     /// <summary>Colour theme; applied immediately and remembered across restarts (SPEC FR-08).</summary>
     [ObservableProperty] private AppTheme _theme;
 

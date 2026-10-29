@@ -87,5 +87,5 @@ When the app uses a shared database that is currently unreachable, **New**, **Im
 
 ## Light or dark theme
 
-The theme box at the right of the toolbar switches the app between **System** (follows the Windows light/dark
-setting, the default), **Light** and **Dark**. The change applies immediately and is remembered for the next start.
+The three theme icons at the right of the toolbar switch the app between **System** (monitor icon — follows the
+Windows light/dark setting, the default), **Light** (sun icon) and **Dark** (moon icon); hover an icon for its name. The change applies immediately and is remembered for the next start.

@@ -31,7 +31,7 @@ shows who is currently connected to which machine.
 | FR-05 | Existing `.rdp` files can be imported. Host, port, domain and user become fields; other settings are kept; any saved password in the file is discarded. |
 | FR-06 | Users can copy the user name and the password to the clipboard. A copied password is cleared from the clipboard after 30 s if unchanged. |
 | FR-07 | The app shows its release version (e.g. `0.1.0`) in the main window title and in Settings → About, together with the build commit when known. The version comes from the release build (`-p:Version`), so the app and its GitHub release always match. |
-| FR-08 | The user can choose the colour theme — **System** (follow the Windows light/dark setting, default), **Light** or **Dark** — from the main toolbar. The choice applies immediately, without a restart, and is remembered across restarts. |
+| FR-08 | The user can choose the colour theme — **System** (follow the Windows light/dark setting, default), **Light** or **Dark** — from a group of three icon toggles in the main toolbar. The choice applies immediately, without a restart, and is remembered across restarts. |
 
 ### 3.2 Launching Remote Desktop
 
@@ -157,7 +157,7 @@ for the full list.
 | FR-01..06 | `Core/Model/ConnectionEntry`, `App/ViewModels/*` | `SqlHarborStoreTests` |
 | FR-02 (tree) | `Core/Model/FolderTree`, `App/ViewModels/MainViewModel`, `TreeNodeViewModel`, `MainWindow` | `FolderTreeTests`; UI manual (Windows) |
 | FR-07 | `App/Infrastructure/AppInfo`, `MainWindow`, `SettingsWindow` | manual (Windows) |
-| FR-08 | `Core/HarborSettings`, `App/Infrastructure/ThemeService`, `App/ViewModels/MainViewModel`, `MainWindow` | manual (Windows) |
+| FR-08 | `Core/HarborSettings`, `App/Infrastructure/ThemeService`, `App/ViewModels/MainViewModel`, `MainWindow`, `App/Views/EnumToBooleanConverter` | manual (Windows) |
 | FR-03, FR-05, FR-10, FR-12 | `Core/Rdp/RdpFile`, `Windows/Rdp/MstscLauncher` | `RdpFileTests` |
 | FR-11 | `Windows/Rdp/WindowsCredentialStore` | manual (Windows) |
 | FR-20..25 | `Core/Services/HarborWorkspace`, `Data/SqlHarborStore`, `Data/Providers/*` | `WorkspaceTests`, `SqlHarborStoreTests` |
