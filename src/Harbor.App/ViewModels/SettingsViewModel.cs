@@ -112,7 +112,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         set { if (value) IsRemote = false; }
     }
 
-    // ADR-0016, ADR-0018: "Database access only" – the key is stored in the database, no extra secret.
+    // ADR-0016, ADR-0018: "Not protected" – the key is stored unencrypted in the database (scheme name `sign-in`).
     public bool UseSignInKey
     {
         get => KeyScheme == SignInKeyProtector.SchemeName;

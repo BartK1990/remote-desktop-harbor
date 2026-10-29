@@ -31,3 +31,9 @@ so existing vaults keep working.
 * Protection is exactly the database's access control (unchanged in substance, see NFR-13): anyone who can read the
   database or a backup of it can read the stored passwords.
 * App sign-in only identifies the user for presence and audit (FR-42), independent of vault access.
+
+## Note (2026-10-29)
+
+The Settings label "Database sign-in" read like a protection mechanism. Since the key is stored unencrypted, the
+option is now shown as **"Not protected – key stored unencrypted in the database"**. Scheme name and behaviour are
+unchanged.

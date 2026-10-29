@@ -274,8 +274,8 @@ audiomode:i:2</div>
         <span class="check" style="margin-top:10px"><i></i>Create the database if it does not exist (on Test connection and Save; needs CREATE DATABASE rights)</span>
         <div style="display:flex;align-items:center;margin-top:8px"><span class="btn">Test connection</span><span style="margin-left:12px">OK – connected to sql01 / Harbor</span></div>
         <div class="lbl">Shared vault key protection</div>
-        <span class="radio on"><i></i>Database access only – no extra secret</span>
-        <div class="hint" style="margin-left:24px;margin-bottom:4px">The vault key is stored in the database itself, so anyone who can read the database opens the vault (Windows, SQL login or Entra ID, with any app sign-in). Database administrators and backups can read the stored passwords too.</div>
+        <span class="radio on"><i></i>Not protected – key stored unencrypted in the database</span>
+        <div class="hint" style="margin-left:24px;margin-bottom:4px">The vault key is saved in the database as is, so the passwords are only as safe as the database: anyone who can read it or a backup of it – including database administrators – can decrypt every stored password.</div>
         <span class="radio" style="margin-top:6px"><i></i>Active Directory group (DPAPI-NG) – strongest</span>
         <div class="tb dim" style="margin-left:24px;margin-top:4px"></div>
         <span class="radio" style="margin-top:6px"><i></i>Shared passphrase</span>
