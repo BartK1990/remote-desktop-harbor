@@ -1,0 +1,12 @@
+/* Harbor blue accent, matching the logo. */
+:root {
+	--sl-color-accent-low: #0d2a4f;
+	--sl-color-accent: #2f7de1;
+	--sl-color-accent-high: #c4dcfa;
+}
+
+:root[data-theme='light'] {
+	--sl-color-accent-low: #d4e5fb;
+	--sl-color-accent: #1d63c0;
+	--sl-color-accent-high: #0f2f5c;
+}
