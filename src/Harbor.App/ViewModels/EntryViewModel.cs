@@ -3,7 +3,7 @@ using Harbor.Core.Model;
 
 namespace Harbor.App.ViewModels;
 
-public sealed partial class EntryViewModel(ConnectionEntry model) : ObservableObject
+public sealed partial class EntryViewModel(ConnectionEntry model) : TreeNodeViewModel
 {
     public const string NoFolder = "(No folder)";
 

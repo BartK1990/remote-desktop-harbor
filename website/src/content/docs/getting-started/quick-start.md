@@ -38,8 +38,8 @@ Desktop client opens in its own window, already signed in with the stored creden
 
 ## 4. Find things fast
 
-Start typing in the search box (<kbd>Ctrl</kbd>+<kbd>F</kbd>) — the list filters by name, host, user, folder and
-notes as you type.
+Start typing in the search box (<kbd>Ctrl</kbd>+<kbd>F</kbd>) — the folder tree filters by name, host, user, folder and
+notes as you type. Collapse folders you don't need with the arrow next to them.
 
 ## Next steps
 

@@ -19,3 +19,4 @@ Process: see [spec/README.md](../spec/README.md).
 | [0011](0011-ci-release-pipeline.md) | CI and release on GitHub Actions, win-x64 | Accepted |
 | [0012](0012-microsoft-store-readiness.md) | Microsoft Store readiness via MSIX packaging later | Accepted |
 | [0013](0013-documentation-site-starlight.md) | Documentation site: Astro Starlight on GitHub Pages | Accepted |
+| [0014](0014-compact-folder-tree.md) | Compact folder tree for the entry list | Accepted |

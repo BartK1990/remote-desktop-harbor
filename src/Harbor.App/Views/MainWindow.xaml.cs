@@ -1,7 +1,10 @@
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
+using System.Windows.Media;
+using System.Windows.Media.Media3D;
 using CommunityToolkit.Mvvm.Input;
 using Harbor.App.ViewModels;
 
@@ -38,18 +41,72 @@ public partial class MainWindow : Window
             return dialog.ShowDialog() == true ? dialog.Passphrase : null;
         });
 
-    private void EntryList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    private void EntryTree_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e) =>
+        _viewModel.SelectFromTree(e.NewValue as TreeNodeViewModel);
+
+    // Keeps a row selected from code (e.g. after saving) in view.
+    private void EntryTree_ItemSelected(object sender, RoutedEventArgs e)
     {
-        if (_viewModel.ConnectCommand.CanExecute(null)) _viewModel.ConnectCommand.Execute(null);
+        if (e.OriginalSource is TreeViewItem item) item.BringIntoView();
     }
 
-    private void EntryList_KeyDown(object sender, KeyEventArgs e)
+    private void EntryTree_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
-        if (e.Key == Key.Enter && _viewModel.ConnectCommand.CanExecute(null))
+        // Double-clicking a folder toggles it (built into TreeViewItem); only an entry row connects.
+        if (RowAt(e.OriginalSource)?.DataContext is EntryViewModel && _viewModel.ConnectCommand.CanExecute(null))
         {
             _viewModel.ConnectCommand.Execute(null);
             e.Handled = true;
         }
+    }
+
+    private void EntryTree_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter) return;
+        if (_viewModel.SelectedNode is FolderViewModel folder)
+        {
+            folder.IsExpanded = !folder.IsExpanded;
+            e.Handled = true;
+        }
+        else if (_viewModel.ConnectCommand.CanExecute(null))
+        {
+            _viewModel.ConnectCommand.Execute(null);
+            e.Handled = true;
+        }
+    }
+
+    // Right-click selects the row under the mouse, so the context menu acts on it.
+    private void EntryTree_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (RowAt(e.OriginalSource) is { } row)
+        {
+            row.Focus();
+            row.IsSelected = true;
+        }
+    }
+
+    private void SearchBox_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Down) return;
+        // Down moves from the search box into the tree, onto the selected row or the first one.
+        var row = _viewModel.SelectedNode is { } node && EntryTree.ItemContainerGenerator.ContainerFromItem(node) is TreeViewItem selected
+            ? selected
+            : EntryTree.ItemContainerGenerator.ContainerFromIndex(0) as TreeViewItem;
+        if (row is null) return;
+        row.Focus();
+        row.IsSelected = true;
+        e.Handled = true;
+    }
+
+    private static TreeViewItem? RowAt(object source)
+    {
+        for (var d = source as DependencyObject; d is not null && d is not TreeView;
+             d = d is Visual or Visual3D ? VisualTreeHelper.GetParent(d) : LogicalTreeHelper.GetParent(d))
+        {
+            if (d is TreeViewItem item) return item;
+        }
+
+        return null;
     }
 
     protected override async void OnClosing(CancelEventArgs e)
