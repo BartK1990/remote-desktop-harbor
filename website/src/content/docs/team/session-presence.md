@@ -9,6 +9,8 @@ With a shared database, Harbor shows which entries are currently in use and by w
 
 The badge appears in the list; the details pane lists every active session for the selected entry.
 
+![Main window showing "In use by Jane Doe" and "In use by Sam Patel" badges in the list, and an "Active sessions" box in the details of the selected entry.](../../../assets/screenshots/main.png)
+
 ## How it works
 
 Presence uses **leases** with an expiry, so crashed or disconnected clients never leave “ghost” sessions behind.
@@ -34,6 +36,8 @@ Expired records older than a day are purged automatically.
 
 Connecting to an entry that shows **In use** asks for confirmation — on hosts that allow only one session, your
 connection may disconnect the other person.
+
+![Confirmation dialog "Connection in use" with Yes and No buttons.](../../../assets/screenshots/inuse.png)
 
 ## Settings
 

@@ -52,6 +52,8 @@ With a shared database, an entry another team member is connected to shows an **
 it asks for confirmation first, because on single-session hosts your connection may disconnect the other user. See
 [Session presence](../../team/session-presence/).
 
+![Confirmation dialog "Connection in use" naming the other user, their machine and start time, with Yes and No buttons.](../../../assets/screenshots/inuse.png)
+
 ## When Remote Desktop still asks for a password
 
 Some environments block saved credentials for Remote Desktop (Credential Guard, or the *Allow delegating saved

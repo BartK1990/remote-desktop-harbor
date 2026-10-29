@@ -62,6 +62,8 @@ Open **Settings → Storage** and choose **Shared database with offline copy**:
 
 Use **Test connection** to check the connection string before saving.
 
+![Settings dialog with "Shared database with offline copy" selected: provider SqlServer, connection string, Test connection, Active Directory group protection with a SID descriptor, schema auto-upgrade, sync interval and presence timings.](../../../assets/screenshots/settings.png)
+
 ### Connection string examples
 
 SQL Server with Windows authentication:
