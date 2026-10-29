@@ -37,7 +37,7 @@ The DEK is never stored in plain form. It is wrapped by a *key protector*, whose
 |---|---|---|
 | `dpapi-user+machine` | Local vault and every local cache (default) | Only this Windows user on this computer (DPAPI CurrentUser, then LocalMachine) |
 | `dpapi-user` | Available, not default | This Windows user (roams with the profile) |
-| `sign-in` | Shared database (default) | Any user signed in with Windows / Entra ID who can read the database — and anyone else who can read it (DBA, backups) |
+| `sign-in` | Shared database (default) | Anyone who can sign in to and read the database (Windows, SQL login or Entra ID; any app sign-in) — including DBAs and backups |
 | `dpapi-ng` | Shared database (strongest) | Members of an AD security group |
 | `passphrase` | Shared database without AD | Anyone with the passphrase (PBKDF2-SHA256, 600 000 iterations) |
 

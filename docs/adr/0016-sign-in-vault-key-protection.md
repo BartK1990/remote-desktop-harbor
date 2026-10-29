@@ -4,6 +4,7 @@
 * Date: 2026-10-29
 * Requirements: FR-28, FR-22, FR-44, NFR-13
 * Amends: ADR-0006
+* Amended by: ADR-0018 (no app sign-in required)
 
 ## Context
 

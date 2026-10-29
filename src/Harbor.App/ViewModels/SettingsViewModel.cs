@@ -281,8 +281,6 @@ public sealed partial class SettingsViewModel : ObservableObject
             Error = "Enter a DPAPI-NG descriptor, e.g. SID=S-1-5-21-…, of the AD group that may read the vault.";
         else if (UseEntraId && string.IsNullOrWhiteSpace(EntraClientId)) Error = "Entra ID sign-in needs the app registration's client id.";
         else if (UseAnonymous && string.IsNullOrWhiteSpace(AnonymousName)) Error = "Enter your name so others can see who is connected.";
-        else if (IsRemote && UseAnonymous && UseSignInKey)
-            Error = "\"Signed-in users\" vault protection needs a Windows or Entra ID sign-in. Sign in, or use a passphrase or AD group.";
         else if (PresenceHeartbeatSeconds * 2 > PresenceTtlSeconds) Error = "Heartbeat must be at most half of the session timeout.";
         return Error is null;
     }

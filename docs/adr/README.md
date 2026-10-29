@@ -23,3 +23,4 @@ Process: see [spec/README.md](../spec/README.md).
 | [0015](0015-anonymous-named-mode.md) | Optional no-sign-in mode with a user-entered name | Accepted |
 | [0016](0016-sign-in-vault-key-protection.md) | Shared vault key protected by verified sign-in (no passphrase); one-time conversion | Accepted |
 | [0017](0017-compact-folder-tree.md) | Compact folder tree for the entry list | Accepted |
+| [0018](0018-database-sign-in-opens-vault.md) | Database sign-in alone opens a `sign-in` vault (no app sign-in required) | Accepted |

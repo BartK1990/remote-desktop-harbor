@@ -237,7 +237,6 @@ public class SettingsViewModelTests
         { "client id", vm => { vm.UseEntraId = true; vm.EntraClientId = ""; } },
         { "your name", vm => { vm.UseAnonymous = true; vm.AnonymousName = "  "; } },
         { "descriptor", vm => { vm.UseDpapiNg = true; vm.KeyDescriptor = ""; } },
-        { "needs a Windows or Entra ID sign-in", vm => { vm.UseAnonymous = true; vm.AnonymousName = "Bart"; vm.UseSignInKey = true; } },
     };
 
     [Theory]
