@@ -7,6 +7,7 @@ namespace Harbor.App.Tests;
 public class ViewSourceTests
 {
     private static readonly XNamespace Wpf = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
+    private static readonly XNamespace WpfUi = "http://schemas.lepo.co/wpfui/2022/xaml";
 
     private static string Source(string name) => Path.Combine(AppContext.BaseDirectory, "Xaml", name);
 
@@ -31,5 +32,24 @@ public class ViewSourceTests
 
         Assert.Contains("Dispatcher.BeginInvoke(Close)", onClosing, StringComparison.Ordinal);
         Assert.DoesNotContain("        Close();", onClosing, StringComparison.Ordinal);
+    }
+
+    // ADR-0020: every window is a WPF UI FluentWindow with its own Fluent title bar, so none falls back to the
+    // classic chrome; colours come from the theme resources instead of the removed built-in Fluent theme keys.
+    [Theory]
+    [InlineData("MainWindow.xaml")]
+    [InlineData("EntryEditorWindow.xaml")]
+    [InlineData("SettingsWindow.xaml")]
+    [InlineData("PassphraseWindow.xaml")]
+    public void Windows_use_the_wpf_ui_fluent_window(string file)
+    {
+        var root = XDocument.Load(Source(file)).Root!;
+
+        Assert.Equal(WpfUi + "FluentWindow", root.Name);
+        Assert.Equal("True", (string?)root.Attribute("ExtendsContentIntoTitleBar"));
+        Assert.Single(root.Descendants(WpfUi + "TitleBar"));
+        var xaml = root.ToString();
+        Assert.DoesNotContain("AccentButtonStyle", xaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("OrangeRed", xaml, StringComparison.Ordinal);
     }
 }

@@ -27,7 +27,7 @@ public partial class App : Application
     private static void OnUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
         Log.Error("Unhandled exception", e.Exception);
-        MessageBox.Show(e.Exception.Message, "Remote Desktop Harbor", MessageBoxButton.OK, MessageBoxImage.Error);
         e.Handled = true;
+        _ = DialogService.ShowErrorAsync(Current?.MainWindow, "Remote Desktop Harbor", e.Exception.Message);
     }
 }

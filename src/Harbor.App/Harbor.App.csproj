@@ -13,8 +13,6 @@
     <TieredCompilation>true</TieredCompilation>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <UseSystemResourceKeys>false</UseSystemResourceKeys>
-    <!-- WPF Fluent theme (ThemeMode) is flagged experimental. -->
-    <NoWarn>$(NoWarn);WPF0001</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Harbor.Core\Harbor.Core.csproj" />
@@ -23,6 +21,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="WPF-UI" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Assets\AppIcon.ico" />

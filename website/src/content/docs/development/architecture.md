@@ -6,7 +6,7 @@ description: Projects, layers and the main runtime flows.
 ## Layers
 
 ```
- Harbor.App      WPF UI (MVVM, CommunityToolkit.Mvvm), AppHost composition root, settings
+ Harbor.App      WPF app (WPF UI Fluent controls, MVVM via CommunityToolkit.Mvvm), AppHost, settings
      │
      ├── Harbor.Windows   DPAPI / DPAPI-NG, Credential Manager, mstsc launcher, Windows & Entra identity
      │
