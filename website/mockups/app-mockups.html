@@ -3,158 +3,110 @@
 <head>
 <meta charset="utf-8">
 <style>
-  /* Approximates WPF UI (lepoco) in the light theme — FluentWindow with Mica, Fluent title bar and controls
-     (ADR-0020) — for documentation mockups. */
+  /* Approximates WPF's Fluent theme (ThemeMode="System", light) for documentation mockups. */
   :root {
-    --mica: #f3f3f3; --card: rgba(255,255,255,.7); --control: #fbfbfb; --stroke: #e5e5e5; --stroke-strong: #cccccc;
-    --text: #1b1b1b; --text2: #5f5f5f; --text3: #8a8a8a; --disabled: #a6a6a6; --accent: #005fb8;
-    --subtle: rgba(0,0,0,.037); --caution: #9d5d00; --caution-bg: #fff4ce; --divider: rgba(0,0,0,.08);
+    --bg: #f3f3f3; --surface: #fbfbfb; --card: #ffffff; --stroke: #e5e5e5; --stroke-strong: #d1d1d1;
+    --text: #1a1a1a; --muted: #5d5d5d; --accent: #005fb8; --accent-hover: #0067c0;
+    --orange-soft: rgba(255,140,0,.20); --orange-softer: rgba(255,140,0,.13);
   }
   * { box-sizing: border-box; }
-  body { margin: 0; padding: 40px; background: transparent; font-family: Inter, "Segoe UI Variable", "Segoe UI", sans-serif;
-         font-size: 14px; color: var(--text); }
+  body { margin: 0; padding: 40px; background: transparent; font-family: Inter, "Segoe UI", sans-serif; font-size: 14px; color: var(--text); }
   .shot { display: inline-block; padding: 28px; }
-  .win { background: var(--mica); border: 1px solid rgba(0,0,0,.2); border-radius: 8px; overflow: hidden;
+  .win { background: var(--bg); border: 1px solid #c8c8c8; border-radius: 8px; overflow: hidden;
          box-shadow: 0 8px 32px rgba(0,0,0,.18), 0 2px 6px rgba(0,0,0,.08); display: flex; flex-direction: column; }
-  svg.i { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.35; stroke-linecap: round; stroke-linejoin: round; flex: none; }
-
-  /* ui:TitleBar */
-  .titlebar { height: 32px; display: flex; align-items: center; padding-left: 14px; font-size: 12px; flex: none; }
-  .titlebar img { width: 16px; height: 16px; margin-right: 12px; }
+  .titlebar { height: 32px; display: flex; align-items: center; padding-left: 12px; font-size: 12px; flex: none; }
+  .titlebar img { width: 16px; height: 16px; margin-right: 10px; }
   .titlebar .t { flex: 1; }
   .caps { display: flex; height: 100%; }
-  .caps span { width: 46px; display: flex; align-items: center; justify-content: center; }
-  .caps svg { width: 10px; height: 10px; stroke: #1b1b1b; stroke-width: 1; fill: none; }
+  .caps span { width: 46px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #333; }
+  .caps svg { width: 10px; height: 10px; stroke: #333; stroke-width: 1; fill: none; }
 
-  /* ui:Button */
-  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 32px; padding: 0 11px; border-radius: 4px;
-         background: var(--control); border: 1px solid var(--stroke); border-bottom-color: var(--stroke-strong); font-size: 14px; white-space: nowrap; }
-  .btn.accent { background: var(--accent); border-color: rgba(255,255,255,.08); border-bottom-color: rgba(0,0,0,.4); color: #fff; }
-  .btn.disabled { color: var(--disabled); background: rgba(249,249,249,.5); border-bottom-color: var(--stroke); }
-  .btn.icon { width: 34px; padding: 0; }
-
-  /* ui:TextBox / ui:PasswordBox / ComboBox */
-  .tb { height: 32px; border-radius: 4px; background: var(--control); border: 1px solid var(--stroke); border-bottom: 1px solid #868686;
-        display: flex; align-items: center; gap: 8px; padding: 0 10px; font-size: 14px; }
-  .tb.focus { background: #fff; border-bottom: 2px solid var(--accent); }
-  .tb .ph { color: var(--text2); }
-  .tb .end { margin-left: auto; color: var(--text2); display: flex; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; height: 32px; padding: 0 12px; border-radius: 4px;
+         background: var(--card); border: 1px solid var(--stroke); border-bottom-color: var(--stroke-strong); font-size: 14px; white-space: nowrap; }
+  .btn.accent { background: var(--accent); border-color: var(--accent); color: #fff; padding: 0 20px; }
+  .btn.disabled { color: #a0a0a0; background: #f9f9f9; }
+  .tb { height: 32px; border-radius: 4px; background: var(--card); border: 1px solid var(--stroke); border-bottom: 1px solid #8a8a8a;
+        display: flex; align-items: center; padding: 0 10px; font-size: 14px; }
+  .tb.focus { border-bottom: 2px solid var(--accent); }
   .tb.mono { font-family: "JetBrains Mono", monospace; font-size: 12.5px; align-items: flex-start; padding-top: 6px; line-height: 1.55; white-space: pre; }
   .tb.multi { align-items: flex-start; padding-top: 6px; line-height: 1.45; }
-  .tb.ro { background: rgba(249,249,249,.5); border-bottom-color: var(--stroke); }
-  .tb .caret { display: inline-block; width: 1px; height: 16px; background: var(--text); margin-left: -7px; }
-  .tb.pw { font-size: 9px; letter-spacing: 3px; }
-  .tb.pw .end { font-size: 14px; letter-spacing: 0; }
-  .combo::after { content: ""; margin-left: auto; width: 6px; height: 6px; border-right: 1.3px solid #5f5f5f; border-bottom: 1.3px solid #5f5f5f; transform: rotate(45deg) translateY(-2px); }
-
-  .lbl { margin: 10px 0 4px; color: var(--text2); }
+  .tb.ro { background: #f9f9f9; color: var(--muted); }
+  .tb .caret { display: inline-block; width: 1px; height: 16px; background: var(--text); margin-left: 1px; }
+  .combo { justify-content: space-between; }
+  .combo::after { content: ""; width: 7px; height: 7px; border-right: 1.3px solid #555; border-bottom: 1.3px solid #555; transform: rotate(45deg) translateY(-3px); }
+  .lbl { margin: 10px 0 4px; opacity: .8; }
   .hdr { font-size: 16px; font-weight: 600; margin: 16px 0 4px; }
-  .hint { font-size: 11px; color: var(--text3); margin-top: 4px; line-height: 1.4; }
+  .hint { font-size: 11px; opacity: .6; margin-top: 4px; line-height: 1.4; }
   .radio, .check { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
-  .radio i { width: 20px; height: 20px; border-radius: 50%; border: 1px solid #868686; background: rgba(0,0,0,.024); flex: none; }
+  .radio i { width: 20px; height: 20px; border-radius: 50%; border: 1px solid #8a8a8a; background: #f5f5f5; flex: none; }
   .radio.on i { border: 6px solid var(--accent); background: #fff; }
-  .check i { width: 20px; height: 20px; border-radius: 4px; border: 1px solid #868686; background: rgba(0,0,0,.024); flex: none; position: relative; }
+  .check i { width: 20px; height: 20px; border-radius: 4px; border: 1px solid #8a8a8a; background: #f5f5f5; flex: none; position: relative; }
   .check.on i { background: var(--accent); border-color: var(--accent); }
-  .check.on i::after { content: ""; position: absolute; left: 6px; top: 2px; width: 5px; height: 10px; border: solid #fff; border-width: 0 1.6px 1.6px 0; transform: rotate(45deg); }
+  .check.on i::after { content: ""; position: absolute; left: 6px; top: 2px; width: 5px; height: 10px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
   .row { display: flex; gap: 12px; }
   .grow { flex: 1; }
   .dim { opacity: .45; }
-  .err { color: #c42b1c; }
 
   /* Main window */
-  .toolbar { display: flex; align-items: center; margin: 4px 12px 6px; }
-  .toolbar .search { width: 330px; }
+  .toolbar { display: flex; align-items: center; margin: 12px 12px 6px; }
+  .toolbar .search { width: 420px; }
   .toolbar .btns { display: flex; gap: 6px; margin-left: 8px; }
-  .toolbar .themes { display: flex; gap: 2px; }
-  .toolbar .user { margin-left: auto; padding-left: 12px; white-space: nowrap; color: var(--text2); }
+  .toolbar .user { margin-left: auto; opacity: .8; }
   .body { flex: 1; display: flex; margin: 6px 12px 12px; min-height: 0; }
-  .list { width: 40%; background: var(--card); border: 1px solid var(--stroke); border-radius: 6px; padding: 4px; overflow: hidden; }
+  .list { width: 40%; background: var(--surface); border: 1px solid var(--stroke); border-radius: 6px; padding: 2px 4px; overflow: hidden; }
+  .grp { font-weight: 600; opacity: .7; margin: 10px 0 2px 6px; }
+  .item { display: flex; align-items: center; padding: 5px 10px; border-radius: 4px; margin: 2px 0; position: relative; }
+  .item.sel { background: #eaeaea; }
+  .item.sel::before { content: ""; position: absolute; left: 0; top: 50%; height: 16px; margin-top: -8px; width: 3px; border-radius: 2px; background: var(--accent); }
+  .item .n { font-weight: 600; }
+  .item .s { font-size: 12px; opacity: .7; }
   /* Entry tree: compact one-line rows (~22 px), 16 px indent per level, chevron for folders. */
-  .tree .r { display: flex; align-items: center; height: 22px; border-radius: 4px; position: relative; padding-right: 6px; white-space: nowrap; }
-  .tree .r.sel { background: var(--subtle); }
-  .tree .r.sel::before { content: ""; position: absolute; left: 0; top: 50%; height: 14px; margin-top: -7px; width: 3px; border-radius: 2px; background: var(--accent); }
+  .tree { padding: 2px; }
+  .tree .r { display: flex; align-items: center; height: 22px; border-radius: 3px; position: relative; padding-right: 6px; white-space: nowrap; }
+  .tree .r.sel { background: rgba(0,0,0,.07); }
+  .tree .r.sel::before { content: ""; position: absolute; left: 0; top: 50%; height: 12px; margin-top: -6px; width: 3px; border-radius: 2px; background: var(--accent); }
   .tree .chev { width: 16px; height: 16px; flex: none; display: flex; align-items: center; justify-content: center; }
-  .tree .chev::after { content: ""; width: 5px; height: 5px; border-right: 1.2px solid #5f5f5f; border-bottom: 1.2px solid #5f5f5f; transform: rotate(-45deg); }
+  .tree .chev::after { content: ""; width: 5px; height: 5px; border-right: 1.2px solid #555; border-bottom: 1.2px solid #555; transform: rotate(-45deg); }
   .tree .open > .chev::after { transform: rotate(45deg) translate(-1px,-1px); }
   .tree .leaf > .chev::after { display: none; }
   .tree .f { font-weight: 600; margin-left: 2px; }
   .tree .e { margin-left: 2px; overflow: hidden; text-overflow: ellipsis; }
-  .tree .a { margin-left: 2px; color: #333; }
-  .tree .cnt { font-size: 11px; color: var(--text3); margin-left: 6px; }
+  .tree .cnt { font-size: 11px; opacity: .5; margin-left: 6px; }
   .tree .in { margin-left: 16px; }
-  .badge { margin-left: auto; background: var(--caution-bg); border-radius: 3px; padding: 0 4px; font-size: 11px; white-space: nowrap; }
+  .tree .badge { padding: 0 4px; border-radius: 3px; margin-left: auto; }
+  .badge { margin-left: auto; background: var(--orange-soft); border-radius: 4px; padding: 2px 6px; font-size: 11px; white-space: nowrap; }
   .details { flex: 1; padding: 0 0 0 18px; }
   .details h1 { font-size: 22px; font-weight: 600; margin: 0; }
-  .sub { color: var(--text2); margin-top: 2px; }
-  /* ui:InfoBar, Severity="Warning" */
-  .infobar { margin-top: 12px; padding: 12px 14px; border-radius: 4px; background: var(--caution-bg); border: 1px solid rgba(0,0,0,.06);
-             display: flex; gap: 12px; align-items: flex-start; line-height: 1.45; }
-  .infobar .ic { width: 16px; height: 16px; border-radius: 50%; background: var(--caution); color: #fff; font-size: 11px; font-weight: 700;
-                 display: flex; align-items: center; justify-content: center; flex: none; margin-top: 2px; }
-  .infobar b { font-weight: 600; margin-right: 10px; }
+  .presence { margin-top: 12px; padding: 10px; border-radius: 6px; background: var(--orange-softer); }
   .actions { display: flex; gap: 8px; margin-top: 16px; }
-  .status { border-top: 1px solid var(--divider); padding: 6px 12px; display: flex; font-size: 14px; flex: none; }
+  .status { border-top: 1px solid var(--stroke-strong); padding: 6px 12px; display: flex; font-size: 14px; flex: none; }
   .status > span:first-child { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: 24px; }
   .status .r { margin-left: auto; white-space: nowrap; }
-  .status .off { color: var(--caution); font-weight: 600; }
+  .status .off { color: orangered; font-weight: 600; }
 
   .dlgfoot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
-  .acct { border: 1px solid var(--stroke); border-radius: 4px; padding: 8px; margin-top: 6px; }
-  .acct .l { font-size: 11px; color: var(--text2); margin: 0 0 2px; }
-
-  /* ui:MessageBox */
-  .mb { background: #fff; }
-  .mb .content { padding: 4px 24px 22px; line-height: 1.5; }
-  .mb h2 { font-size: 20px; font-weight: 600; margin: 0 0 12px; }
-  .mbfoot { background: var(--mica); border-top: 1px solid var(--stroke); padding: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .msg { display: flex; gap: 14px; padding: 22px 22px 18px; background: #fff; }
+  .msg .ic { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700; font-size: 20px; display: flex; align-items: center; justify-content: center; flex: none; }
+  .msgfoot { background: var(--bg); border-top: 1px solid var(--stroke); padding: 16px 22px; display: flex; gap: 8px; justify-content: flex-end; }
+  .msgfoot .btn { min-width: 110px; }
 </style>
 </head>
 <body>
 
-<svg width="0" height="0" style="position:absolute">
-  <defs>
-    <symbol id="i-search" viewBox="0 0 20 20"><circle cx="8.5" cy="8.5" r="5.5"/><path d="M12.6 12.6L17 17"/></symbol>
-    <symbol id="i-add" viewBox="0 0 20 20"><path d="M10 3.5v13M3.5 10h13"/></symbol>
-    <symbol id="i-import" viewBox="0 0 20 20"><path d="M3 10h10M9.5 6.5L13 10l-3.5 3.5M16.5 3.5v13"/></symbol>
-    <symbol id="i-sync" viewBox="0 0 20 20"><path d="M4 9.5A6 6 0 0 1 14.6 6M15 2.8V6.4h-3.6M16 10.5A6 6 0 0 1 5.4 14M5 17.2v-3.6h3.6"/></symbol>
-    <symbol id="i-settings" viewBox="0 0 20 20"><circle cx="10" cy="10" r="2.6"/><path id="gear"/></symbol>
-    <symbol id="i-plug" viewBox="0 0 20 20"><path d="M7.5 2.5v4M12.5 2.5v4M5 6.5h10v3a5 5 0 0 1-10 0zM10 14.5v3"/></symbol>
-    <symbol id="i-key" viewBox="0 0 20 20"><circle cx="6.5" cy="13.5" r="3.5"/><path d="M9 11l7.5-7.5M14 6l2 2M12 8l1.5 1.5"/></symbol>
-    <symbol id="i-person" viewBox="0 0 20 20"><circle cx="10" cy="6.5" r="3.5"/><path d="M3.5 17.5a6.5 6.5 0 0 1 13 0"/></symbol>
-    <symbol id="i-edit" viewBox="0 0 20 20"><path d="M13.5 3.5l3 3L7 16H4v-3zM11.5 5.5l3 3"/></symbol>
-    <symbol id="i-delete" viewBox="0 0 20 20"><path d="M3.5 5.5h13M8 5.5V3.8h4v1.7M5.3 5.5l.8 11h7.8l.8-11M8.5 8.5v5M11.5 8.5v5"/></symbol>
-    <symbol id="i-desktop" viewBox="0 0 20 20"><rect x="2.5" y="3.5" width="15" height="10" rx="1.5"/><path d="M6.5 17h7M10 13.5V17"/></symbol>
-    <symbol id="i-sun" viewBox="0 0 20 20"><circle cx="10" cy="10" r="3.5"/><path id="rays"/></symbol>
-    <symbol id="i-moon" viewBox="0 0 20 20"><path d="M16 12.6A6.6 6.6 0 0 1 7.4 4a6.6 6.6 0 1 0 8.6 8.6z"/></symbol>
-    <symbol id="i-eye" viewBox="0 0 20 20"><path d="M2 10s3-5.5 8-5.5 8 5.5 8 5.5-3 5.5-8 5.5S2 10 2 10z"/><circle cx="10" cy="10" r="2.4"/></symbol>
-    <symbol id="i-x" viewBox="0 0 20 20"><path d="M5.5 5.5l9 9M14.5 5.5l-9 9"/></symbol>
-  </defs>
-</svg>
-
 <template id="caps">
   <div class="caps">
     <span><svg viewBox="0 0 10 10"><path d="M0 5h10"/></svg></span>
-    <span><svg viewBox="0 0 10 10"><rect x=".5" y=".5" width="9" height="9" rx="1.5"/></svg></span>
+    <span><svg viewBox="0 0 10 10"><rect x=".5" y=".5" width="9" height="9" rx="1"/></svg></span>
     <span><svg viewBox="0 0 10 10"><path d="M0 0l10 10M10 0L0 10"/></svg></span>
   </div>
 </template>
 
 <!-- ============================================================ main window (online, shared DB) -->
 <div class="shot" id="main"><div class="win" style="width:1100px;height:700px">
-  <div class="titlebar"><img src="appicon.png"><span class="t">Remote Desktop Harbor 0.4.0</span><slot-caps></slot-caps></div>
+  <div class="titlebar"><img src="appicon.png"><span class="t">Remote Desktop Harbor</span><slot-caps></slot-caps></div>
   <div class="toolbar">
-    <div class="tb search focus"><svg class="i"><use href="#i-search"/></svg><span class="caret" style="margin-left:0"></span><span class="ph" style="margin-left:-8px">Search</span></div>
-    <div class="btns">
-      <span class="btn"><svg class="i"><use href="#i-add"/></svg>New</span>
-      <span class="btn"><svg class="i"><use href="#i-import"/></svg>Import .rdp…</span>
-      <span class="btn"><svg class="i"><use href="#i-sync"/></svg>Refresh</span>
-      <span class="btn"><svg class="i"><use href="#i-settings"/></svg>Settings</span>
-      <span class="themes">
-        <span class="btn icon accent"><svg class="i"><use href="#i-desktop"/></svg></span>
-        <span class="btn icon"><svg class="i"><use href="#i-sun"/></svg></span>
-        <span class="btn icon"><svg class="i"><use href="#i-moon"/></svg></span>
-      </span>
-    </div>
+    <div class="tb search focus"><span class="caret"></span></div>
+    <div class="btns"><span class="btn">New</span><span class="btn">Import .rdp…</span><span class="btn">Refresh</span><span class="btn">Settings</span></div>
     <span class="user">Alex Kim &lt;alex.kim@contoso.com&gt;</span>
   </div>
   <div class="body">
@@ -168,15 +120,11 @@
           <div class="r leaf"><span class="chev"></span><span class="e">WEB02</span></div>
           <div class="r leaf"><span class="chev"></span><span class="e">WEB03 – Intranet</span></div>
         </div>
-        <div class="r open"><span class="chev"></span><span class="e">APP01 – Line of business</span></div>
-        <div class="in">
-          <div class="r leaf"><span class="chev"></span><span class="a">CONTOSO\svc-app</span></div>
-          <div class="r leaf"><span class="chev"></span><span class="a">CONTOSO\ops</span><span class="badge">In use by Sam Patel</span></div>
-        </div>
+        <div class="r leaf"><span class="chev"></span><span class="e">APP01 – Line of business</span></div>
         <div class="r leaf sel"><span class="chev"></span><span class="e">APP02 – Reporting</span><span class="badge">In use by Jane Doe</span></div>
         <div class="r leaf"><span class="chev"></span><span class="e">DC01</span></div>
         <div class="r leaf"><span class="chev"></span><span class="e">DC02</span></div>
-        <div class="r leaf"><span class="chev"></span><span class="e">SQL01</span></div>
+        <div class="r leaf"><span class="chev"></span><span class="e">SQL01</span><span class="badge">In use by Sam Patel</span></div>
         <div class="r leaf"><span class="chev"></span><span class="e">SQL02 – Analysis</span></div>
       </div>
       <div class="r open"><span class="chev"></span><span class="f">Staging</span><span class="cnt">2</span></div>
@@ -188,15 +136,10 @@
     </div>
     <div class="details">
       <h1>APP02 – Reporting</h1>
-      <div class="sub">RDP connection</div>
-      <div class="infobar"><span class="ic">!</span><div><b>Active sessions</b>Jane Doe (CONTOSO\jane.doe) &lt;jane.doe@contoso.com&gt; on PC-42, since 10:31</div></div>
-      <div class="actions">
-        <span class="btn accent" style="padding:0 16px"><svg class="i"><use href="#i-plug"/></svg>Connect</span>
-        <span class="btn"><svg class="i"><use href="#i-key"/></svg>Copy password</span>
-        <span class="btn"><svg class="i"><use href="#i-person"/></svg>Copy user</span>
-        <span class="btn"><svg class="i"><use href="#i-edit"/></svg>Edit</span>
-        <span class="btn"><svg class="i"><use href="#i-delete"/></svg>Delete</span>
-      </div>
+      <div style="opacity:.7;margin-top:2px">RDP connection</div>
+      <div class="presence"><div style="font-weight:600">Active sessions</div>
+        <div style="margin-top:4px">Jane Doe (CONTOSO\jane.doe) &lt;jane.doe@contoso.com&gt; on PC-42, since 10:31</div></div>
+      <div class="actions"><span class="btn accent">Connect</span><span class="btn">Copy password</span><span class="btn">Copy user</span><span class="btn">Edit</span><span class="btn">Delete</span></div>
       <div class="lbl">Host</div><div>srv-app02.contoso.local</div>
       <div class="lbl">Port</div><div>3389</div>
       <div class="lbl">User</div><div>CONTOSO\svc-admin</div>
@@ -211,20 +154,10 @@
 
 <!-- ============================================================ main window (offline) -->
 <div class="shot" id="offline"><div class="win" style="width:1100px;height:420px">
-  <div class="titlebar"><img src="appicon.png"><span class="t">Remote Desktop Harbor 0.4.0</span><slot-caps></slot-caps></div>
+  <div class="titlebar"><img src="appicon.png"><span class="t">Remote Desktop Harbor</span><slot-caps></slot-caps></div>
   <div class="toolbar">
-    <div class="tb search"><svg class="i"><use href="#i-search"/></svg>sql<span class="end"><svg class="i"><use href="#i-x"/></svg></span></div>
-    <div class="btns">
-      <span class="btn disabled"><svg class="i"><use href="#i-add"/></svg>New</span>
-      <span class="btn disabled"><svg class="i"><use href="#i-import"/></svg>Import .rdp…</span>
-      <span class="btn"><svg class="i"><use href="#i-sync"/></svg>Refresh</span>
-      <span class="btn"><svg class="i"><use href="#i-settings"/></svg>Settings</span>
-      <span class="themes">
-        <span class="btn icon accent"><svg class="i"><use href="#i-desktop"/></svg></span>
-        <span class="btn icon"><svg class="i"><use href="#i-sun"/></svg></span>
-        <span class="btn icon"><svg class="i"><use href="#i-moon"/></svg></span>
-      </span>
-    </div>
+    <div class="tb search">sql</div>
+    <div class="btns"><span class="btn disabled">New</span><span class="btn disabled">Import .rdp…</span><span class="btn">Refresh</span><span class="btn">Settings</span></div>
     <span class="user">Alex Kim &lt;alex.kim@contoso.com&gt;</span>
   </div>
   <div class="body">
@@ -237,14 +170,8 @@
     </div>
     <div class="details">
       <h1>SQL01</h1>
-      <div class="sub">RDP connection</div>
-      <div class="actions">
-        <span class="btn accent" style="padding:0 16px"><svg class="i"><use href="#i-plug"/></svg>Connect</span>
-        <span class="btn"><svg class="i"><use href="#i-key"/></svg>Copy password</span>
-        <span class="btn"><svg class="i"><use href="#i-person"/></svg>Copy user</span>
-        <span class="btn disabled"><svg class="i"><use href="#i-edit"/></svg>Edit</span>
-        <span class="btn disabled"><svg class="i"><use href="#i-delete"/></svg>Delete</span>
-      </div>
+      <div style="opacity:.7;margin-top:2px">RDP connection</div>
+      <div class="actions"><span class="btn accent">Connect</span><span class="btn">Copy password</span><span class="btn">Copy user</span><span class="btn disabled">Edit</span><span class="btn disabled">Delete</span></div>
       <div class="lbl">Host</div><div>sql01.contoso.local</div>
       <div class="lbl">User</div><div>CONTOSO\sql-admin</div>
     </div>
@@ -254,8 +181,8 @@
 
 <!-- ============================================================ entry editor -->
 <div class="shot" id="editor"><div class="win" style="width:560px">
-  <div class="titlebar"><span class="t">Edit – APP02 – Reporting</span><slot-caps class="closeonly"></slot-caps></div>
-  <div style="flex:1;display:flex;flex-direction:column;padding:4px 16px 16px">
+  <div class="titlebar"><img src="appicon.png"><span class="t">Edit – APP02 – Reporting</span><slot-caps></slot-caps></div>
+  <div style="flex:1;display:flex;flex-direction:column;padding:16px">
     <div style="flex:1">
       <div class="lbl" style="margin-top:0">Type</div>
       <div class="row" style="gap:16px"><span class="radio on"><i></i>RDP connection</span><span class="radio"><i></i>Credentials only</span></div>
@@ -269,19 +196,6 @@
       <span class="check"><i></i>Change stored password</span>
       <div class="tb ro"></div>
       <div class="hint">Leave empty to store no password. Passwords are encrypted before they are written.</div>
-      <div class="lbl">Additional accounts</div>
-      <div class="hint" style="margin-top:0">For hosts that allow several sessions at once, such as Windows Server. Each account is listed under the entry; an empty domain uses the domain above.</div>
-      <div class="acct">
-        <div class="row" style="align-items:flex-end;gap:0">
-          <div style="flex:1"><div class="l">Domain</div><div class="tb"></div></div>
-          <div style="width:12px"></div>
-          <div style="flex:2"><div class="l">User name *</div><div class="tb">reporting</div></div>
-          <span class="btn" style="margin-left:8px">Remove</span>
-        </div>
-        <div class="l" style="margin-top:6px">Password</div>
-        <div class="tb focus pw">●●●●●●●●●●<span class="end"><svg class="i"><use href="#i-eye"/></svg></span></div>
-      </div>
-      <span class="btn" style="margin-top:6px">Add account</span>
       <div class="lbl">RDP settings (.rdp lines, key:type:value)</div>
       <div class="tb mono" style="height:110px">screen mode id:i:1
 desktopwidth:i:1920
@@ -297,8 +211,8 @@ audiomode:i:2</div>
 
 <!-- ============================================================ settings -->
 <div class="shot" id="settings"><div class="win" style="width:620px">
-  <div class="titlebar"><span class="t">Settings</span><slot-caps class="closeonly"></slot-caps></div>
-  <div style="flex:1;display:flex;flex-direction:column;padding:4px 16px 16px">
+  <div class="titlebar"><img src="appicon.png"><span class="t">Settings</span><slot-caps></slot-caps></div>
+  <div style="flex:1;display:flex;flex-direction:column;padding:16px">
     <div style="flex:1">
       <div class="hdr" style="margin-top:0">Storage</div>
       <span class="radio"><i></i>Local vault on this computer (SQLite)</span>
@@ -309,7 +223,7 @@ audiomode:i:2</div>
         <div class="lbl">Database name</div><div class="tb">Harbor</div>
         <div class="lbl">Database sign-in</div><div class="tb combo" style="width:300px">SQL Server login (user + password)</div>
         <div class="lbl">User name</div><div class="tb">harbor_user</div>
-        <div class="lbl">Password</div><div class="tb pw">●●●●●●●●●●●●</div>
+        <div class="lbl">Password</div><div class="tb">●●●●●●●●●●●●</div>
         <span class="check on" style="margin-top:10px"><i></i>Encrypt the connection</span>
         <span class="check"><i></i>Trust the server certificate (self-signed certificate, e.g. when connecting by IP)</span>
         <span class="check" style="margin-top:10px"><i></i>Edit as connection string (advanced)</span>
@@ -343,8 +257,6 @@ audiomode:i:2</div>
       <div class="hint">Off (default): the credential is removed ~30 s after Remote Desktop starts and never survives logoff. On: reconnects work without the app, but the password stays in Credential Manager.</div>
       <div class="hdr">Data folder</div>
       <div class="tb">C:\Users\alex.kim\AppData\Local\RemoteDesktopHarbor</div>
-      <div class="hdr">About</div>
-      <div>Remote Desktop Harbor · Version 0.4.0 (build 6576a7b)</div>
     </div>
     <div class="dlgfoot"><span class="btn accent" style="min-width:90px">Save</span><span class="btn" style="min-width:90px">Cancel</span></div>
   </div>
@@ -352,38 +264,24 @@ audiomode:i:2</div>
 
 <!-- ============================================================ passphrase (new vault) -->
 <div class="shot" id="passphrase"><div class="win" style="width:440px">
-  <div class="titlebar"><span class="t">Shared vault passphrase</span><slot-caps class="closeonly"></slot-caps></div>
-  <div style="padding:4px 16px 16px">
+  <div class="titlebar"><img src="appicon.png"><span class="t">Shared vault passphrase</span><slot-caps class="closeonly"></slot-caps></div>
+  <div style="padding:16px">
     <div style="line-height:1.45">This shared database has no vault key yet. Choose a passphrase (at least 12 characters) and share it securely with your team. Each user enters it once; afterwards it is cached for their Windows account on their machine.</div>
-    <div class="tb focus pw" style="margin-top:12px">●●●●●●●●●●●●●●●●<span class="end"><svg class="i"><use href="#i-eye"/></svg></span></div>
+    <div class="tb focus" style="margin-top:12px;letter-spacing:2px">●●●●●●●●●●●●●●●●</div>
     <div class="lbl">Repeat passphrase</div>
-    <div class="tb pw">●●●●●●●●●●●●●●●●</div>
+    <div class="tb" style="letter-spacing:2px">●●●●●●●●●●●●●●●●</div>
     <div class="dlgfoot" style="margin-top:20px"><span class="btn accent" style="min-width:90px">OK</span><span class="btn" style="min-width:90px">Cancel</span></div>
   </div>
 </div></div>
 
-<!-- ============================================================ in-use confirmation (ui:MessageBox) -->
-<div class="shot" id="inuse"><div class="win mb" style="width:520px">
-  <div class="titlebar" style="background:#fff"><span class="t"></span><slot-caps class="closeonly"></slot-caps></div>
-  <div class="content"><h2>Connection in use</h2>Jane Doe (CONTOSO\jane.doe) &lt;jane.doe@contoso.com&gt; on PC-42, since 10:31<br><br>Connect anyway? This may disconnect the other user.</div>
-  <div class="mbfoot"><span class="btn accent">Yes</span><span class="btn">No</span></div>
+<!-- ============================================================ in-use confirmation -->
+<div class="shot" id="inuse"><div class="win" style="width:520px">
+  <div class="titlebar" style="background:#fff"><span class="t">Connection in use</span><slot-caps class="closeonly"></slot-caps></div>
+  <div class="msg"><div class="ic">?</div><div style="line-height:1.5">Jane Doe (CONTOSO\jane.doe) &lt;jane.doe@contoso.com&gt; on PC-42, since 10:31<br><br>Connect anyway? This may disconnect the other user.</div></div>
+  <div class="msgfoot"><span class="btn accent">Yes</span><span class="btn">No</span></div>
 </div></div>
 
 <script>
-  // Generated icon parts: gear teeth and sun rays.
-  const gear = [];
-  for (let k = 0; k < 8; k++) {
-    const a = k * Math.PI / 4, c = Math.cos(a), s = Math.sin(a);
-    gear.push(`M${(10 + 5.2 * c).toFixed(2)} ${(10 + 5.2 * s).toFixed(2)}L${(10 + 7.4 * c).toFixed(2)} ${(10 + 7.4 * s).toFixed(2)}`);
-  }
-  document.getElementById('gear').setAttribute('d', gear.join('') + 'M15.2 10a5.2 5.2 0 1 1-10.4 0a5.2 5.2 0 1 1 10.4 0');
-  const rays = [];
-  for (let k = 0; k < 8; k++) {
-    const a = k * Math.PI / 4, c = Math.cos(a), s = Math.sin(a);
-    rays.push(`M${(10 + 5.5 * c).toFixed(2)} ${(10 + 5.5 * s).toFixed(2)}L${(10 + 7.5 * c).toFixed(2)} ${(10 + 7.5 * s).toFixed(2)}`);
-  }
-  document.getElementById('rays').setAttribute('d', rays.join(''));
-
   const caps = document.getElementById('caps').content;
   document.querySelectorAll('slot-caps').forEach(s => {
     const c = caps.cloneNode(true);
