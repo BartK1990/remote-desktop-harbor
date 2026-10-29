@@ -2,6 +2,8 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:Harbor.App.ViewModels"
+        xmlns:views="clr-namespace:Harbor.App.Views"
+        xmlns:core="clr-namespace:Harbor.Core;assembly=Harbor.Core"
         Title="Remote Desktop Harbor" Width="1100" Height="700" MinWidth="720" MinHeight="420"
         Icon="/Assets/AppIcon.ico"
         WindowStartupLocation="CenterScreen">
@@ -33,9 +35,29 @@
         <Button Content="Import .rdp…" Command="{Binding ImportRdpCommand}" Margin="0,0,6,0" />
         <Button Content="Refresh" Command="{Binding RefreshCommand}" Margin="0,0,6,0" ToolTip="Sync and refresh (F5)" />
         <Button Content="Settings" Command="{Binding OpenSettingsCommand}" Margin="0,0,6,0" />
-        <!-- Theme selector: applied immediately, remembered across restarts (SPEC FR-08). -->
-        <ComboBox ItemsSource="{Binding Themes}" SelectedItem="{Binding Theme}" MinWidth="100"
-                  ToolTip="Theme: follow Windows, light or dark" AutomationProperties.Name="Theme" />
+        <!-- Theme selector: three icon toggles (system / light / dark), applied immediately,
+             remembered across restarts (SPEC FR-08). -->
+        <StackPanel Orientation="Horizontal" AutomationProperties.Name="Theme">
+          <StackPanel.Resources>
+            <views:EnumToBooleanConverter x:Key="EnumToBool" />
+            <Style x:Key="ThemeIcon" TargetType="RadioButton" BasedOn="{StaticResource {x:Type ToggleButton}}">
+              <Setter Property="GroupName" Value="Theme" />
+              <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets" />
+              <Setter Property="FontSize" Value="14" />
+              <Setter Property="Padding" Value="8,6" />
+              <Setter Property="Margin" Value="0,0,2,0" />
+            </Style>
+          </StackPanel.Resources>
+          <RadioButton Style="{StaticResource ThemeIcon}" Content="&#xE7F4;"
+                       IsChecked="{Binding Theme, Converter={StaticResource EnumToBool}, ConverterParameter={x:Static core:AppTheme.System}}"
+                       ToolTip="Theme: follow Windows" AutomationProperties.Name="System theme" />
+          <RadioButton Style="{StaticResource ThemeIcon}" Content="&#xE706;"
+                       IsChecked="{Binding Theme, Converter={StaticResource EnumToBool}, ConverterParameter={x:Static core:AppTheme.Light}}"
+                       ToolTip="Theme: light" AutomationProperties.Name="Light theme" />
+          <RadioButton Style="{StaticResource ThemeIcon}" Content="&#xE708;"
+                       IsChecked="{Binding Theme, Converter={StaticResource EnumToBool}, ConverterParameter={x:Static core:AppTheme.Dark}}"
+                       ToolTip="Theme: dark" AutomationProperties.Name="Dark theme" />
+        </StackPanel>
       </StackPanel>
       <TextBlock Grid.Column="3" Text="{Binding UserText}" VerticalAlignment="Center" Opacity="0.8" />
     </Grid>
