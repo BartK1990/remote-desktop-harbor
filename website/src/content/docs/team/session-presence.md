@@ -45,7 +45,7 @@ always ask; so does connecting without a user name.
 
 ## Settings
 
-**Settings → Storage → Session presence timeout / heartbeat (seconds)**
+**Settings → Shared vault → Presence timeout / Presence heartbeat (s)**
 
 | Setting | Default | Rule |
 |---|---|---|

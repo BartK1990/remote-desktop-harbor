@@ -12,7 +12,7 @@ Start with the log: `logs\harbor.log` in the [data folder](../data-and-files/). 
   and paste it into the prompt.
 - Check that the entry has a **user name** — without one, no credential is handed over.
 - A reconnect started from the Remote Desktop window more than ~30 s after launch may prompt, because the
-  credential has already been removed. Enable **Settings → Remote Desktop → Keep the password…** if you need this.
+  credential has already been removed. Enable **Settings → General → Keep the password…** if you need this.
 
 ## Connect is disabled
 
@@ -22,7 +22,7 @@ The entry has no host — credentials-only entries may omit it. Add a host to co
 ## The status bar says OFFLINE
 
 The shared database is unreachable; the app works read-only from its local copy. Check VPN / network and the
-connection string (**Settings → Test connection**). The app retries automatically; press <kbd>F5</kbd> to retry now.
+connection string (**Settings → Storage → Test connection**). The app retries automatically; press <kbd>F5</kbd> to retry now.
 See [Offline mode](../../team/offline-mode/).
 
 ## “Not saved” after editing

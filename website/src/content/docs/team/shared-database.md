@@ -63,15 +63,15 @@ Open **Settings → Storage** and choose **Shared database with offline copy**:
 | Database name | e.g. `Harbor`. Tick **Create the database if it does not exist** to have it created. |
 | Database sign-in | **Windows account**, **SQL Server login** (user + password), or **Microsoft Entra ID** |
 | Encrypt / Trust server certificate | Encrypt is on by default. Tick *Trust the server certificate* for servers with a self-signed certificate (typical when connecting by IP). |
-| Shared vault key protection | **Not protected** (default, key stored unencrypted), **Active Directory group** with `SID=S-1-5-21-…`, or **Shared passphrase** |
-| Create / upgrade schema automatically | On for the first client (needs DDL rights) |
-| Sync interval | Default `60` seconds (minimum 10) |
+| Shared vault key protection (*Shared vault* tab) | **Not protected** (default, key stored unencrypted), **Active Directory group** with `SID=S-1-5-21-…`, or **Shared passphrase** |
+| Create / upgrade schema automatically (*Shared vault* tab) | On for the first client (needs DDL rights) |
+| Sync interval (*Shared vault* tab) | Default `60` seconds (minimum 10) |
 
 Use **Test connection** to check the settings before saving. Everything is stored as one connection string,
 encrypted for your Windows account (a SQL login password included). The database sign-in is independent of the
 app's own [sign-in](../entra-id/): Windows or Entra ID app sign-in both work with a shared database.
 
-![Settings dialog with "Shared database with offline copy" selected: server sql01, database Harbor, SQL Server login with user name and password, Test connection, "Not protected" vault protection, schema auto-upgrade, sync interval and presence timings, and "No sign-in" with a name.](../../../assets/screenshots/settings.png)
+![Settings dialog, Storage tab, with "Shared database with offline copy" selected: server sql01, database Harbor, SQL Server login with user name and password, and Test connection.](../../../assets/screenshots/settings.png)
 
 ### Connection string examples
 

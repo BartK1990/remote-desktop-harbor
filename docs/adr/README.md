@@ -28,3 +28,4 @@ Process: see [spec/README.md](../spec/README.md).
 | [0020](0020-wpf-ui-library.md) | Fluent look with WPF UI (lepoco) instead of the built-in WPF Fluent theme | Superseded by 0021 |
 | [0021](0021-keep-built-in-fluent-theme.md) | Keep the built-in WPF Fluent theme (WPF UI reverted) | Accepted |
 | [0022](0022-rdp-settings-form.md) | RDP settings edited as a form over the stored `.rdp` text | Accepted |
+| [0023](0023-tabbed-settings-dialog.md) | Settings dialog on tabs with compact, paired fields | Accepted |

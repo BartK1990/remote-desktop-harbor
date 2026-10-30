@@ -18,7 +18,7 @@ C:\Tools\RemoteDesktopHarbor\
 └── data\                 ← settings, vault, cache, logs
 ```
 
-**Settings → Data folder** shows the active location and adds “(portable mode)” when it is on.
+**Settings → General → Data folder** shows the active location and adds “(portable mode)” when it is on.
 
 ## Passwords stay bound to you
 
