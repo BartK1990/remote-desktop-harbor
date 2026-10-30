@@ -29,7 +29,8 @@ Option 3.
   **Sign-in**, **General** (Remote Desktop, data folder, about).
 * The Shared vault tab stays visible with local storage but is disabled, with a hint pointing to the Storage tab,
   so its settings are discoverable and saved values are not hidden away.
-* Paired fields share a grid row: server + database name, user name + password, Entra client ID + tenant. The three
+* Paired fields share a grid row: server + database name, user name + password, Entra client ID + tenant; the
+  Encrypt and Trust server certificate check boxes share a row (the certificate detail moved to a tooltip). The three
   timing values sit side by side in a `WrapPanel` with narrow boxes; the anonymous name gets a fixed-width box.
 * Each tab page has a 20 px right margin inside its `ScrollViewer`, so the overlay scroll bar never covers inputs.
 * The error text and the Save/Cancel buttons stay below the tab control, so a validation error is visible whatever
@@ -39,4 +40,6 @@ Option 3.
 
 * A validation error can refer to a field on another tab; the message names the field, so the user switches tab.
 * New settings must go on the matching tab; `ViewSourceTests` checks the tab list and the scroll gutter.
-* No view-model or settings-file change.
+* No view-model or settings-file change. The window opens at 640 × 640, enough for the Storage tab with a SQL login
+  without scrolling.
+* The docs mockup (`website/mockups/app-mockups.html`) has one shot per tab.

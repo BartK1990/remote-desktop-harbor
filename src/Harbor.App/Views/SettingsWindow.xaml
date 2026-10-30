@@ -1,7 +1,7 @@
 <Window x:Class="Harbor.App.Views.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Settings" Width="640" Height="600" MinWidth="520" MinHeight="420"
+        Title="Settings" Width="640" Height="640" MinWidth="520" MinHeight="420"
         Icon="/Assets/AppIcon.ico"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False" ResizeMode="CanResizeWithGrip">
   <Window.Resources>
@@ -79,9 +79,11 @@
                     <PasswordBox x:Name="DbPasswordBox" PasswordChanged="DbPasswordBox_PasswordChanged" />
                   </StackPanel>
                 </Grid>
-                <CheckBox Content="Encrypt the connection" IsChecked="{Binding DbEncrypt}" Margin="0,10,0,0" />
-                <CheckBox Content="Trust the server certificate (self-signed, e.g. when connecting by IP)"
-                          IsChecked="{Binding DbTrustServerCertificate}" Margin="0,4,0,0" />
+                <WrapPanel Margin="0,10,0,0">
+                  <CheckBox Content="Encrypt the connection" IsChecked="{Binding DbEncrypt}" Margin="0,0,24,0" />
+                  <CheckBox Content="Trust the server certificate" IsChecked="{Binding DbTrustServerCertificate}"
+                            ToolTip="For a self-signed certificate, e.g. when connecting by IP address." />
+                </WrapPanel>
               </StackPanel>
 
               <CheckBox Content="Edit as connection string (advanced)" IsChecked="{Binding EditRawConnectionString}" Margin="0,10,0,0"

@@ -7,12 +7,12 @@ Open **Settings** from the toolbar. The dialog has four tabs: **Storage**, **Sha
 **General**. **Save** stores the settings of all tabs; a validation error is shown below the tabs whichever tab is
 open. After saving, the app offers to restart, because storage and sign-in changes take effect at startup.
 
-![The Settings dialog.](../../../assets/screenshots/settings.png)
-
 Settings are stored as JSON in `settings.json` in the [data folder](../data-and-files/). The remote connection string is
 DPAPI-protected for your Windows account, so a copied `settings.json` does not reveal it.
 
 ## Storage tab
+
+![Settings, Storage tab: shared database sql01 / Harbor with a SQL Server login, Encrypt on, and a successful Test connection.](../../../assets/screenshots/settings.png)
 
 | UI | JSON property | Default | Description |
 |---|---|---|---|
@@ -26,6 +26,8 @@ DPAPI-protected for your Windows account, so a copied `settings.json` does not r
 
 Used with a shared database only; disabled while *Local vault* is chosen.
 
+![Settings, Shared vault tab: vault key protection, schema auto-upgrade, sync interval and presence timings.](../../../assets/screenshots/settings-vault.png)
+
 | UI | JSON property | Default | Description |
 |---|---|---|---|
 | Vault key protection | `RemoteKeyScheme` | `sign-in` | `sign-in` (*Not protected*: key stored unencrypted in the database), `dpapi-ng` (AD group) or `passphrase`. Used when the shared database has no vault key yet. |
@@ -38,6 +40,8 @@ Used with a shared database only; disabled while *Local vault* is chosen.
 
 ## Sign-in tab
 
+![Settings, Sign-in tab with “No sign-in” and a name.](../../../assets/screenshots/settings-signin.png)
+
 | UI | JSON property | Default | Description |
 |---|---|---|---|
 | Windows account / Microsoft Entra ID / No sign-in | `AuthMode` | `Windows` | `Windows` (recommended), `EntraId` or `Anonymous`. Who you are for presence and audit; independent of storage and of the database sign-in. |
@@ -46,6 +50,8 @@ Used with a shared database only; disabled while *Local vault* is chosen.
 | Your name | `AnonymousName` | — | Required for *No sign-in*. Shown to others as “*name* (not signed in)” and in “Last changed by”. Not verified. |
 
 ## General tab
+
+![Settings, General tab: Remote Desktop credential option, data folder and version.](../../../assets/screenshots/settings-general.png)
 
 ### Remote Desktop
 

@@ -93,6 +93,12 @@
   .acct { border: 1px solid var(--stroke); border-radius: 4px; padding: 8px; margin-top: 6px; }
   .acct .l { font-size: 11px; opacity: .7; margin: 0 0 2px; }
 
+  /* TabControl (Fluent): text headers, accent pill under the selected one; page with a 20 px right gutter. */
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--stroke); flex: none; }
+  .tab { padding: 8px 12px 10px; position: relative; color: var(--muted); }
+  .tab.on { color: var(--text); font-weight: 600; }
+  .tab.on::after { content: ""; position: absolute; left: 50%; bottom: -1px; width: 16px; margin-left: -8px; height: 3px; border-radius: 2px; background: var(--accent); }
+  .tabpage { flex: 1; min-height: 0; overflow: hidden; padding: 12px 20px 12px 4px; }
   .dlgfoot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
   .msg { display: flex; gap: 14px; padding: 22px 22px 18px; background: #fff; }
   .msg .ic { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700; font-size: 20px; display: flex; align-items: center; justify-content: center; flex: none; }
@@ -252,54 +258,90 @@ audiomode:i:2</div>
   </div>
 </div></div>
 
-<!-- ============================================================ settings -->
-<div class="shot" id="settings"><div class="win" style="width:620px">
+<!-- ============================================================ settings (one shot per tab, SPEC FR-45) -->
+<div class="shot" id="settings"><div class="win" style="width:640px;height:640px">
   <div class="titlebar"><img src="appicon.png"><span class="t">Settings</span><slot-caps></slot-caps></div>
-  <div style="flex:1;display:flex;flex-direction:column;padding:16px">
-    <div style="flex:1">
-      <div class="hdr" style="margin-top:0">Storage</div>
-      <span class="radio"><i></i>Local vault on this computer (SQLite)</span>
+  <div style="flex:1;display:flex;flex-direction:column;padding:16px;min-height:0">
+    <div class="tabs"><span class="tab on">Storage</span><span class="tab">Shared vault</span><span class="tab">Sign-in</span><span class="tab">General</span></div>
+    <div class="tabpage">
+      <span class="radio" style="margin-top:0"><i></i>Local vault on this computer (SQLite)</span>
       <span class="radio on"><i></i>Shared database with offline copy</span>
       <div style="margin-left:24px">
         <div class="lbl">Provider</div><div class="tb combo" style="width:200px">SqlServer</div>
-        <div class="lbl">Server (name or IP address)</div><div class="tb">sql01</div>
-        <div class="lbl">Database name</div><div class="tb">Harbor</div>
+        <div class="row">
+          <div style="flex:3"><div class="lbl">Server (name or IP address)</div><div class="tb">sql01</div></div>
+          <div style="flex:2"><div class="lbl">Database name</div><div class="tb">Harbor</div></div>
+        </div>
         <div class="lbl">Database sign-in</div><div class="tb combo" style="width:300px">SQL Server login (user + password)</div>
-        <div class="lbl">User name</div><div class="tb">harbor_user</div>
-        <div class="lbl">Password</div><div class="tb">●●●●●●●●●●●●</div>
-        <span class="check on" style="margin-top:10px"><i></i>Encrypt the connection</span>
-        <span class="check"><i></i>Trust the server certificate (self-signed certificate, e.g. when connecting by IP)</span>
+        <div class="row">
+          <div class="grow"><div class="lbl">User name</div><div class="tb">harbor_user</div></div>
+          <div class="grow"><div class="lbl">Password</div><div class="tb">●●●●●●●●●●●●</div></div>
+        </div>
+        <div class="row" style="gap:24px;margin-top:10px"><span class="check on" style="margin:0"><i></i>Encrypt the connection</span><span class="check" style="margin:0"><i></i>Trust the server certificate</span></div>
         <span class="check" style="margin-top:10px"><i></i>Edit as connection string (advanced)</span>
-        <div class="hint">Stored encrypted for your Windows account. The database sign-in is separate from the app sign-in below.</div>
-        <span class="check" style="margin-top:10px"><i></i>Create the database if it does not exist (on Test connection and Save; needs CREATE DATABASE rights)</span>
+        <div class="hint">Stored encrypted for your Windows account. The database sign-in is separate from the app sign-in (Sign-in tab).</div>
+        <span class="check" style="margin-top:10px"><i></i>Create the database if it does not exist (needs CREATE DATABASE rights)</span>
         <div style="display:flex;align-items:center;margin-top:8px"><span class="btn">Test connection</span><span style="margin-left:12px">OK – connected to sql01 / Harbor</span></div>
-        <div class="lbl">Shared vault key protection</div>
-        <span class="radio on"><i></i>Not protected – key stored unencrypted in the database</span>
-        <div class="hint" style="margin-left:24px;margin-bottom:4px">The vault key is saved in the database as is, so the passwords are only as safe as the database: anyone who can read it or a backup of it – including database administrators – can decrypt every stored password.</div>
-        <span class="radio" style="margin-top:6px"><i></i>Active Directory group (DPAPI-NG) – strongest</span>
-        <div class="tb dim" style="margin-left:24px;margin-top:4px"></div>
-        <span class="radio" style="margin-top:6px"><i></i>Shared passphrase</span>
-        <div class="hint">Used when this database has no vault key yet. Existing vaults keep their protection unless you convert them:</div>
-        <span class="check"><i></i>Convert the existing shared vault to this protection on the next start</span>
-        <span class="check on" style="margin-top:10px"><i></i>Create / upgrade database schema automatically (needs DDL rights)</span>
-        <div class="lbl">Sync interval (seconds)</div><div class="tb" style="width:100px">60</div>
-        <div class="lbl">Session presence timeout / heartbeat (seconds)</div>
-        <div style="display:flex;align-items:center"><div class="tb" style="width:100px">120</div><span style="margin:0 12px">/</span><div class="tb" style="width:100px">45</div></div>
       </div>
-      <div class="hdr">Sign-in</div>
+    </div>
+    <div class="dlgfoot"><span class="btn accent" style="min-width:90px">Save</span><span class="btn" style="min-width:90px">Cancel</span></div>
+  </div>
+</div></div>
+
+<div class="shot" id="settings-vault"><div class="win" style="width:640px;height:640px">
+  <div class="titlebar"><img src="appicon.png"><span class="t">Settings</span><slot-caps></slot-caps></div>
+  <div style="flex:1;display:flex;flex-direction:column;padding:16px;min-height:0">
+    <div class="tabs"><span class="tab">Storage</span><span class="tab on">Shared vault</span><span class="tab">Sign-in</span><span class="tab">General</span></div>
+    <div class="tabpage">
+      <div class="hdr" style="margin-top:0">Vault key protection</div>
+      <span class="radio on"><i></i>Not protected – key stored unencrypted in the database</span>
+      <div class="hint" style="margin-left:24px;margin-bottom:4px">The vault key is saved in the database as is, so the passwords are only as safe as the database: anyone who can read it or a backup of it – including database administrators – can decrypt every stored password.</div>
+      <span class="radio" style="margin-top:6px"><i></i>Active Directory group (DPAPI-NG) – strongest</span>
+      <div class="tb dim" style="margin-left:24px;margin-top:4px"></div>
+      <div class="hint" style="margin-left:24px;margin-bottom:4px">SID= followed by the SID of the AD security group whose members may open the vault, e.g. SID=S-1-5-21-1004336348-1177238915-682003330-5126. Find it with: Get-ADGroup "RDP Vault Users" | Select-Object -ExpandProperty SID</div>
+      <span class="radio" style="margin-top:6px"><i></i>Shared passphrase</span>
+      <div class="hint">Used when this database has no vault key yet. Existing vaults keep their protection unless you convert them:</div>
+      <span class="check"><i></i>Convert the existing shared vault to this protection on the next start</span>
+      <div class="hdr">Database and sync</div>
+      <span class="check on"><i></i>Create / upgrade database schema automatically (needs DDL rights)</span>
+      <div class="row" style="gap:24px">
+        <div><div class="lbl">Sync interval (s)</div><div class="tb" style="width:100px">60</div></div>
+        <div><div class="lbl">Presence timeout (s)</div><div class="tb" style="width:100px">120</div></div>
+        <div><div class="lbl">Presence heartbeat (s)</div><div class="tb" style="width:100px">45</div></div>
+      </div>
+    </div>
+    <div class="dlgfoot"><span class="btn accent" style="min-width:90px">Save</span><span class="btn" style="min-width:90px">Cancel</span></div>
+  </div>
+</div></div>
+
+<div class="shot" id="settings-signin"><div class="win" style="width:640px;height:640px">
+  <div class="titlebar"><img src="appicon.png"><span class="t">Settings</span><slot-caps></slot-caps></div>
+  <div style="flex:1;display:flex;flex-direction:column;padding:16px;min-height:0">
+    <div class="tabs"><span class="tab">Storage</span><span class="tab">Shared vault</span><span class="tab on">Sign-in</span><span class="tab">General</span></div>
+    <div class="tabpage">
       <div class="hint" style="margin-top:0;margin-bottom:4px">Who you are for session presence and audit. Works with both local and shared storage.</div>
       <span class="radio"><i></i>Windows account (domain / local, automatic single sign-on) – recommended</span>
       <span class="radio"><i></i>Microsoft Entra ID (work account via Windows broker, SSO when available)</span>
       <span class="radio on"><i></i>No sign-in – just enter your name</span>
       <div style="margin-left:24px">
-        <div class="lbl">Your name</div><div class="tb">Alex Kim</div>
+        <div class="lbl">Your name</div><div class="tb" style="width:260px">Alex Kim</div>
         <div class="hint">Shown to others as "in use by &lt;name&gt; (not signed in)" and in "Last changed by". Not verified – anyone can type any name, so prefer a Windows or Entra ID sign-in.</div>
       </div>
-      <div class="hdr">Remote Desktop</div>
+    </div>
+    <div class="dlgfoot"><span class="btn accent" style="min-width:90px">Save</span><span class="btn" style="min-width:90px">Cancel</span></div>
+  </div>
+</div></div>
+
+<div class="shot" id="settings-general"><div class="win" style="width:640px;height:640px">
+  <div class="titlebar"><img src="appicon.png"><span class="t">Settings</span><slot-caps></slot-caps></div>
+  <div style="flex:1;display:flex;flex-direction:column;padding:16px;min-height:0">
+    <div class="tabs"><span class="tab">Storage</span><span class="tab">Shared vault</span><span class="tab">Sign-in</span><span class="tab on">General</span></div>
+    <div class="tabpage">
+      <div class="hdr" style="margin-top:0">Remote Desktop</div>
       <span class="check"><i></i>Keep the password in Windows Credential Manager after connecting</span>
       <div class="hint">Off (default): the credential is removed ~30 s after Remote Desktop starts and never survives logoff. On: reconnects work without the app, but the password stays in Credential Manager.</div>
       <div class="hdr">Data folder</div>
-      <div class="tb">C:\Users\alex.kim\AppData\Local\RemoteDesktopHarbor</div>
+      <div class="tb ro">C:\Users\alex.kim\AppData\Local\RemoteDesktopHarbor</div>
       <div class="hdr">About</div>
       <div>Remote Desktop Harbor · Version 0.4.0 (build 88505a8)</div>
     </div>
