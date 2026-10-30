@@ -9,7 +9,7 @@ const outDir = path.join(__dirname, '..', 'src', 'assets', 'screenshots');
 
 (async () => {
 	const browser = await chromium.launch();
-	const page = await browser.newPage({ viewport: { width: 1300, height: 1000 }, deviceScaleFactor: 2 });
+	const page = await browser.newPage({ viewport: { width: 1300, height: 1800 }, deviceScaleFactor: 2 });
 	await page.goto('file://' + path.join(__dirname, 'app-mockups.html'));
 	await page.evaluate(() => document.fonts.ready);
 	for (const id of shots) {

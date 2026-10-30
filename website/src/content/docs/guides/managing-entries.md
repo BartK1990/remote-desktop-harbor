@@ -20,7 +20,7 @@ RDP connections.
 
 ## Fields
 
-![The entry editor for an RDP connection.](../../../assets/screenshots/editor.png)
+![The entry editor for an RDP connection with one additional account and the Display, Local resources and Connection settings as form fields.](../../../assets/screenshots/editor.png)
 
 | Field | Notes |
 |---|---|
