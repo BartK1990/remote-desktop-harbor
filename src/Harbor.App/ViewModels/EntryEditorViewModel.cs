@@ -25,7 +25,7 @@ public sealed partial class EntryEditorViewModel : ObservableValidator
         _port = original.Port;
         _domain = original.Domain;
         _userName = original.UserName;
-        _rdpSettings = original.RdpSettings;
+        RdpSettings = new RdpSettingsEditorViewModel(original.RdpSettings);
         _notes = original.Notes;
         _changePassword = isNew || !original.HasPassword;
         Accounts = new ObservableCollection<AccountEditorViewModel>(original.Accounts.Select(a => new AccountEditorViewModel(a)));
@@ -47,13 +47,15 @@ public sealed partial class EntryEditorViewModel : ObservableValidator
     [ObservableProperty] private int _port;
     [ObservableProperty] private string? _domain;
     [ObservableProperty] private string? _userName;
-    [ObservableProperty] private string? _rdpSettings;
     [ObservableProperty] private string? _notes;
     [ObservableProperty] private bool _changePassword;
     [ObservableProperty] private string? _error;
 
     /// <summary>Set from the PasswordBox in code-behind (PasswordBox cannot bind).</summary>
     public string Password { get; set; } = "";
+
+    /// <summary>The RDP settings form (SPEC FR-13); only used for RDP connections.</summary>
+    public RdpSettingsEditorViewModel RdpSettings { get; }
 
     /// <summary>Accounts besides the default one above (SPEC FR-09).</summary>
     public ObservableCollection<AccountEditorViewModel> Accounts { get; }
@@ -83,7 +85,7 @@ public sealed partial class EntryEditorViewModel : ObservableValidator
         Port = imported.Port;
         Domain = imported.Domain ?? Domain;
         UserName = imported.UserName ?? UserName;
-        RdpSettings = imported.RdpSettings;
+        RdpSettings.Load(imported.RdpSettings);
         IsCredentialOnly = false;
         if (string.IsNullOrWhiteSpace(Name) || Name == "New connection")
         {
@@ -99,6 +101,7 @@ public sealed partial class EntryEditorViewModel : ObservableValidator
         else if (Port is < 1 or > 65535) Error = "Port must be between 1 and 65535.";
         else if (Accounts.Any(a => string.IsNullOrWhiteSpace(a.UserName))) Error = "Each additional account needs a user name.";
         else if (DuplicateAccount() is { } duplicate) Error = $"The account {duplicate} is listed more than once.";
+        else if (IsRdpConnection && RdpSettings.Validate() is { } rdpError) Error = rdpError;
         return Error is null;
     }
 
@@ -118,7 +121,7 @@ public sealed partial class EntryEditorViewModel : ObservableValidator
         Port = Port,
         Domain = string.IsNullOrWhiteSpace(Domain) ? null : Domain.Trim(),
         UserName = string.IsNullOrWhiteSpace(UserName) ? null : UserName.Trim(),
-        RdpSettings = IsCredentialOnly || string.IsNullOrWhiteSpace(RdpSettings) ? null : RdpSettings,
+        RdpSettings = IsCredentialOnly ? null : RdpSettings.Build() is { Length: > 0 } rdp ? rdp : null,
         Notes = string.IsNullOrWhiteSpace(Notes) ? null : Notes,
         Accounts = Accounts.Select(a => a.Build()).ToList(),
     };

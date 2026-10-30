@@ -15,7 +15,7 @@ and the details of the selected entry on the right.
 | **RDP connection** | Host, port, credentials **and** additional `.rdp` settings | Default settings + the entry's own `.rdp` settings |
 | **Credentials only** | User name and password, optional host | Default settings only |
 
-Pick the kind at the top of the editor. You can switch it later; the `.rdp` settings box is only shown for
+Pick the kind at the top of the editor. You can switch it later; the RDP settings are only shown for
 RDP connections.
 
 ## Fields
@@ -30,7 +30,8 @@ RDP connections.
 | **Domain** / **User name** | Combined as `DOMAIN\user`. If the user name already contains `\` or `@` (UPN), the domain is not added. |
 | **Password** | Optional. Encrypted before it is written to any database. When editing an entry that already has a password, tick **Change stored password** to replace or clear it. |
 | **Additional accounts** | Optional. More users for the same host — see [Several accounts per entry](#several-accounts-per-entry). |
-| **RDP settings** | RDP connections only. Raw `.rdp` lines in `key:type:value` format, e.g. `screen mode id:i:1`. |
+| **Display**, **Local resources**, **Connection** | RDP connections only. The common Remote Desktop settings as form fields — see [RDP settings](#rdp-settings). |
+| **Other .rdp settings** | RDP connections only, under *advanced*. Any other `.rdp` lines in `key:type:value` format, e.g. `gatewayhostname:s:gw.contoso.com`. |
 | **Notes** | Free text. Searchable. |
 
 The details pane also shows who changed the entry last and when.
@@ -54,6 +55,23 @@ connects as that account.
 
 Every account's password is encrypted on its own, exactly like the default one. In a shared database the accounts
 are shared and synced with their entry; deleting the entry deletes its accounts too.
+
+## RDP settings
+
+For an RDP connection the editor shows the usual Remote Desktop options as fields, like the *Show options* tabs of
+the Remote Desktop client:
+
+| Section | Settings |
+|---|---|
+| **Display** | **Mode** (full screen or window), **Resolution** (*Match local screen*, common sizes such as 1920 × 1080, or *Custom…* with a width and height of 200–8192 pixels), **Colour depth**, **Use all my monitors**, update the resolution when the window is resized, scale to fit the window (smart sizing) |
+| **Local resources** | **Remote audio** (play here, on the remote computer, or not at all), where **Windows key combinations** apply, microphone, **Clipboard**, **Printers**, **Smart cards**, **All local drives** |
+| **Connection** | What to do **if server authentication fails**, reconnect automatically, connect to the administrative (console) session |
+
+New entries start with the defaults (full screen, clipboard on, warn on authentication problems, …); only the
+settings you change are stored. Anything else — a Remote Desktop Gateway, specific drives, … — goes into
+**Other .rdp settings (advanced)** as ordinary `.rdp` lines; it opens by itself when the entry has such lines.
+Settings imported from an `.rdp` file land in the matching fields. See
+[RDP settings format](../importing-rdp-files/#rdp-settings-format).
 
 ## The folder tree
 

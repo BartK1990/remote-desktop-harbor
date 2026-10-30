@@ -41,6 +41,7 @@ shows who is currently connected to which machine.
 | FR-10 | Activating an entry (button, double-click, Enter) opens the standard Windows Remote Desktop client (`mstsc.exe`) as its own window — not embedded in the app — already connected with the stored credentials. |
 | FR-11 | The password is handed to the client through Windows Credential Manager (`TERMSRV/<host>`), never via command line or `.rdp` file. By default the credential is removed shortly after launch and never survives logoff; a setting can keep it. Accounts of one host share that credential: a launch's cleanup never removes a credential written by a later launch, and launching an account without a stored password first removes a credential the app wrote moments before for another account (FR-09). |
 | FR-12 | Temporary `.rdp` files are deleted after launch; leftovers from crashes are removed at next start. |
+| FR-13 | The entry editor shows the common `.rdp` settings of an RDP connection as form fields instead of raw text: display mode (full screen / window), resolution (match local screen, common presets or a custom width × height of 200–8192 px), colour depth, all monitors, dynamic resolution, smart sizing; remote audio, microphone, Windows key combinations, clipboard, printers, smart cards, all local drives; server authentication, automatic reconnect, administrative session. Only values that differ from the launch defaults are stored. Any other line — unknown keys or values the form cannot show — is kept verbatim in an "Other .rdp settings" box. The stored format stays `.rdp` text (no schema change). See [ADR-0022](../adr/0022-rdp-settings-form.md). |
 
 ### 3.3 Storage
 
@@ -163,6 +164,7 @@ for the full list.
 | FR-07 | `App/Infrastructure/AppInfo`, `MainWindow`, `SettingsWindow` | manual (Windows) |
 | FR-08 | `Core/HarborSettings`, `App/Infrastructure/ThemeService`, `App/ViewModels/MainViewModel`, `MainWindow`, `App/Views/EnumToBooleanConverter` | manual (Windows) |
 | FR-03, FR-05, FR-10, FR-12 | `Core/Rdp/RdpFile`, `Windows/Rdp/MstscLauncher` | `RdpFileTests` |
+| FR-13 | `Core/Rdp/RdpOptions`, `App/ViewModels/RdpSettingsEditorViewModel`, `EntryEditorViewModel`, `EntryEditorWindow` | `RdpOptionsTests`, `RdpSettingsEditorViewModelTests` (Windows) |
 | FR-11 | `Windows/Rdp/WindowsCredentialStore` | manual (Windows) |
 | FR-20..25 | `Core/Services/HarborWorkspace`, `Data/SqlHarborStore`, `Data/Providers/*` | `WorkspaceTests`, `SqlHarborStoreTests` |
 | FR-22 (shared key cached per machine) | `Core/Services/HarborWorkspace` | `WorkspaceTests` |
