@@ -1,9 +1,26 @@
 <Window x:Class="Harbor.App.Views.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Settings" Width="620" Height="760" MinHeight="480"
+        Title="Settings" Width="640" Height="640" MinWidth="520" MinHeight="420"
         Icon="/Assets/AppIcon.ico"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False" ResizeMode="CanResizeWithGrip">
+  <Window.Resources>
+    <!-- SPEC FR-45: the Fluent scroll bar overlays the content, so every tab page keeps a right gutter for it. -->
+    <Style x:Key="TabPage" TargetType="StackPanel">
+      <Setter Property="Margin" Value="4,8,20,12" />
+    </Style>
+    <Style x:Key="TabScroller" TargetType="ScrollViewer">
+      <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
+      <Setter Property="HorizontalScrollBarVisibility" Value="Disabled" />
+    </Style>
+    <Style x:Key="Hint" TargetType="TextBlock">
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="Opacity" Value="0.6" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+      <Setter Property="Margin" Value="0,4,0,0" />
+    </Style>
+  </Window.Resources>
+
   <DockPanel Margin="16">
     <StackPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
       <TextBlock Text="{Binding Error}" Foreground="OrangeRed" TextWrapping="Wrap" Margin="0,0,0,8" />
@@ -13,115 +30,183 @@
       </StackPanel>
     </StackPanel>
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
-      <StackPanel>
-        <TextBlock Text="Storage" Style="{StaticResource SectionHeader}" Margin="0,0,0,4" />
-        <!-- Each radio pair needs its own GroupName: radios in one panel otherwise form a single group. SPEC FR-26 -->
-        <RadioButton GroupName="Storage" Content="Local vault on this computer (SQLite)" IsChecked="{Binding IsLocal}" Margin="0,4" />
-        <RadioButton GroupName="Storage" Content="Shared database with offline copy" IsChecked="{Binding IsRemote}" Margin="0,4" />
+    <!-- SPEC FR-45: settings split into tabs instead of one long scrolling page. -->
+    <TabControl>
+      <TabItem Header="Storage">
+        <ScrollViewer Style="{StaticResource TabScroller}">
+          <StackPanel Style="{StaticResource TabPage}">
+            <!-- Each radio pair needs its own GroupName: radios in one panel otherwise form a single group. SPEC FR-26 -->
+            <RadioButton GroupName="Storage" Content="Local vault on this computer (SQLite)" IsChecked="{Binding IsLocal}" Margin="0,4" />
+            <RadioButton GroupName="Storage" Content="Shared database with offline copy" IsChecked="{Binding IsRemote}" Margin="0,4" />
 
-        <StackPanel Visibility="{Binding IsRemote, Converter={StaticResource BoolToVisibility}}" Margin="24,0,0,0">
-          <TextBlock Text="Provider" Style="{StaticResource FieldLabel}" />
-          <ComboBox ItemsSource="{Binding Providers}" SelectedItem="{Binding RemoteProvider}" Width="200" HorizontalAlignment="Left" />
+            <StackPanel Visibility="{Binding IsRemote, Converter={StaticResource BoolToVisibility}}" Margin="24,0,0,0">
+              <TextBlock Text="Provider" Style="{StaticResource FieldLabel}" />
+              <ComboBox ItemsSource="{Binding Providers}" SelectedItem="{Binding RemoteProvider}" Width="200" HorizontalAlignment="Left" />
 
-          <!-- SPEC FR-27: server, database, sign-in instead of a raw connection string -->
-          <StackPanel Visibility="{Binding ShowFields, Converter={StaticResource BoolToVisibility}}">
-            <TextBlock Text="Server (name or IP address)" Style="{StaticResource FieldLabel}" />
-            <TextBox Text="{Binding DbServer, UpdateSourceTrigger=PropertyChanged}"
-                     ToolTip="e.g. 10.0.0.5, sql01, sql01\INSTANCE, 10.0.0.5,1433 or contoso.database.windows.net" />
-            <TextBlock Text="Database name" Style="{StaticResource FieldLabel}" />
-            <TextBox Text="{Binding DbName, UpdateSourceTrigger=PropertyChanged}" />
-            <TextBlock Text="Database sign-in" Style="{StaticResource FieldLabel}" />
-            <ComboBox ItemsSource="{Binding DbAuthenticationOptions}" SelectedValuePath="Key" DisplayMemberPath="Value"
-                      SelectedValue="{Binding DbAuthentication}" Width="300" HorizontalAlignment="Left" />
-            <StackPanel Visibility="{Binding UsesSqlLogin, Converter={StaticResource BoolToVisibility}}">
-              <TextBlock Text="User name" Style="{StaticResource FieldLabel}" />
-              <TextBox Text="{Binding DbUserName, UpdateSourceTrigger=PropertyChanged}" />
-              <TextBlock Text="Password" Style="{StaticResource FieldLabel}" />
-              <PasswordBox x:Name="DbPasswordBox" PasswordChanged="DbPasswordBox_PasswordChanged" />
+              <!-- SPEC FR-27: server, database, sign-in instead of a raw connection string -->
+              <StackPanel Visibility="{Binding ShowFields, Converter={StaticResource BoolToVisibility}}">
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="3*" />
+                    <ColumnDefinition Width="12" />
+                    <ColumnDefinition Width="2*" />
+                  </Grid.ColumnDefinitions>
+                  <StackPanel Grid.Column="0">
+                    <TextBlock Text="Server (name or IP address)" Style="{StaticResource FieldLabel}" />
+                    <TextBox Text="{Binding DbServer, UpdateSourceTrigger=PropertyChanged}"
+                             ToolTip="e.g. 10.0.0.5, sql01, sql01\INSTANCE, 10.0.0.5,1433 or contoso.database.windows.net" />
+                  </StackPanel>
+                  <StackPanel Grid.Column="2">
+                    <TextBlock Text="Database name" Style="{StaticResource FieldLabel}" />
+                    <TextBox Text="{Binding DbName, UpdateSourceTrigger=PropertyChanged}" />
+                  </StackPanel>
+                </Grid>
+                <TextBlock Text="Database sign-in" Style="{StaticResource FieldLabel}" />
+                <ComboBox ItemsSource="{Binding DbAuthenticationOptions}" SelectedValuePath="Key" DisplayMemberPath="Value"
+                          SelectedValue="{Binding DbAuthentication}" Width="300" HorizontalAlignment="Left" />
+                <Grid Visibility="{Binding UsesSqlLogin, Converter={StaticResource BoolToVisibility}}">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="12" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+                  <StackPanel Grid.Column="0">
+                    <TextBlock Text="User name" Style="{StaticResource FieldLabel}" />
+                    <TextBox Text="{Binding DbUserName, UpdateSourceTrigger=PropertyChanged}" />
+                  </StackPanel>
+                  <StackPanel Grid.Column="2">
+                    <TextBlock Text="Password" Style="{StaticResource FieldLabel}" />
+                    <PasswordBox x:Name="DbPasswordBox" PasswordChanged="DbPasswordBox_PasswordChanged" />
+                  </StackPanel>
+                </Grid>
+                <WrapPanel Margin="0,10,0,0">
+                  <CheckBox Content="Encrypt the connection" IsChecked="{Binding DbEncrypt}" Margin="0,0,24,0" />
+                  <CheckBox Content="Trust the server certificate" IsChecked="{Binding DbTrustServerCertificate}"
+                            ToolTip="For a self-signed certificate, e.g. when connecting by IP address." />
+                </WrapPanel>
+              </StackPanel>
+
+              <CheckBox Content="Edit as connection string (advanced)" IsChecked="{Binding EditRawConnectionString}" Margin="0,10,0,0"
+                        Visibility="{Binding SupportsFields, Converter={StaticResource BoolToVisibility}}" />
+              <StackPanel Visibility="{Binding EditRawConnectionString, Converter={StaticResource BoolToVisibility}}">
+                <TextBlock Text="Connection string" Style="{StaticResource FieldLabel}" />
+                <TextBox Text="{Binding ConnectionString, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" />
+                <TextBlock Style="{StaticResource Hint}"
+                           Text="Examples: Server=sql01;Database=Harbor;Integrated Security=true;Encrypt=true  ·  Server=tcp:x.database.windows.net;Database=Harbor;Authentication=Active Directory Default" />
+              </StackPanel>
+              <TextBlock Style="{StaticResource Hint}"
+                         Text="Stored encrypted for your Windows account. The database sign-in is separate from the app sign-in (Sign-in tab)." />
+
+              <CheckBox Content="Create the database if it does not exist (needs CREATE DATABASE rights)"
+                        ToolTip="Runs on Test connection and Save."
+                        IsChecked="{Binding CreateDatabaseIfMissing}" Margin="0,10,0,0" />
+              <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                <Button Content="Test connection" Command="{Binding TestConnectionCommand}" />
+                <TextBlock Text="{Binding TestResult}" Margin="12,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="360" />
+              </StackPanel>
             </StackPanel>
-            <CheckBox Content="Encrypt the connection" IsChecked="{Binding DbEncrypt}" Margin="0,10,0,0" />
-            <CheckBox Content="Trust the server certificate (self-signed certificate, e.g. when connecting by IP)"
-                      IsChecked="{Binding DbTrustServerCertificate}" Margin="0,4,0,0" />
           </StackPanel>
+        </ScrollViewer>
+      </TabItem>
 
-          <CheckBox Content="Edit as connection string (advanced)" IsChecked="{Binding EditRawConnectionString}" Margin="0,10,0,0"
-                    Visibility="{Binding SupportsFields, Converter={StaticResource BoolToVisibility}}" />
-          <StackPanel Visibility="{Binding EditRawConnectionString, Converter={StaticResource BoolToVisibility}}">
-            <TextBlock Text="Connection string" Style="{StaticResource FieldLabel}" />
-            <TextBox Text="{Binding ConnectionString, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" />
-            <TextBlock FontSize="11" Opacity="0.6" TextWrapping="Wrap" Margin="0,4,0,0"
-                       Text="Examples: Server=sql01;Database=Harbor;Integrated Security=true;Encrypt=true  ·  Server=tcp:x.database.windows.net;Database=Harbor;Authentication=Active Directory Default" />
+      <TabItem Header="Shared vault">
+        <ScrollViewer Style="{StaticResource TabScroller}">
+          <StackPanel Style="{StaticResource TabPage}">
+            <TextBlock Style="{StaticResource Hint}" Margin="0,0,0,8"
+                       Visibility="{Binding IsLocal, Converter={StaticResource BoolToVisibility}}"
+                       Text="These settings apply to a shared database only. Choose “Shared database with offline copy” on the Storage tab to use them." />
+
+            <StackPanel IsEnabled="{Binding IsRemote}">
+              <TextBlock Text="Vault key protection" Style="{StaticResource SectionHeader}" Margin="0,0,0,4" />
+              <!-- ADR-0016, ADR-0018 -->
+              <RadioButton GroupName="KeyProtection" Content="Not protected – key stored unencrypted in the database" IsChecked="{Binding UseSignInKey}" Margin="0,2" />
+              <TextBlock Style="{StaticResource Hint}" Margin="24,2,0,4"
+                         Text="The vault key is saved in the database as is, so the passwords are only as safe as the database: anyone who can read it or a backup of it – including database administrators – can decrypt every stored password." />
+              <RadioButton GroupName="KeyProtection" Content="Active Directory group (DPAPI-NG) – strongest" IsChecked="{Binding UseDpapiNg}" Margin="0,6,0,2" />
+              <TextBox Text="{Binding KeyDescriptor, UpdateSourceTrigger=PropertyChanged}" Margin="24,4,0,0"
+                       IsEnabled="{Binding UseDpapiNg}" ToolTip="Protection descriptor of the group allowed to decrypt, e.g. SID=S-1-5-21-…-1234" />
+              <TextBlock Style="{StaticResource Hint}" Margin="24,2,0,4"
+                         Text="SID= followed by the SID of the AD security group whose members may open the vault, e.g. SID=S-1-5-21-1004336348-1177238915-682003330-5126. Find it with: Get-ADGroup &quot;RDP Vault Users&quot; | Select-Object -ExpandProperty SID" />
+              <RadioButton GroupName="KeyProtection" Content="Shared passphrase" IsChecked="{Binding UsePassphrase}" Margin="0,6,0,2" />
+              <TextBlock Style="{StaticResource Hint}"
+                         Text="Used when this database has no vault key yet. Existing vaults keep their protection unless you convert them:" />
+              <CheckBox Content="Convert the existing shared vault to this protection on the next start" IsChecked="{Binding ConvertKey}" Margin="0,4,0,0"
+                        ToolTip="Needs the vault opened once on this computer (or its current passphrase). The key itself stays the same, so nobody has to re-enter anything." />
+
+              <TextBlock Text="Database and sync" Style="{StaticResource SectionHeader}" />
+              <CheckBox Content="Create / upgrade database schema automatically (needs DDL rights)" IsChecked="{Binding AutoMigrate}" Margin="0,4,0,0" />
+              <WrapPanel Orientation="Horizontal">
+                <StackPanel Margin="0,0,24,0">
+                  <TextBlock Text="Sync interval (s)" Style="{StaticResource FieldLabel}" />
+                  <TextBox Text="{Binding SyncIntervalSeconds}" Width="100" HorizontalAlignment="Left"
+                           ToolTip="How often the local copy is refreshed from the shared database." />
+                </StackPanel>
+                <StackPanel Margin="0,0,24,0">
+                  <TextBlock Text="Presence timeout (s)" Style="{StaticResource FieldLabel}" />
+                  <TextBox Text="{Binding PresenceTtlSeconds}" Width="100" HorizontalAlignment="Left"
+                           ToolTip="A session record not refreshed within this time is treated as ended." />
+                </StackPanel>
+                <StackPanel>
+                  <TextBlock Text="Presence heartbeat (s)" Style="{StaticResource FieldLabel}" />
+                  <TextBox Text="{Binding PresenceHeartbeatSeconds}" Width="100" HorizontalAlignment="Left"
+                           ToolTip="How often a running session refreshes its record; at most half the timeout." />
+                </StackPanel>
+              </WrapPanel>
+            </StackPanel>
           </StackPanel>
-          <TextBlock FontSize="11" Opacity="0.6" TextWrapping="Wrap" Margin="0,4,0,0"
-                     Text="Stored encrypted for your Windows account. The database sign-in is separate from the app sign-in below." />
+        </ScrollViewer>
+      </TabItem>
 
-          <CheckBox Content="Create the database if it does not exist (on Test connection and Save; needs CREATE DATABASE rights)"
-                    IsChecked="{Binding CreateDatabaseIfMissing}" Margin="0,10,0,0" />
-          <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-            <Button Content="Test connection" Command="{Binding TestConnectionCommand}" />
-            <TextBlock Text="{Binding TestResult}" Margin="12,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="380" />
+      <TabItem Header="Sign-in">
+        <ScrollViewer Style="{StaticResource TabScroller}">
+          <StackPanel Style="{StaticResource TabPage}">
+            <TextBlock Style="{StaticResource Hint}" Margin="0,0,0,4"
+                       Text="Who you are for session presence and audit. Works with both local and shared storage." />
+            <RadioButton GroupName="SignIn" Content="Windows account (domain / local, automatic single sign-on) – recommended" IsChecked="{Binding UseWindowsAuth}" Margin="0,4" />
+            <RadioButton GroupName="SignIn" Content="Microsoft Entra ID (work account via Windows broker, SSO when available)" IsChecked="{Binding UseEntraId}" Margin="0,4" />
+            <Grid Visibility="{Binding UseEntraId, Converter={StaticResource BoolToVisibility}}" Margin="24,0,0,0">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+              <StackPanel Grid.Column="0">
+                <TextBlock Text="Application (client) ID" Style="{StaticResource FieldLabel}" />
+                <TextBox Text="{Binding EntraClientId, UpdateSourceTrigger=PropertyChanged}" />
+              </StackPanel>
+              <StackPanel Grid.Column="2">
+                <TextBlock Text="Tenant ID or domain" Style="{StaticResource FieldLabel}" />
+                <TextBox Text="{Binding EntraTenantId, UpdateSourceTrigger=PropertyChanged}" />
+              </StackPanel>
+            </Grid>
+            <!-- SPEC FR-44 -->
+            <RadioButton GroupName="SignIn" Content="No sign-in – just enter your name" IsChecked="{Binding UseAnonymous}" Margin="0,4" />
+            <StackPanel Visibility="{Binding UseAnonymous, Converter={StaticResource BoolToVisibility}}" Margin="24,0,0,0">
+              <TextBlock Text="Your name" Style="{StaticResource FieldLabel}" />
+              <TextBox Text="{Binding AnonymousName, UpdateSourceTrigger=PropertyChanged}" Width="260" HorizontalAlignment="Left" />
+              <TextBlock Style="{StaticResource Hint}"
+                         Text="Shown to others as &quot;in use by &lt;name&gt; (not signed in)&quot; and in &quot;Last changed by&quot;. Not verified – anyone can type any name, so prefer a Windows or Entra ID sign-in." />
+            </StackPanel>
           </StackPanel>
+        </ScrollViewer>
+      </TabItem>
 
-          <TextBlock Text="Shared vault key protection" Style="{StaticResource FieldLabel}" />
-          <!-- ADR-0016, ADR-0018 -->
-          <RadioButton GroupName="KeyProtection" Content="Not protected – key stored unencrypted in the database" IsChecked="{Binding UseSignInKey}" Margin="0,2" />
-          <TextBlock FontSize="11" Opacity="0.6" TextWrapping="Wrap" Margin="24,2,0,4"
-                     Text="The vault key is saved in the database as is, so the passwords are only as safe as the database: anyone who can read it or a backup of it – including database administrators – can decrypt every stored password." />
-          <RadioButton GroupName="KeyProtection" Content="Active Directory group (DPAPI-NG) – strongest" IsChecked="{Binding UseDpapiNg}" Margin="0,6,0,2" />
-          <TextBox Text="{Binding KeyDescriptor, UpdateSourceTrigger=PropertyChanged}" Margin="24,4,0,0"
-                   IsEnabled="{Binding UseDpapiNg}" ToolTip="Protection descriptor of the group allowed to decrypt, e.g. SID=S-1-5-21-…-1234" />
-          <TextBlock FontSize="11" Opacity="0.6" TextWrapping="Wrap" Margin="24,2,0,4"
-                     Text="SID= followed by the SID of the AD security group whose members may open the vault, e.g. SID=S-1-5-21-1004336348-1177238915-682003330-5126. Find it with: Get-ADGroup &quot;RDP Vault Users&quot; | Select-Object -ExpandProperty SID" />
-          <RadioButton GroupName="KeyProtection" Content="Shared passphrase" IsChecked="{Binding UsePassphrase}" Margin="0,6,0,2" />
-          <TextBlock FontSize="11" Opacity="0.6" TextWrapping="Wrap" Margin="0,4,0,0"
-                     Text="Used when this database has no vault key yet. Existing vaults keep their protection unless you convert them:" />
-          <CheckBox Content="Convert the existing shared vault to this protection on the next start" IsChecked="{Binding ConvertKey}" Margin="0,4,0,0"
-                    ToolTip="Needs the vault opened once on this computer (or its current passphrase). The key itself stays the same, so nobody has to re-enter anything." />
+      <TabItem Header="General">
+        <ScrollViewer Style="{StaticResource TabScroller}">
+          <StackPanel Style="{StaticResource TabPage}">
+            <TextBlock Text="Remote Desktop" Style="{StaticResource SectionHeader}" Margin="0,0,0,4" />
+            <CheckBox Content="Keep the password in Windows Credential Manager after connecting" IsChecked="{Binding KeepCredential}" Margin="0,4" />
+            <TextBlock Style="{StaticResource Hint}"
+                       Text="Off (default): the credential is removed ~30 s after Remote Desktop starts and never survives logoff. On: reconnects work without the app, but the password stays in Credential Manager." />
 
-          <CheckBox Content="Create / upgrade database schema automatically (needs DDL rights)" IsChecked="{Binding AutoMigrate}" Margin="0,10,0,0" />
-          <TextBlock Text="Sync interval (seconds)" Style="{StaticResource FieldLabel}" />
-          <TextBox Text="{Binding SyncIntervalSeconds}" Width="100" HorizontalAlignment="Left" />
+            <TextBlock Text="Data folder" Style="{StaticResource SectionHeader}" />
+            <TextBox Text="{Binding DataDirectory, Mode=OneWay}" IsReadOnly="True" />
 
-          <TextBlock Text="Session presence timeout / heartbeat (seconds)" Style="{StaticResource FieldLabel}" />
-          <StackPanel Orientation="Horizontal">
-            <TextBox Text="{Binding PresenceTtlSeconds}" Width="100" ToolTip="A session record not refreshed within this time is treated as ended." />
-            <TextBlock Text=" / " VerticalAlignment="Center" Margin="6,0" />
-            <TextBox Text="{Binding PresenceHeartbeatSeconds}" Width="100" ToolTip="How often a running session refreshes its record." />
+            <TextBlock Text="About" Style="{StaticResource SectionHeader}" />
+            <TextBox Text="{Binding AboutText, Mode=OneWay}" IsReadOnly="True" BorderThickness="0" Background="Transparent" Padding="0" TextWrapping="Wrap" />
           </StackPanel>
-        </StackPanel>
-
-        <TextBlock Text="Sign-in" Style="{StaticResource SectionHeader}" />
-        <TextBlock FontSize="11" Opacity="0.6" TextWrapping="Wrap" Margin="0,0,0,4"
-                   Text="Who you are for session presence and audit. Works with both local and shared storage." />
-        <RadioButton GroupName="SignIn" Content="Windows account (domain / local, automatic single sign-on) – recommended" IsChecked="{Binding UseWindowsAuth}" Margin="0,4" />
-        <RadioButton GroupName="SignIn" Content="Microsoft Entra ID (work account via Windows broker, SSO when available)" IsChecked="{Binding UseEntraId}" Margin="0,4" />
-        <StackPanel Visibility="{Binding UseEntraId, Converter={StaticResource BoolToVisibility}}" Margin="24,0,0,0">
-          <TextBlock Text="Application (client) ID" Style="{StaticResource FieldLabel}" />
-          <TextBox Text="{Binding EntraClientId, UpdateSourceTrigger=PropertyChanged}" />
-          <TextBlock Text="Tenant ID or domain" Style="{StaticResource FieldLabel}" />
-          <TextBox Text="{Binding EntraTenantId, UpdateSourceTrigger=PropertyChanged}" />
-        </StackPanel>
-        <!-- SPEC FR-44 -->
-        <RadioButton GroupName="SignIn" Content="No sign-in – just enter your name" IsChecked="{Binding UseAnonymous}" Margin="0,4" />
-        <StackPanel Visibility="{Binding UseAnonymous, Converter={StaticResource BoolToVisibility}}" Margin="24,0,0,0">
-          <TextBlock Text="Your name" Style="{StaticResource FieldLabel}" />
-          <TextBox Text="{Binding AnonymousName, UpdateSourceTrigger=PropertyChanged}" />
-          <TextBlock FontSize="11" Opacity="0.6" TextWrapping="Wrap" Margin="0,4,0,0"
-                     Text="Shown to others as &quot;in use by &lt;name&gt; (not signed in)&quot; and in &quot;Last changed by&quot;. Not verified – anyone can type any name, so prefer a Windows or Entra ID sign-in." />
-        </StackPanel>
-
-        <TextBlock Text="Remote Desktop" Style="{StaticResource SectionHeader}" />
-        <CheckBox Content="Keep the password in Windows Credential Manager after connecting" IsChecked="{Binding KeepCredential}" Margin="0,4" />
-        <TextBlock FontSize="11" Opacity="0.6" TextWrapping="Wrap"
-                   Text="Off (default): the credential is removed ~30 s after Remote Desktop starts and never survives logoff. On: reconnects work without the app, but the password stays in Credential Manager." />
-
-        <TextBlock Text="Data folder" Style="{StaticResource SectionHeader}" />
-        <TextBox Text="{Binding DataDirectory, Mode=OneWay}" IsReadOnly="True" />
-
-        <TextBlock Text="About" Style="{StaticResource SectionHeader}" />
-        <TextBox Text="{Binding AboutText, Mode=OneWay}" IsReadOnly="True" BorderThickness="0" Background="Transparent" Padding="0" />
-      </StackPanel>
-    </ScrollViewer>
+        </ScrollViewer>
+      </TabItem>
+    </TabControl>
   </DockPanel>
 </Window>

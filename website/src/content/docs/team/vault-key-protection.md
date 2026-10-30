@@ -55,7 +55,7 @@ For environments without Active Directory. The DEK is encrypted with a key deriv
 ## Changing the protection of an existing vault
 
 The choice above is used when a vault is **created**. To change an existing vault (for example from a passphrase to
-*Not protected*), pick the new protection in **Settings**, tick
+*Not protected*), pick the new protection in **Settings → Shared vault**, tick
 **Convert the existing shared vault to this protection on the next start**, save and restart. The app re-protects
 the same key once and then clears the option:
 

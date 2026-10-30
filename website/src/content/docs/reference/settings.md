@@ -3,15 +3,16 @@ title: Settings
 description: Every setting in the Settings dialog and settings.json.
 ---
 
-Open **Settings** from the toolbar. After **Save**, the app offers to restart, because storage and sign-in changes
-take effect at startup.
-
-![The Settings dialog with its Storage, Sign-in, Remote Desktop and Data folder sections.](../../../assets/screenshots/settings.png)
+Open **Settings** from the toolbar. The dialog has four tabs: **Storage**, **Shared vault**, **Sign-in** and
+**General**. **Save** stores the settings of all tabs; a validation error is shown below the tabs whichever tab is
+open. After saving, the app offers to restart, because storage and sign-in changes take effect at startup.
 
 Settings are stored as JSON in `settings.json` in the [data folder](../data-and-files/). The remote connection string is
 DPAPI-protected for your Windows account, so a copied `settings.json` does not reveal it.
 
-## Storage
+## Storage tab
+
+![Settings, Storage tab: shared database sql01 / Harbor with a SQL Server login, Encrypt on, and a successful Test connection.](../../../assets/screenshots/settings.png)
 
 | UI | JSON property | Default | Description |
 |---|---|---|---|
@@ -20,15 +21,26 @@ DPAPI-protected for your Windows account, so a copied `settings.json` does not r
 | Server, Database name, Database sign-in, User name, Password, Encrypt, Trust server certificate | `RemoteConnectionStringProtected` | — | Built into a connection string, DPAPI-protected (base64). Edit it in the UI only. |
 | Edit as connection string (advanced) | (same) | off | Edit the raw connection string instead of the fields. Strings the fields cannot describe open here automatically. |
 | Create the database if it does not exist | — (not stored) | off | On **Test connection** and **Save**, create the database if missing. Needs `CREATE DATABASE` rights. |
-| Shared vault key protection | `RemoteKeyScheme` | `sign-in` | `sign-in` (*Not protected*: key stored unencrypted in the database), `dpapi-ng` (AD group) or `passphrase`. Used when the shared database has no vault key yet. |
+
+## Shared vault tab
+
+Used with a shared database only; disabled while *Local vault* is chosen.
+
+![Settings, Shared vault tab: vault key protection, schema auto-upgrade, sync interval and presence timings.](../../../assets/screenshots/settings-vault.png)
+
+| UI | JSON property | Default | Description |
+|---|---|---|---|
+| Vault key protection | `RemoteKeyScheme` | `sign-in` | `sign-in` (*Not protected*: key stored unencrypted in the database), `dpapi-ng` (AD group) or `passphrase`. Used when the shared database has no vault key yet. |
 | Convert the existing shared vault to this protection | `RemoteKeyConvert` | `false` | One-time: on the next start, re-protect the existing vault key with the chosen protection; cleared afterwards. See [Vault key protection](../../team/vault-key-protection/). |
 | (descriptor box) | `RemoteKeyDescriptor` | — | DPAPI-NG protection descriptor, e.g. `SID=S-1-5-21-…`. Required for `dpapi-ng`. |
 | Create / upgrade schema automatically | `RemoteAutoMigrate` | `true` | Apply schema migrations at startup. Needs DDL rights. |
-| Sync interval (seconds) | `RemoteSyncIntervalSeconds` | `60` | How often the local copy is refreshed. Minimum 10. |
-| Session presence timeout | `PresenceTtlSeconds` | `120` | Lifetime of a presence record without heartbeat. |
-| Session presence heartbeat | `PresenceHeartbeatSeconds` | `45` | Refresh interval; must be ≤ half the timeout. |
+| Sync interval (s) | `RemoteSyncIntervalSeconds` | `60` | How often the local copy is refreshed. Minimum 10. |
+| Presence timeout (s) | `PresenceTtlSeconds` | `120` | Lifetime of a presence record without heartbeat. |
+| Presence heartbeat (s) | `PresenceHeartbeatSeconds` | `45` | Refresh interval; must be ≤ half the timeout. |
 
-## Sign-in
+## Sign-in tab
+
+![Settings, Sign-in tab with “No sign-in” and a name.](../../../assets/screenshots/settings-signin.png)
 
 | UI | JSON property | Default | Description |
 |---|---|---|---|
@@ -37,16 +49,24 @@ DPAPI-protected for your Windows account, so a copied `settings.json` does not r
 | Tenant ID or domain | `EntraTenantId` | `organizations` | Tenant ID, domain, or `organizations`. |
 | Your name | `AnonymousName` | — | Required for *No sign-in*. Shown to others as “*name* (not signed in)” and in “Last changed by”. Not verified. |
 
-## Remote Desktop
+## General tab
+
+![Settings, General tab: Remote Desktop credential option, data folder and version.](../../../assets/screenshots/settings-general.png)
+
+### Remote Desktop
 
 | UI | JSON property | Default | Description |
 |---|---|---|---|
 | Keep the password in Windows Credential Manager after connecting | `KeepCredentialAfterLaunch` | `false` | Off: credential removed ~30 s after launch and never survives logoff. On: kept, so reconnects work without the app. |
 
-## Data folder
+### Data folder
 
 Read-only. Shows where the app stores its data, with “(portable mode)” when [portable mode](../../getting-started/portable-mode/)
 is active.
+
+### About
+
+Read-only. The app version and, when known, the build commit.
 
 ## Remembered by the main window
 

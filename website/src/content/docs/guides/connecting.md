@@ -45,7 +45,7 @@ An RDP connection entry can override any of these in its **RDP settings**.
 
 ## Keeping the credential
 
-**Settings → Remote Desktop → Keep the password in Windows Credential Manager after connecting**
+**Settings → General → Keep the password in Windows Credential Manager after connecting**
 
 | | Off (default) | On |
 |---|---|---|
