@@ -104,12 +104,8 @@
   .msg .ic { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700; font-size: 20px; display: flex; align-items: center; justify-content: center; flex: none; }
   .msgfoot { background: var(--bg); border-top: 1px solid var(--stroke); padding: 16px 22px; display: flex; gap: 8px; justify-content: flex-end; }
   .msgfoot .btn { min-width: 110px; }
-  /* Entry editor: section headings (FieldLabel + SemiBold) and a collapsed Fluent Expander. */
-  .lbl.sec { font-weight: 600; opacity: 1; margin: 16px 0 4px; }
-  #editor .l { font-size: 11px; opacity: .7; margin: 0 0 2px; }
-  .expander { margin-top: 12px; height: 48px; border: 1px solid var(--stroke); border-radius: 4px; background: var(--card);
-              display: flex; align-items: center; justify-content: space-between; padding: 0 16px; }
-  .ex-chev { width: 7px; height: 7px; border-right: 1.3px solid #555; border-bottom: 1.3px solid #555; transform: rotate(45deg) translateY(-3px); }
+  /* Entry editor: small field labels above the inputs. */
+  #editor .l, #editor-accounts .l, #editor-display .l { font-size: 11px; opacity: .7; margin: 0 0 2px; }
 </style>
 </head>
 <body>
@@ -220,66 +216,66 @@
   <div class="status"><span>Offline: A network-related or instance-specific error occurred while establishing a connection to SQL Server.</span><span class="r off">Shared database · OFFLINE (read-only cached copy)</span></div>
 </div></div>
 
-<!-- ============================================================ entry editor -->
-<!-- Same entry as in the main window: APP01 with the default account svc-app and the extra account ops (SPEC FR-09).
-     RDP settings as a form (SPEC FR-13, ADR-0022); the whole scrollable content is shown. -->
-<div class="shot" id="editor"><div class="win" style="width:580px">
+<!-- ============================================================ entry editor (one shot per tab shown in the docs, SPEC FR-46) -->
+<!-- Same entry as in the main window: APP01 with the default account svc-app and the extra account ops (SPEC FR-09). -->
+<div class="shot" id="editor"><div class="win" style="width:600px;height:640px">
   <div class="titlebar"><img src="appicon.png"><span class="t">Edit – APP01 – Line of business</span><slot-caps></slot-caps></div>
-  <div style="flex:1;display:flex;flex-direction:column;padding:16px">
-    <div style="flex:1">
+  <div style="flex:1;display:flex;flex-direction:column;padding:16px;min-height:0">
+    <div class="tabs"><span class="tab on">General</span><span class="tab">Accounts</span><span class="tab">Display</span><span class="tab">Local resources</span><span class="tab">Connection</span></div>
+    <div class="tabpage">
       <div class="lbl" style="margin-top:0">Type</div>
       <div class="row" style="gap:16px"><span class="radio on"><i></i>RDP connection</span><span class="radio"><i></i>Credentials only</span></div>
-      <div class="lbl">Name *</div><div class="tb">APP01 – Line of business</div>
-      <div class="lbl">Folder</div><div class="tb combo">Production</div>
+      <div class="row"><div style="flex:3"><div class="lbl">Name *</div><div class="tb">APP01 – Line of business</div></div>
+        <div style="flex:2"><div class="lbl">Folder</div><div class="tb combo">Production</div></div></div>
       <div class="row"><div class="grow"><div class="lbl">Host</div><div class="tb">srv-app01.contoso.local</div></div>
-        <div style="width:100px"><div class="lbl">Port</div><div class="tb">3389</div></div></div>
+        <div style="width:90px"><div class="lbl">Port</div><div class="tb">3389</div></div></div>
       <div class="row"><div style="flex:1"><div class="lbl">Domain</div><div class="tb">CONTOSO</div></div>
         <div style="flex:2"><div class="lbl">User name</div><div class="tb">svc-app</div></div></div>
       <div class="lbl">Password</div>
       <span class="check"><i></i>Change stored password</span>
       <div class="tb ro"></div>
       <div class="hint">Leave empty to store no password. Passwords are encrypted before they are written.</div>
-      <div class="lbl">Additional accounts</div>
-      <div class="hint" style="margin-top:0">For hosts that allow several sessions at once, such as Windows Server. Each account is listed under the entry; an empty domain uses the domain above.</div>
-      <div class="acct">
-        <div class="row" style="align-items:flex-end;gap:0">
-          <div style="flex:1"><div class="l">Domain</div><div class="tb"></div></div>
-          <div style="width:12px"></div>
-          <div style="flex:2"><div class="l">User name *</div><div class="tb">ops</div></div>
-          <span class="btn" style="margin-left:8px">Remove</span>
-        </div>
-        <div class="l" style="margin-top:6px">Password</div>
-        <span class="check"><i></i>Change stored password</span>
-        <div class="tb ro"></div>
-      </div>
-      <span class="btn" style="margin-top:6px">Add account</span>
+      <div class="lbl">Notes</div>
+      <div class="tb multi" style="height:60px">Line-of-business app. Use the ops account for deployments.</div>
+    </div>
+    <div class="dlgfoot"><span class="btn" style="margin-right:16px">Import .rdp…</span><span class="btn accent" style="min-width:90px">Save</span><span class="btn" style="min-width:90px">Cancel</span></div>
+  </div>
+</div></div>
 
-      <div class="lbl sec">Display</div>
+<div class="shot" id="editor-accounts"><div class="win" style="width:600px;height:640px">
+  <div class="titlebar"><img src="appicon.png"><span class="t">Edit – APP01 – Line of business</span><slot-caps></slot-caps></div>
+  <div style="flex:1;display:flex;flex-direction:column;padding:16px;min-height:0">
+    <div class="tabs"><span class="tab">General</span><span class="tab on">Accounts</span><span class="tab">Display</span><span class="tab">Local resources</span><span class="tab">Connection</span></div>
+    <div class="tabpage">
+      <div class="hint" style="margin-top:0">For hosts that allow several sessions at once, such as Windows Server. The domain, user name and password on the General tab are the default account; each account here is listed under the entry. An empty domain uses the entry's domain.</div>
+      <div class="acct" style="margin-top:8px">
+        <div class="row" style="align-items:flex-end;gap:8px">
+          <div style="flex:1"><div class="l">Domain</div><div class="tb"></div></div>
+          <div style="flex:1.5"><div class="l">User name *</div><div class="tb">ops</div></div>
+          <div style="flex:1.5"><div class="l">Password</div><div class="tb ro"></div></div>
+          <span class="btn">Remove</span>
+        </div>
+        <div class="row"><div style="flex:2.5;margin-left:8px"></div><div style="flex:2.3"><span class="check" style="margin:6px 0 0"><i></i>Change stored password</span></div></div>
+      </div>
+      <span class="btn" style="margin-top:8px">Add account</span>
+    </div>
+    <div class="dlgfoot"><span class="btn" style="margin-right:16px">Import .rdp…</span><span class="btn accent" style="min-width:90px">Save</span><span class="btn" style="min-width:90px">Cancel</span></div>
+  </div>
+</div></div>
+
+<div class="shot" id="editor-display"><div class="win" style="width:600px;height:640px">
+  <div class="titlebar"><img src="appicon.png"><span class="t">Edit – APP01 – Line of business</span><slot-caps></slot-caps></div>
+  <div style="flex:1;display:flex;flex-direction:column;padding:16px;min-height:0">
+    <div class="tabs"><span class="tab">General</span><span class="tab">Accounts</span><span class="tab on">Display</span><span class="tab">Local resources</span><span class="tab">Connection</span></div>
+    <div class="tabpage">
       <div class="row">
         <div class="grow"><div class="l">Mode</div><div class="tb combo">Window</div></div>
         <div class="grow"><div class="l">Resolution</div><div class="tb combo">1920 × 1080</div></div>
       </div>
-      <div class="l" style="margin-top:6px">Colour depth</div><div class="tb combo">Highest quality (32 bit)</div>
-      <span class="check" style="margin-top:6px"><i></i>Use all my monitors</span>
+      <div class="l" style="margin-top:8px">Colour depth</div><div class="tb combo" style="width:260px">Highest quality (32 bit)</div>
+      <span class="check" style="margin-top:8px"><i></i>Use all my monitors</span>
       <span class="check on"><i></i>Update the remote resolution when the window is resized</span>
       <span class="check"><i></i>Scale the remote desktop to fit the window (smart sizing)</span>
-
-      <div class="lbl sec">Local resources</div>
-      <div class="row">
-        <div class="grow"><div class="l">Remote audio</div><div class="tb combo">Play on this computer</div></div>
-        <div class="grow"><div class="l">Apply Windows key combinations</div><div class="tb combo">Only when using the full screen</div></div>
-      </div>
-      <span class="check" style="margin-top:6px"><i></i>Record audio from this computer (microphone)</span>
-      <div class="row" style="gap:16px"><span class="check on"><i></i>Clipboard</span><span class="check"><i></i>Printers</span><span class="check"><i></i>Smart cards</span><span class="check"><i></i>All local drives</span></div>
-
-      <div class="lbl sec">Connection</div>
-      <div class="l">If server authentication fails</div><div class="tb combo">Warn me</div>
-      <span class="check on" style="margin-top:6px"><i></i>Reconnect automatically if the connection drops</span>
-      <span class="check"><i></i>Connect to the administrative (console) session</span>
-      <div class="expander"><span>Other .rdp settings (advanced)</span><span class="ex-chev"></span></div>
-
-      <div class="lbl">Notes</div>
-      <div class="tb multi" style="height:60px">Line-of-business app. Use the ops account for deployments.</div>
     </div>
     <div class="dlgfoot"><span class="btn" style="margin-right:16px">Import .rdp…</span><span class="btn accent" style="min-width:90px">Save</span><span class="btn" style="min-width:90px">Cancel</span></div>
   </div>

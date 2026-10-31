@@ -15,12 +15,16 @@ and the details of the selected entry on the right.
 | **RDP connection** | Host, port, credentials **and** additional `.rdp` settings | Default settings + the entry's own `.rdp` settings |
 | **Credentials only** | User name and password, optional host | Default settings only |
 
-Pick the kind at the top of the editor. You can switch it later; the RDP settings are only shown for
-RDP connections.
+Pick the kind at the top of the editor's **General** tab. You can switch it later; the RDP settings tabs
+(**Display**, **Local resources**, **Connection**) are only shown for RDP connections.
 
 ## Fields
 
-![The entry editor for an RDP connection with one additional account and the Display, Local resources and Connection settings as form fields.](../../../assets/screenshots/editor.png)
+The editor has five tabs: **General** for the fields below, **Accounts** for
+[additional accounts](#several-accounts-per-entry), and **Display**, **Local resources** and **Connection** for the
+[RDP settings](#rdp-settings). Errors are shown below the tabs, whichever tab is open.
+
+![The entry editor, General tab: Type, Name and Folder, Host and Port, Domain and User name, Password and Notes.](../../../assets/screenshots/editor.png)
 
 | Field | Notes |
 |---|---|
@@ -29,10 +33,10 @@ RDP connections.
 | **Host** / **Port** | Host name or IP address (IPv6 literals like `[fe80::1]` work). Port defaults to `3389`. An entry without a host cannot be launched, but you can still copy its credentials. |
 | **Domain** / **User name** | Combined as `DOMAIN\user`. If the user name already contains `\` or `@` (UPN), the domain is not added. |
 | **Password** | Optional. Encrypted before it is written to any database. When editing an entry that already has a password, tick **Change stored password** to replace or clear it. |
-| **Additional accounts** | Optional. More users for the same host — see [Several accounts per entry](#several-accounts-per-entry). |
-| **Display**, **Local resources**, **Connection** | RDP connections only. The common Remote Desktop settings as form fields — see [RDP settings](#rdp-settings). |
-| **Other .rdp settings** | RDP connections only, under *advanced*. Any other `.rdp` lines in `key:type:value` format, e.g. `gatewayhostname:s:gw.contoso.com`. |
 | **Notes** | Free text. Searchable. |
+| **Accounts** tab | Optional. More users for the same host — see [Several accounts per entry](#several-accounts-per-entry). |
+| **Display**, **Local resources**, **Connection** tabs | RDP connections only. The common Remote Desktop settings as form fields — see [RDP settings](#rdp-settings). |
+| **Other .rdp settings** | RDP connections only, on the **Connection** tab under *advanced*. Any other `.rdp` lines in `key:type:value` format, e.g. `gatewayhostname:s:gw.contoso.com`. |
 
 The details pane also shows who changed the entry last and when.
 
@@ -41,12 +45,14 @@ The details pane also shows who changed the entry last and when.
 Windows Server lets several people — or one person with several accounts — be connected at once. Instead of
 copying an entry for each account, add the accounts to one entry:
 
-1. Open the entry in the editor. The **Domain**, **User name** and **Password** at the top are the entry's
-   **default account**.
-2. Under **Additional accounts**, click **Add account** and fill in the **User name** (required), an optional
-   **Domain** — left empty, the entry's domain is used — and an optional **Password**. Add as many as you need;
-   **Remove** deletes one.
+1. Open the entry in the editor. The **Domain**, **User name** and **Password** on the **General** tab are the
+   entry's **default account**.
+2. On the **Accounts** tab, click **Add account** and fill in the **User name** (required), an optional
+   **Domain** — left empty, the entry's domain is used — and an optional **Password**. Each account takes one row;
+   add as many as you need. **Remove** deletes one.
 3. Save.
+
+![The entry editor, Accounts tab: one additional account "ops" with Domain, User name, Password, Remove and "Change stored password", and an Add account button.](../../../assets/screenshots/editor-accounts.png)
 
 In the tree, an entry with additional accounts gets an arrow: expand it to see one row per account, the default
 account first. Select an **account row** and **Connect**, **Copy user** or **Copy password** use that account;
@@ -58,18 +64,20 @@ are shared and synced with their entry; deleting the entry deletes its accounts 
 
 ## RDP settings
 
-For an RDP connection the editor shows the usual Remote Desktop options as fields, like the *Show options* tabs of
-the Remote Desktop client:
+For an RDP connection the editor shows the usual Remote Desktop options as fields on three tabs, like the
+*Show options* tabs of the Remote Desktop client:
 
-| Section | Settings |
+![The entry editor, Display tab: Mode "Window", Resolution 1920 × 1080, Colour depth, and the monitor, resize and smart sizing check boxes.](../../../assets/screenshots/editor-display.png)
+
+| Tab | Settings |
 |---|---|
 | **Display** | **Mode** (full screen or window), **Resolution** (*Match local screen*, common sizes such as 1920 × 1080, or *Custom…* with a width and height of 200–8192 pixels), **Colour depth**, **Use all my monitors**, update the resolution when the window is resized, scale to fit the window (smart sizing) |
 | **Local resources** | **Remote audio** (play here, on the remote computer, or not at all), where **Windows key combinations** apply, microphone, **Clipboard**, **Printers**, **Smart cards**, **All local drives** |
-| **Connection** | What to do **if server authentication fails**, reconnect automatically, connect to the administrative (console) session |
+| **Connection** | What to do **if server authentication fails**, reconnect automatically, connect to the administrative (console) session, **Other .rdp settings (advanced)** |
 
 New entries start with the defaults (full screen, clipboard on, warn on authentication problems, …); only the
 settings you change are stored. Anything else — a Remote Desktop Gateway, specific drives, … — goes into
-**Other .rdp settings (advanced)** as ordinary `.rdp` lines; it opens by itself when the entry has such lines.
+**Other .rdp settings (advanced)** on the **Connection** tab as ordinary `.rdp` lines; it opens by itself when the entry has such lines.
 Settings imported from an `.rdp` file land in the matching fields. See
 [RDP settings format](../importing-rdp-files/#rdp-settings-format).
 
