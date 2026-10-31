@@ -22,7 +22,65 @@ public partial class MainWindow : Window
         Title = Infrastructure.AppInfo.Title;
         FocusSearchCommand = new RelayCommand(() => { SearchBox.Focus(); SearchBox.SelectAll(); });
         Loaded += OnLoaded;
+        viewModel.PropertyChanged += ViewModel_PropertyChanged;
     }
+
+    // Quick connect (SPEC FR-48): focus the query when the palette opens, and the list when it closes.
+    private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(MainViewModel.IsQuickConnectOpen)) return;
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input, () =>
+        {
+            if (_viewModel.IsQuickConnectOpen)
+            {
+                QuickBox.Focus();
+                QuickBox.SelectAll();
+            }
+            else if (_viewModel.SelectedNode is { } node && EntryTree.ItemContainerGenerator.ContainerFromItem(node) is TreeViewItem row)
+            {
+                row.Focus();
+            }
+            else
+            {
+                EntryTree.Focus();
+            }
+        });
+    }
+
+    private void QuickBox_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case Key.Down or Key.Up when QuickList.Items.Count > 0:
+                var index = QuickList.SelectedIndex + (e.Key == Key.Down ? 1 : -1);
+                QuickList.SelectedIndex = Math.Clamp(index, 0, QuickList.Items.Count - 1);
+                QuickList.ScrollIntoView(QuickList.SelectedItem);
+                break;
+            case Key.Enter when Keyboard.Modifiers.HasFlag(ModifierKeys.Shift):
+                _viewModel.QuickConnectRevealCommand.Execute(null);
+                break;
+            case Key.Enter:
+                _viewModel.QuickConnectAcceptCommand.Execute(null);
+                break;
+            case Key.Escape:
+                _viewModel.CloseQuickConnectCommand.Execute(null);
+                break;
+            default:
+                return;
+        }
+
+        e.Handled = true;
+    }
+
+    private void QuickList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (QuickList.SelectedItem is not null) _viewModel.QuickConnectAcceptCommand.Execute(null);
+    }
+
+    // A click on the dimmed window closes the palette; a click inside it does not.
+    private void QuickConnectOverlay_MouseDown(object sender, MouseButtonEventArgs e) => _viewModel.CloseQuickConnectCommand.Execute(null);
+
+    private void QuickConnectPanel_MouseDown(object sender, MouseButtonEventArgs e) => e.Handled = true;
 
     public IRelayCommand FocusSearchCommand { get; }
 

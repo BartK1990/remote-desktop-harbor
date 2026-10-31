@@ -33,3 +33,4 @@ Process: see [spec/README.md](../spec/README.md).
 | [0025](0025-theme-tokens.md) | Harbor colour and type tokens on top of the built-in Fluent theme | Accepted |
 | [0026](0026-main-window-layout.md) | Main window laid out for keyboard-driven engineers | Accepted |
 | [0027](0027-side-navigation-dialogs.md) | Side navigation in the editor and Settings; theme chosen in Settings | Accepted |
+| [0028](0028-quick-connect-tags-pins.md) | Quick connect palette, environment tags from folder names, personal pins and recents | Accepted |

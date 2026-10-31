@@ -29,11 +29,15 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     private readonly HashSet<string> _collapsedWhileSearching = new(StringComparer.CurrentCultureIgnoreCase);
     private bool _rebuildingTree;
 
+    // Pinned entries of this user (SPEC FR-50), kept in the settings.
+    private readonly HashSet<Guid> _pinned;
+
     public MainViewModel(HarborSettings settings, IDialogService dialogs)
     {
         Settings = settings;
         _dialogs = dialogs;
         _collapsed = new HashSet<string>(settings.CollapsedFolders, StringComparer.CurrentCultureIgnoreCase);
+        _pinned = [.. settings.PinnedEntryIds];
         _syncTimer.Tick += async (_, _) => await SyncAsync();
         _presenceTimer.Tick += async (_, _) => await RefreshPresenceAsync();
     }
@@ -47,6 +51,124 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
 
     [ObservableProperty] private string _searchText = "";
 
+    /// <summary>All entries, or only those in use, pinned or recently connected (SPEC FR-50).</summary>
+    [ObservableProperty] private TreeFilter _treeFilter;
+
+    partial void OnTreeFilterChanged(TreeFilter value)
+    {
+        RebuildTree();
+        UpdateCountText();
+    }
+
+    private bool PassesFilter(EntryViewModel e) => TreeFilter switch
+    {
+        TreeFilter.InUse => e.IsInUse,
+        TreeFilter.Pinned => e.IsPinned,
+        TreeFilter.Recent => Settings.RecentEntryIds.Contains(e.Model.Id),
+        _ => true,
+    };
+
+    public string PinText => Selected?.IsPinned == true ? "Unpin" : "Pin";
+
+    // ------------------------------------------------------------------ quick connect (SPEC FR-48)
+
+    [ObservableProperty] private bool _isQuickConnectOpen;
+    [ObservableProperty] private string _quickQuery = "";
+    [ObservableProperty] private QuickConnectItem? _selectedQuickResult;
+
+    public ObservableCollection<QuickConnectItem> QuickResults { get; } = [];
+
+    partial void OnQuickQueryChanged(string value) => UpdateQuickResults();
+
+    [RelayCommand]
+    private void OpenQuickConnect()
+    {
+        QuickQuery = "";
+        UpdateQuickResults();
+        IsQuickConnectOpen = true;
+    }
+
+    [RelayCommand]
+    private void CloseQuickConnect() => IsQuickConnectOpen = false;
+
+    private void UpdateQuickResults()
+    {
+        var recent = Settings.RecentEntryIds;
+        var candidates = new List<QuickSearchCandidate<QuickConnectItem>>();
+        foreach (var e in Entries)
+        {
+            var rank = recent.IndexOf(e.Model.Id) is var i and >= 0 ? i : (int?)null;
+            candidates.Add(new(new QuickConnectItem(e, null), e.Name, e.Address, e.Model.QualifiedUserName, e.Model.Folder, e.IsPinned, rank));
+            foreach (var account in e.Children.OfType<AccountViewModel>().Where(a => !a.IsDefault))
+            {
+                candidates.Add(new(new QuickConnectItem(e, account), e.Name, e.Address, account.QualifiedUserName, e.Model.Folder, e.IsPinned, rank));
+            }
+        }
+
+        QuickResults.Clear();
+        foreach (var item in QuickSearch.Rank(candidates, QuickQuery)) QuickResults.Add(item);
+        SelectedQuickResult = QuickResults.FirstOrDefault();
+    }
+
+    /// <summary>Enter in the palette: select the result in the tree and connect with its account.</summary>
+    [RelayCommand]
+    private async Task QuickConnectAcceptAsync()
+    {
+        if (!RevealQuickResult()) return;
+        if (ConnectCommand.CanExecute(null)) await ConnectCommand.ExecuteAsync(null);
+    }
+
+    /// <summary>Shift+Enter in the palette: only select the result in the tree.</summary>
+    [RelayCommand]
+    private void QuickConnectReveal() => RevealQuickResult();
+
+    private bool RevealQuickResult()
+    {
+        IsQuickConnectOpen = false;
+        if (SelectedQuickResult is not { } item) return false;
+        if (TreeFilter != TreeFilter.All && !PassesFilter(item.Entry)) TreeFilter = TreeFilter.All;
+        if (!item.Entry.Matches(SearchText)) SearchText = "";
+        RevealFolder(item.Entry.Model.Folder);
+        if (item.Account is not null) item.Entry.IsExpanded = true;
+        SelectedNode = (TreeNodeViewModel?)item.Account ?? item.Entry;
+        return true;
+    }
+
+    // ------------------------------------------------------------------ pinned and recent (SPEC FR-50)
+
+    [RelayCommand(CanExecute = nameof(HasSelection))]
+    private void TogglePin()
+    {
+        if (Selected is not { } vm) return;
+        vm.IsPinned = !vm.IsPinned;
+        if (vm.IsPinned) _pinned.Add(vm.Model.Id);
+        else _pinned.Remove(vm.Model.Id);
+        Settings.PinnedEntryIds = [.. _pinned];
+        SaveSettingsQuietly("Pinned entries");
+        OnPropertyChanged(nameof(PinText));
+        StatusText = vm.IsPinned ? $"Pinned {vm.Name}" : $"Unpinned {vm.Name}";
+        if (TreeFilter == TreeFilter.Pinned) RebuildTree();
+    }
+
+    private void RememberRecent(Guid id)
+    {
+        Settings.RecentEntryIds = RecentList.Push(Settings.RecentEntryIds, id);
+        SaveSettingsQuietly("Recent entries");
+        if (TreeFilter == TreeFilter.Recent) RebuildTree();
+    }
+
+    private void SaveSettingsQuietly(string what)
+    {
+        try
+        {
+            SettingsStore.Save(Settings);
+        }
+        catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException)
+        {
+            Log.Error($"{what} could not be saved", ex);
+        }
+    }
+
     /// <summary>The selected tree row (folder, entry or account); kept in sync with <see cref="Selected"/>.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SelectedAccount), nameof(ConnectText), nameof(TakeoverWarning))]
@@ -54,7 +176,9 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(ConnectCommand), nameof(EditCommand), nameof(DeleteCommand), nameof(CopyPasswordCommand), nameof(CopyUserNameCommand),
-        nameof(CopyHostCommand), nameof(ConnectAsCommand))]
+        nameof(CopyHostCommand), nameof(ConnectAsCommand),
+        nameof(TogglePinCommand))]
+    [NotifyPropertyChangedFor(nameof(PinText))]
     private EntryViewModel? _selected;
 
     [ObservableProperty]
@@ -211,6 +335,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         {
             var vm = byId.TryGetValue(entry.Id, out var existing) ? existing : new EntryViewModel(entry);
             vm.Model = entry;
+            vm.IsPinned = _pinned.Contains(entry.Id);
             Entries.Add(vm);
         }
 
@@ -241,7 +366,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     /// <summary>Rebuilds the tree from <see cref="Entries"/> and <see cref="SearchText"/>, reusing existing rows.</summary>
     private void RebuildTree()
     {
-        var root = FolderTree.Build(Entries.Where(e => e.Matches(SearchText)), e => e.Model.Folder, e => e.Name);
+        var root = FolderTree.Build(Entries.Where(e => e.Matches(SearchText) && PassesFilter(e)), e => e.Model.Folder, e => e.Name);
         var previous = _folders;
         _folders = new Dictionary<string, FolderViewModel>(StringComparer.CurrentCultureIgnoreCase);
 
@@ -371,6 +496,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
 
         OnPropertyChanged(nameof(TakeoverWarning));
         OnPropertyChanged(nameof(InUseText));
+        if (TreeFilter == TreeFilter.InUse) RebuildTree();
     }
 
     // ------------------------------------------------------------------ commands
@@ -402,6 +528,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
             var password = _host.Workspace.RevealPassword(entry, account?.Id);
             var session = await _host.Launcher.LaunchAsync(entry.ForAccount(account), password);
             StatusText = accountName is null ? $"Launched {entry.Name}" : $"Launched {entry.Name} as {accountName}";
+            RememberRecent(entry.Id);
             Log.Info($"Launched {entry.Id}");
 
             var lease = await _host.Presence.BeginAsync(entry.Id, accountName, _host.User);

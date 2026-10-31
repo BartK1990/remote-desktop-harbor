@@ -27,6 +27,14 @@
     <Setter Property="Margin" Value="0,0,2,0" />
     <Setter Property="MinWidth" Value="0" />
   </Style>
+  <!-- Small filter chip above the tree (All / In use / Pinned / Recent). -->
+  <Style x:Key="Harbor.Chip" TargetType="RadioButton" BasedOn="{StaticResource {x:Type ToggleButton}}">
+    <Setter Property="Padding" Value="10,2" />
+    <Setter Property="Margin" Value="0,0,4,0" />
+    <Setter Property="MinWidth" Value="0" />
+    <Setter Property="MinHeight" Value="0" />
+    <Setter Property="FontSize" Value="12" />
+  </Style>
   <!-- Monospace text input (host, port, domain, user name, folder path). -->
   <Style x:Key="Harbor.MonoTextBox" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
     <Setter Property="FontFamily" Value="{StaticResource Harbor.MonoFont}" />

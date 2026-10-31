@@ -2,16 +2,66 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:Harbor.App.ViewModels"
+        xmlns:views="clr-namespace:Harbor.App.Views"
+        xmlns:model="clr-namespace:Harbor.Core.Model;assembly=Harbor.Core"
         Title="Remote Desktop Harbor" Width="1100" Height="700" MinWidth="720" MinHeight="420"
         Icon="/Assets/AppIcon.ico"
         WindowStartupLocation="CenterScreen">
   <Window.Resources>
-    <ResourceDictionary Source="/Themes/Controls.xaml" />
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/Themes/Controls.xaml" />
+      </ResourceDictionary.MergedDictionaries>
+      <views:EnumToBooleanConverter x:Key="EnumToBool" />
+      <!-- Environment tag (SPEC FR-49): PROD, STG, TEST, DEV, LAB from the folder name; text + colour, never colour alone. -->
+      <Style x:Key="EnvTag" TargetType="Border">
+        <Setter Property="CornerRadius" Value="3" />
+        <Setter Property="Padding" Value="5,0" />
+        <Setter Property="Margin" Value="6,0,0,0" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="TextElement.FontSize" Value="10" />
+        <Setter Property="TextElement.FontWeight" Value="SemiBold" />
+        <Style.Triggers>
+          <DataTrigger Binding="{Binding Environment}" Value="{x:Null}">
+            <Setter Property="Visibility" Value="Collapsed" />
+          </DataTrigger>
+          <DataTrigger Binding="{Binding Environment}" Value="{x:Static model:EnvironmentKind.Production}">
+            <Setter Property="Background" Value="{DynamicResource Harbor.Env.Production.BackgroundBrush}" />
+            <Setter Property="TextElement.Foreground" Value="{DynamicResource Harbor.Env.Production.ForegroundBrush}" />
+          </DataTrigger>
+          <DataTrigger Binding="{Binding Environment}" Value="{x:Static model:EnvironmentKind.Staging}">
+            <Setter Property="Background" Value="{DynamicResource Harbor.Env.Staging.BackgroundBrush}" />
+            <Setter Property="TextElement.Foreground" Value="{DynamicResource Harbor.Env.Staging.ForegroundBrush}" />
+          </DataTrigger>
+          <DataTrigger Binding="{Binding Environment}" Value="{x:Static model:EnvironmentKind.Test}">
+            <Setter Property="Background" Value="{DynamicResource Harbor.Env.Test.BackgroundBrush}" />
+            <Setter Property="TextElement.Foreground" Value="{DynamicResource Harbor.Env.Test.ForegroundBrush}" />
+          </DataTrigger>
+          <DataTrigger Binding="{Binding Environment}" Value="{x:Static model:EnvironmentKind.Development}">
+            <Setter Property="Background" Value="{DynamicResource Harbor.Env.Development.BackgroundBrush}" />
+            <Setter Property="TextElement.Foreground" Value="{DynamicResource Harbor.Env.Development.ForegroundBrush}" />
+          </DataTrigger>
+          <DataTrigger Binding="{Binding Environment}" Value="{x:Static model:EnvironmentKind.Lab}">
+            <Setter Property="Background" Value="{DynamicResource Harbor.Env.Lab.BackgroundBrush}" />
+            <Setter Property="TextElement.Foreground" Value="{DynamicResource Harbor.Env.Lab.ForegroundBrush}" />
+          </DataTrigger>
+        </Style.Triggers>
+      </Style>
+      <!-- Filled star of a pinned entry (SPEC FR-50). -->
+      <Style x:Key="PinStar" TargetType="TextBlock" BasedOn="{StaticResource Harbor.Text.Icon}">
+        <Setter Property="Text" Value="&#xE735;" />
+        <Setter Property="FontSize" Value="10" />
+        <Setter Property="Margin" Value="6,0,0,0" />
+        <Setter Property="Foreground" Value="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+        <Setter Property="ToolTip" Value="Pinned" />
+      </Style>
+    </ResourceDictionary>
   </Window.Resources>
   <!-- Keyboard first (SPEC FR-47, ADR-0026): every action has a shortcut, shown next to it or in its tooltip. -->
   <Window.InputBindings>
     <KeyBinding Key="F" Modifiers="Ctrl" Command="{Binding FocusSearchCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
-    <KeyBinding Key="K" Modifiers="Ctrl" Command="{Binding FocusSearchCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+    <KeyBinding Key="K" Modifiers="Ctrl" Command="{Binding OpenQuickConnectCommand}" />
+    <KeyBinding Key="D" Modifiers="Ctrl" Command="{Binding TogglePinCommand}" />
     <KeyBinding Key="N" Modifiers="Ctrl" Command="{Binding AddCommand}" />
     <KeyBinding Key="F5" Command="{Binding RefreshCommand}" />
     <KeyBinding Key="F2" Command="{Binding EditCommand}" />
@@ -20,18 +70,19 @@
     <KeyBinding Key="H" Modifiers="Ctrl+Shift" Command="{Binding CopyHostCommand}" />
   </Window.InputBindings>
 
+  <Grid>
   <DockPanel>
     <!-- Toolbar: search, icon buttons, signed-in user and settings (SPEC FR-47); the theme is in Settings (FR-08). -->
     <Grid DockPanel.Dock="Top" Margin="12,10,12,8">
       <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="*" MaxWidth="460" />
+        <ColumnDefinition Width="*" MinWidth="200" MaxWidth="460" />
         <ColumnDefinition Width="Auto" />
         <ColumnDefinition Width="*" />
         <ColumnDefinition Width="Auto" />
       </Grid.ColumnDefinitions>
       <Grid Grid.Column="0">
         <TextBox x:Name="SearchBox" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Padding="32,0,56,0"
-                 ToolTip="Filter by name, host, user, folder or notes (Ctrl+K or Ctrl+F, Esc clears, Down moves to the list)"
+                 ToolTip="Filter the list by name, host, user, folder or notes (Ctrl+F, Esc clears, Down moves to the list)"
                  VerticalContentAlignment="Center" AutomationProperties.Name="Search connections"
                  PreviewKeyDown="SearchBox_PreviewKeyDown">
           <TextBox.InputBindings>
@@ -51,9 +102,17 @@
             </Style>
           </TextBlock.Style>
         </TextBlock>
-        <TextBlock Style="{StaticResource Harbor.Text.KeyHint}" Text="Ctrl+K" HorizontalAlignment="Right" Margin="0,0,10,0" IsHitTestVisible="False" />
+        <TextBlock Style="{StaticResource Harbor.Text.KeyHint}" Text="Ctrl+F" HorizontalAlignment="Right" Margin="0,0,10,0" IsHitTestVisible="False" />
       </Grid>
       <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="8,0,0,0">
+        <Button Style="{StaticResource Harbor.Button}" Command="{Binding OpenQuickConnectCommand}"
+                ToolTip="Quick connect: find an entry or account by name, host, user or folder and connect (Ctrl+K)">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Style="{StaticResource Harbor.Text.Icon}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Text="&#xE8AF;" Margin="0,0,6,0" />
+            <TextBlock Text="Quick connect" />
+            <TextBlock Style="{StaticResource Harbor.Text.KeyHint}" Text="Ctrl+K" />
+          </StackPanel>
+        </Button>
         <Button Style="{StaticResource Harbor.Button}" Command="{Binding AddCommand}" ToolTip="New entry (Ctrl+N)">
           <StackPanel Orientation="Horizontal">
             <TextBlock Style="{StaticResource Harbor.Text.Icon}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Text="&#xE710;" Margin="0,0,6,0" />
@@ -76,7 +135,7 @@
       </StackPanel>
       <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
         <TextBlock Style="{StaticResource Harbor.Text.Icon}" Text="&#xE77B;" Margin="0,0,6,0" />
-        <TextBlock Text="{Binding UserText}" ToolTip="{Binding UserText}" MaxWidth="300" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+        <TextBlock Text="{Binding UserText}" ToolTip="{Binding UserText}" MaxWidth="220" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" AutomationProperties.Name="Signed in as" />
         <Button Style="{StaticResource Harbor.SubtleButton}" Command="{Binding OpenSettingsCommand}" Margin="8,0,0,0" Padding="8,5"
                 ToolTip="Settings" AutomationProperties.Name="Settings">
@@ -132,6 +191,18 @@
       <Border Grid.Column="0" CornerRadius="6" BorderThickness="1" Padding="2"
               Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
               BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
+      <DockPanel>
+      <!-- Show all entries, or only those in use, pinned or recently connected (SPEC FR-50). -->
+      <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="6,6,6,4" AutomationProperties.Name="Show">
+        <RadioButton GroupName="TreeFilter" Style="{StaticResource Harbor.Chip}" Content="All"
+                     IsChecked="{Binding TreeFilter, Converter={StaticResource EnumToBool}, ConverterParameter={x:Static vm:TreeFilter.All}}" />
+        <RadioButton GroupName="TreeFilter" Style="{StaticResource Harbor.Chip}" Content="In use"
+                     IsChecked="{Binding TreeFilter, Converter={StaticResource EnumToBool}, ConverterParameter={x:Static vm:TreeFilter.InUse}}" />
+        <RadioButton GroupName="TreeFilter" Style="{StaticResource Harbor.Chip}" Content="Pinned"
+                     IsChecked="{Binding TreeFilter, Converter={StaticResource EnumToBool}, ConverterParameter={x:Static vm:TreeFilter.Pinned}}" />
+        <RadioButton GroupName="TreeFilter" Style="{StaticResource Harbor.Chip}" Content="Recent"
+                     IsChecked="{Binding TreeFilter, Converter={StaticResource EnumToBool}, ConverterParameter={x:Static vm:TreeFilter.Recent}}" />
+      </StackPanel>
       <TreeView x:Name="EntryTree" ItemsSource="{Binding Tree}" Background="Transparent" BorderThickness="0"
                 VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
                 VirtualizingPanel.ScrollUnit="Pixel" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
@@ -173,6 +244,7 @@
               <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
               <TextBlock Text="{Binding Count}" Margin="6,0,0,0" FontSize="{StaticResource Harbor.FontSize.Caption}" VerticalAlignment="Center"
                          Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+              <Border Style="{StaticResource EnvTag}" Margin="8,0,0,0"><TextBlock Text="{Binding EnvironmentLabel}" /></Border>
             </StackPanel>
           </HierarchicalDataTemplate>
 
@@ -196,7 +268,10 @@
                   </Style>
                 </TextBlock.Style>
               </TextBlock>
-              <TextBlock Grid.Column="1" Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+              <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                <TextBlock Style="{StaticResource PinStar}" Visibility="{Binding IsPinned, Converter={StaticResource BoolToVisibility}}" />
+              </StackPanel>
               <TextBlock Grid.Column="2" Text="{Binding Address}" Margin="10,0,0,0" MaxWidth="200" TextTrimming="CharacterEllipsis"
                          VerticalAlignment="Center">
                 <TextBlock.Style>
@@ -309,7 +384,8 @@
             <MenuItem Header="Connect" Command="{Binding ConnectCommand}" InputGestureText="Enter" />
             <MenuItem Header="Copy password" Command="{Binding CopyPasswordCommand}" InputGestureText="Ctrl+Shift+C" />
             <MenuItem Header="Copy user" Command="{Binding CopyUserNameCommand}" />
-            <MenuItem Header="Edit" Command="{Binding EditCommand}" />
+            <MenuItem Header="{Binding PinText}" Command="{Binding TogglePinCommand}" InputGestureText="Ctrl+D" />
+            <MenuItem Header="Edit" Command="{Binding EditCommand}" InputGestureText="F2" />
             <MenuItem Header="Delete" Command="{Binding DeleteCommand}" />
             <Separator />
             <MenuItem Header="Expand all" Command="{Binding ExpandAllCommand}" />
@@ -317,6 +393,7 @@
           </ContextMenu>
         </TreeView.ContextMenu>
       </TreeView>
+      </DockPanel>
       </Border>
 
       <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="Transparent" />
@@ -354,10 +431,32 @@
               </Style>
             </StackPanel.Style>
 
-            <TextBlock FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}">
-              <Run Text="{Binding GroupName, Mode=OneWay}" /><Run Text="  ·  " /><Run Text="{Binding KindLabel, Mode=OneWay}" />
-            </TextBlock>
-            <TextBlock Text="{Binding Name}" FontSize="22" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,2,0,0" />
+            <StackPanel Orientation="Horizontal">
+              <TextBlock FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center">
+                <Run Text="{Binding GroupName, Mode=OneWay}" /><Run Text="  ·  " /><Run Text="{Binding KindLabel, Mode=OneWay}" />
+              </TextBlock>
+              <Border Style="{StaticResource EnvTag}" Margin="8,0,0,0"><TextBlock Text="{Binding EnvironmentLabel}" /></Border>
+            </StackPanel>
+            <DockPanel Margin="0,2,0,0">
+              <!-- Pin / unpin (SPEC FR-50). -->
+              <ToggleButton DockPanel.Dock="Right" IsChecked="{Binding IsPinned, Mode=OneWay}" VerticalAlignment="Top" Padding="8,5" Margin="8,2,0,0"
+                            Command="{Binding DataContext.TogglePinCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                            ToolTip="Pin or unpin this entry (Ctrl+D)" AutomationProperties.Name="Pin">
+                <TextBlock FontFamily="{StaticResource Harbor.IconFont}" FontSize="14">
+                  <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                      <Setter Property="Text" Value="&#xE734;" />
+                      <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsPinned}" Value="True">
+                          <Setter Property="Text" Value="&#xE735;" />
+                        </DataTrigger>
+                      </Style.Triggers>
+                    </Style>
+                  </TextBlock.Style>
+                </TextBlock>
+              </ToggleButton>
+              <TextBlock Text="{Binding Name}" FontSize="22" FontWeight="SemiBold" TextWrapping="Wrap" />
+            </DockPanel>
             <TextBox Text="{Binding Address, Mode=OneWay}" IsReadOnly="True" BorderThickness="0" Background="Transparent" Padding="0"
                      FontFamily="{StaticResource Harbor.MonoFont}" FontSize="13" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"
                      AutomationProperties.Name="Host" Margin="0,2,0,0">
@@ -565,4 +664,103 @@
       </ScrollViewer>
     </Grid>
   </DockPanel>
+
+  <!-- Quick connect palette (SPEC FR-48, ADR-0028): Ctrl+K, type, Enter connects; Shift+Enter only selects; Esc closes. -->
+  <Grid x:Name="QuickConnectOverlay" Background="{DynamicResource Harbor.ScrimBrush}" MouseDown="QuickConnectOverlay_MouseDown"
+        Visibility="{Binding IsQuickConnectOpen, Converter={StaticResource BoolToVisibility}}">
+    <Border Width="640" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,72,0,24" CornerRadius="8" BorderThickness="1"
+            Background="{DynamicResource Harbor.PopupBackgroundBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+            MouseDown="QuickConnectPanel_MouseDown">
+      <DockPanel>
+        <Grid DockPanel.Dock="Top" Margin="10">
+          <TextBox x:Name="QuickBox" Text="{Binding QuickQuery, UpdateSourceTrigger=PropertyChanged}" Padding="32,0,8,0" FontSize="15"
+                   VerticalContentAlignment="Center" MinHeight="38" AutomationProperties.Name="Quick connect"
+                   PreviewKeyDown="QuickBox_PreviewKeyDown" />
+          <TextBlock Style="{StaticResource Harbor.Text.Icon}" Text="&#xE721;" Margin="11,0,0,0" HorizontalAlignment="Left" IsHitTestVisible="False" />
+          <TextBlock Text="Name, host, user or folder — e.g. prod sql" Margin="33,0,8,0" FontSize="15">
+            <TextBlock.Style>
+              <Style TargetType="TextBlock" BasedOn="{StaticResource Harbor.Text.Placeholder}">
+                <Setter Property="Visibility" Value="Collapsed" />
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding Text, ElementName=QuickBox}" Value="">
+                    <Setter Property="Visibility" Value="Visible" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </TextBlock.Style>
+          </TextBlock>
+        </Grid>
+        <Border DockPanel.Dock="Bottom" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}" Padding="14,7">
+          <TextBlock FontSize="{StaticResource Harbor.FontSize.Caption}" Foreground="{DynamicResource TextFillColorSecondaryBrush}">
+            <Run Text="↑ ↓" FontFamily="{StaticResource Harbor.MonoFont}" /><Run Text=" move    " /><Run Text="Enter" FontFamily="{StaticResource Harbor.MonoFont}" /><Run Text=" connect    " /><Run Text="Shift+Enter" FontFamily="{StaticResource Harbor.MonoFont}" /><Run Text=" show in list    " /><Run Text="Esc" FontFamily="{StaticResource Harbor.MonoFont}" /><Run Text=" close" />
+          </TextBlock>
+        </Border>
+        <Grid>
+          <TextBlock Text="No matches." Margin="16,4,16,12" Foreground="{DynamicResource TextFillColorSecondaryBrush}">
+            <TextBlock.Style>
+              <Style TargetType="TextBlock">
+                <Setter Property="Visibility" Value="Collapsed" />
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding QuickResults.Count}" Value="0">
+                    <Setter Property="Visibility" Value="Visible" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </TextBlock.Style>
+          </TextBlock>
+          <ListBox x:Name="QuickList" ItemsSource="{Binding QuickResults}" SelectedItem="{Binding SelectedQuickResult}" MaxHeight="440"
+                   BorderThickness="0" Background="Transparent" Margin="6,0,6,6" Focusable="False"
+                   ScrollViewer.HorizontalScrollBarVisibility="Disabled" MouseDoubleClick="QuickList_MouseDoubleClick"
+                   AutomationProperties.Name="Quick connect results">
+            <ListBox.ItemContainerStyle>
+              <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                <Setter Property="Focusable" Value="False" />
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                <Setter Property="Padding" Value="10,6" />
+              </Style>
+            </ListBox.ItemContainerStyle>
+            <ListBox.ItemTemplate>
+              <DataTemplate DataType="{x:Type vm:QuickConnectItem}">
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                  </Grid.ColumnDefinitions>
+                  <TextBlock Margin="0,0,10,0">
+                    <TextBlock.Style>
+                      <Style TargetType="TextBlock" BasedOn="{StaticResource Harbor.Text.Icon}">
+                        <Setter Property="Text" Value="&#xE7F4;" />
+                        <Style.Triggers>
+                          <DataTrigger Binding="{Binding IsAccount}" Value="True">
+                            <Setter Property="Text" Value="&#xE77B;" />
+                          </DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </TextBlock.Style>
+                  </TextBlock>
+                  <StackPanel Grid.Column="1">
+                    <StackPanel Orientation="Horizontal">
+                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Style="{StaticResource PinStar}" Visibility="{Binding IsPinned, Converter={StaticResource BoolToVisibility}}" />
+                      <Border Style="{StaticResource EnvTag}" Margin="8,0,0,0"><TextBlock Text="{Binding EnvironmentLabel}" /></Border>
+                    </StackPanel>
+                    <TextBlock Style="{StaticResource Harbor.Text.MonoSecondary}" TextTrimming="CharacterEllipsis" Margin="0,1,0,0">
+                      <Run Text="{Binding Address, Mode=OneWay, TargetNullValue='no host'}" /><Run Text="  ·  " /><Run Text="{Binding User, Mode=OneWay, TargetNullValue='no user'}" /><Run Text="  ·  " /><Run Text="{Binding Folder, Mode=OneWay}" />
+                    </TextBlock>
+                  </StackPanel>
+                  <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0,0,0"
+                              Visibility="{Binding IsInUse, Converter={StaticResource BoolToVisibility}}">
+                    <Ellipse Style="{StaticResource Harbor.StatusDot}" />
+                    <TextBlock Style="{StaticResource Harbor.Text.Presence}" Text="{Binding PresenceName}" />
+                  </StackPanel>
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </Grid>
+      </DockPanel>
+    </Border>
+  </Grid>
+  </Grid>
 </Window>

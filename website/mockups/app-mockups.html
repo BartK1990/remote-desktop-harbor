@@ -117,7 +117,7 @@
   #editor .l, #editor-accounts .l, #editor-display .l { font-size: 11px; opacity: .7; margin: 0 0 2px; }
 
   /* Main window layout (SPEC FR-47, ADR-0026): icon toolbar, details as cards, shortcuts next to actions. */
-  .toolbar .search2 { position: relative; width: 330px; }
+  .toolbar .search2 { position: relative; width: 250px; }
   .toolbar .search2 .tb { padding-left: 32px; padding-right: 64px; color: #8a8a8a; white-space: nowrap; overflow: hidden; }
   .toolbar .search2 .tb.typed { color: var(--text); }
   .toolbar .search2 > svg { position: absolute; left: 10px; top: 9px; width: 14px; height: 14px; stroke: var(--muted); fill: none; stroke-width: 1.4; }
@@ -185,6 +185,35 @@
   .cs .cap { font-size: 11px; font-weight: 600; color: var(--muted); }
   .cs .v { font-family: "Cascadia Mono", "JetBrains Mono", Consolas, monospace; font-size: 12px; word-break: break-all; margin-top: 2px; }
   .okc { color: #0F7B0F; }
+
+  /* Step 4 (SPEC FR-48..50, ADR-0028): environment tags, pins, filter chips, quick connect palette. */
+  .env { font-size: 10px; font-weight: 600; padding: 0 5px; border-radius: 3px; margin-left: 8px; line-height: 16px; }
+  .env.prod { background: #FDE7E9; color: #A4262C; }
+  .env.stg { background: #FFF4CE; color: #7A4F00; }
+  .env.lab { background: #F1EAFB; color: #6B3FA0; }
+  .star { color: var(--accent); font-size: 11px; margin-left: 6px; }
+  .chips { display: flex; gap: 4px; padding: 4px 4px 6px; }
+  .chips span { font-size: 12px; padding: 2px 10px; border-radius: 4px; background: var(--card); border: 1px solid var(--stroke); }
+  .chips span.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .pinbtn { margin-left: auto; width: 34px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 4px;
+    background: var(--accent); color: #fff; font-size: 15px; }
+  .scrim { position: absolute; inset: 32px 0 0 0; background: rgba(0,0,0,.4); }
+  .palette { position: absolute; left: 50%; top: 104px; width: 640px; margin-left: -320px; background: #fff; border: 1px solid var(--stroke);
+    border-radius: 8px; box-shadow: 0 16px 48px rgba(0,0,0,.28); }
+  .palette .q { position: relative; margin: 10px; }
+  .palette .q .tb { height: 40px; padding-left: 32px; font-size: 15px; }
+  .palette .q svg { position: absolute; left: 10px; top: 13px; width: 14px; height: 14px; stroke: var(--muted); fill: none; stroke-width: 1.4; }
+  .palette .res { margin: 0 6px 6px; }
+  .palette .it { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 4px; }
+  .palette .it.sel { background: rgba(0,0,0,.06); }
+  .palette .it svg.ti { width: 14px; height: 14px; fill: none; stroke: var(--muted); stroke-width: 1.3; flex: none; }
+  .palette .it .t { flex: 1; min-width: 0; }
+  .palette .it .n { display: flex; align-items: center; font-weight: 600; }
+  .palette .it .s { font-family: "Cascadia Mono", "JetBrains Mono", Consolas, monospace; font-size: 12px; color: var(--muted); margin-top: 1px; }
+  .palette .it .p { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--inuse-text); }
+  .palette .it .p::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--inuse); }
+  .palette .ft { border-top: 1px solid var(--stroke); padding: 7px 14px; font-size: 11px; color: var(--muted); }
+  .palette .ft b { font-family: "Cascadia Mono", "JetBrains Mono", Consolas, monospace; font-weight: 400; }
 </style>
 </head>
 <body>
@@ -228,14 +257,15 @@
 <div class="shot" id="main"><div class="win" style="width:1100px;height:745px">
   <div class="titlebar"><img src="appicon.png"><span class="t">Remote Desktop Harbor 0.4.0</span><slot-caps></slot-caps></div>
   <div class="toolbar">
-    <div class="search2"><div class="tb focus">Search name, host, user…</div><svg class=""><use href="#i-search"/></svg><span class="kh">Ctrl+K</span></div>
-    <div class="btns"><span class="btn"><svg class="bi"><use href="#i-plus"/></svg>New</span><span class="btn"><svg class="bi"><use href="#i-import"/></svg>Import .rdp…</span><span class="btn"><svg class="bi"><use href="#i-refresh"/></svg>Refresh<span class="kh">F5</span></span></div>
-    <span class="who"><svg><use href="#i-user"/></svg>Alex Kim &lt;alex.kim@contoso.com&gt;<span class="btn subtle" style="width:34px;padding:0;margin-left:6px"><svg class="bi" style="margin:0;width:16px;height:16px"><use href="#i-gear"/></svg></span></span>
+    <div class="search2"><div class="tb focus"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Search name, host, user…</span></div><svg class=""><use href="#i-search"/></svg><span class="kh">Ctrl+F</span></div>
+    <div class="btns"><span class="btn"><svg class="bi"><use href="#i-search"/></svg>Quick connect<span class="kh">Ctrl+K</span></span><span class="btn"><svg class="bi"><use href="#i-plus"/></svg>New</span><span class="btn"><svg class="bi"><use href="#i-import"/></svg>Import .rdp…</span><span class="btn"><svg class="bi"><use href="#i-refresh"/></svg>Refresh<span class="kh">F5</span></span></div>
+    <span class="who"><svg><use href="#i-user"/></svg><span style="max-width:220px;overflow:hidden;text-overflow:ellipsis">Alex Kim &lt;alex.kim@contoso.com&gt;</span><span class="btn subtle" style="width:34px;padding:0;margin-left:6px"><svg class="bi" style="margin:0;width:16px;height:16px"><use href="#i-gear"/></svg></span></span>
   </div>
   <div class="body">
     <div class="list tree">
-      <div class="r"><span class="chev"></span><svg class="ti"><use href="#i-folder"/></svg><span class="f">Lab</span><span class="cnt">3</span></div>
-      <div class="r open"><span class="chev"></span><svg class="ti"><use href="#i-folder"/></svg><span class="f">Production</span><span class="cnt">9</span></div>
+      <div class="chips"><span class="on">All</span><span>In use</span><span>Pinned</span><span>Recent</span></div>
+      <div class="r"><span class="chev"></span><svg class="ti"><use href="#i-folder"/></svg><span class="f">Lab</span><span class="cnt">3</span><span class="env lab">LAB</span></div>
+      <div class="r open"><span class="chev"></span><svg class="ti"><use href="#i-folder"/></svg><span class="f">Production</span><span class="cnt">9</span><span class="env prod">PROD</span></div>
       <div class="in">
         <div class="r open"><span class="chev"></span><svg class="ti"><use href="#i-folder"/></svg><span class="f">Web</span><span class="cnt">3</span></div>
         <div class="in">
@@ -248,13 +278,13 @@
           <div class="r leaf"><span class="chev"></span><svg class="ti"><use href="#i-user"/></svg><span class="a">CONTOSO\svc-app</span></div>
           <div class="r leaf"><span class="chev"></span><svg class="ti"><use href="#i-user"/></svg><span class="a">CONTOSO\ops</span><span class="pres">Sam Patel</span></div>
         </div>
-        <div class="r leaf sel"><span class="chev"></span><svg class="ti"><use href="#i-rdp"/></svg><span class="e">APP02 – Reporting</span><span class="pres">Jane Doe</span></div>
+        <div class="r leaf sel"><span class="chev"></span><svg class="ti"><use href="#i-rdp"/></svg><span class="e">APP02 – Reporting</span><span class="star">★</span><span class="pres">Jane Doe</span></div>
         <div class="r leaf"><span class="chev"></span><svg class="ti"><use href="#i-rdp"/></svg><span class="e">DC01</span><span class="host">dc01.contoso.local</span></div>
         <div class="r leaf"><span class="chev"></span><svg class="ti"><use href="#i-rdp"/></svg><span class="e">DC02</span><span class="host">dc02.contoso.local</span></div>
         <div class="r leaf"><span class="chev"></span><svg class="ti"><use href="#i-rdp"/></svg><span class="e">SQL01</span><span class="host">sql01.contoso.local</span></div>
         <div class="r leaf"><span class="chev"></span><svg class="ti"><use href="#i-rdp"/></svg><span class="e">SQL02 – Analysis</span><span class="host">10.20.4.12:3390</span></div>
       </div>
-      <div class="r open"><span class="chev"></span><svg class="ti"><use href="#i-folder"/></svg><span class="f">Staging</span><span class="cnt">2</span></div>
+      <div class="r open"><span class="chev"></span><svg class="ti"><use href="#i-folder"/></svg><span class="f">Staging</span><span class="cnt">2</span><span class="env stg">STG</span></div>
       <div class="in">
         <div class="r leaf"><span class="chev"></span><svg class="ti"><use href="#i-rdp"/></svg><span class="e">APP01-STG</span><span class="host">stg-app01.contoso.local</span></div>
         <div class="r leaf"><span class="chev"></span><svg class="ti"><use href="#i-rdp"/></svg><span class="e">Jump host (external)</span><span class="host">jump.contoso.com</span></div>
@@ -262,8 +292,8 @@
       <div class="r leaf"><span class="chev"></span><svg class="ti"><use href="#i-key"/></svg><span class="e">Local admin (workstations)</span></div>
     </div>
     <div class="details d">
-      <div class="crumb">Production  ·  RDP connection</div>
-      <h1>APP02 – Reporting</h1>
+      <div class="crumb">Production  ·  RDP connection<span class="env prod">PROD</span></div>
+      <div style="display:flex;align-items:flex-start"><h1>APP02 – Reporting</h1><span class="pinbtn">★</span></div>
       <div class="addr">srv-app02.contoso.local</div>
       <div class="acts"><span class="btn accent">Connect as svc-admin</span><span class="btn"><svg class="bi"><use href="#i-copy"/></svg>Copy password</span><span class="btn"><svg class="bi"><use href="#i-copy"/></svg>Copy user</span><span class="btn">Edit<span class="kh">F2</span></span><span class="btn subtle">⋯</span></div>
       <div class="sess"><div class="h">1 active session</div>
@@ -287,13 +317,88 @@
   <div class="status2"><span class="msg2">15 entries</span><span class="use">2 in use</span><span class="st">Shared database · online · synced 10:42:15 AM</span></div>
 </div></div>
 
+
+<!-- ============================================================ quick connect (SPEC FR-48) -->
+<div class="shot" id="quick-connect"><div class="win" style="width:1100px;height:620px;position:relative">
+  <div class="titlebar"><img src="appicon.png"><span class="t">Remote Desktop Harbor 0.4.0</span><slot-caps></slot-caps></div>
+  <div class="toolbar">
+    <div class="search2"><div class="tb focus"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Search name, host, user…</span></div><svg class=""><use href="#i-search"/></svg><span class="kh">Ctrl+F</span></div>
+    <div class="btns"><span class="btn"><svg class="bi"><use href="#i-search"/></svg>Quick connect<span class="kh">Ctrl+K</span></span><span class="btn"><svg class="bi"><use href="#i-plus"/></svg>New</span><span class="btn"><svg class="bi"><use href="#i-import"/></svg>Import .rdp…</span><span class="btn"><svg class="bi"><use href="#i-refresh"/></svg>Refresh<span class="kh">F5</span></span></div>
+    <span class="who"><svg><use href="#i-user"/></svg><span style="max-width:220px;overflow:hidden;text-overflow:ellipsis">Alex Kim &lt;alex.kim@contoso.com&gt;</span><span class="btn subtle" style="width:34px;padding:0;margin-left:6px"><svg class="bi" style="margin:0;width:16px;height:16px"><use href="#i-gear"/></svg></span></span>
+  </div>
+  <div class="body">
+    <div class="list tree">
+      <div class="chips"><span class="on">All</span><span>In use</span><span>Pinned</span><span>Recent</span></div>
+      <div class="r"><span class="chev"></span><svg class="ti"><use href="#i-folder"/></svg><span class="f">Lab</span><span class="cnt">3</span><span class="env lab">LAB</span></div>
+      <div class="r open"><span class="chev"></span><svg class="ti"><use href="#i-folder"/></svg><span class="f">Production</span><span class="cnt">9</span><span class="env prod">PROD</span></div>
+      <div class="in">
+        <div class="r open"><span class="chev"></span><svg class="ti"><use href="#i-folder"/></svg><span class="f">Web</span><span class="cnt">3</span></div>
+        <div class="in">
+          <div class="r leaf"><span class="chev"></span><svg class="ti"><use href="#i-rdp"/></svg><span class="e">WEB01</span><span class="host">web01.contoso.local</span></div>
+          <div class="r leaf"><span class="chev"></span><svg class="ti"><use href="#i-rdp"/></svg><span class="e">WEB02</span><span class="host">web02.contoso.local</span></div>
+          <div class="r leaf"><span class="chev"></span><svg class="ti"><use href="#i-rdp"/></svg><span class="e">WEB03 – Intranet</span><span class="host">intranet.contoso.local</span></div>
+        </div>
+        <div class="r open"><span class="chev"></span><svg class="ti"><use href="#i-rdp"/></svg><span class="e">APP01 – Line of business</span><span class="host">srv-app01.contoso.local</span></div>
+        <div class="in">
+          <div class="r leaf"><span class="chev"></span><svg class="ti"><use href="#i-user"/></svg><span class="a">CONTOSO\svc-app</span></div>
+          <div class="r leaf"><span class="chev"></span><svg class="ti"><use href="#i-user"/></svg><span class="a">CONTOSO\ops</span><span class="pres">Sam Patel</span></div>
+        </div>
+        <div class="r leaf sel"><span class="chev"></span><svg class="ti"><use href="#i-rdp"/></svg><span class="e">APP02 – Reporting</span><span class="star">★</span><span class="pres">Jane Doe</span></div>
+        <div class="r leaf"><span class="chev"></span><svg class="ti"><use href="#i-rdp"/></svg><span class="e">DC01</span><span class="host">dc01.contoso.local</span></div>
+        <div class="r leaf"><span class="chev"></span><svg class="ti"><use href="#i-rdp"/></svg><span class="e">DC02</span><span class="host">dc02.contoso.local</span></div>
+        <div class="r leaf"><span class="chev"></span><svg class="ti"><use href="#i-rdp"/></svg><span class="e">SQL01</span><span class="host">sql01.contoso.local</span></div>
+        <div class="r leaf"><span class="chev"></span><svg class="ti"><use href="#i-rdp"/></svg><span class="e">SQL02 – Analysis</span><span class="host">10.20.4.12:3390</span></div>
+      </div>
+      <div class="r open"><span class="chev"></span><svg class="ti"><use href="#i-folder"/></svg><span class="f">Staging</span><span class="cnt">2</span><span class="env stg">STG</span></div>
+      <div class="in">
+        <div class="r leaf"><span class="chev"></span><svg class="ti"><use href="#i-rdp"/></svg><span class="e">APP01-STG</span><span class="host">stg-app01.contoso.local</span></div>
+        <div class="r leaf"><span class="chev"></span><svg class="ti"><use href="#i-rdp"/></svg><span class="e">Jump host (external)</span><span class="host">jump.contoso.com</span></div>
+      </div>
+      <div class="r leaf"><span class="chev"></span><svg class="ti"><use href="#i-key"/></svg><span class="e">Local admin (workstations)</span></div>
+    </div>
+    <div class="details d">
+      <div class="crumb">Production  ·  RDP connection<span class="env prod">PROD</span></div>
+      <div style="display:flex;align-items:flex-start"><h1>APP02 – Reporting</h1><span class="pinbtn">★</span></div>
+      <div class="addr">srv-app02.contoso.local</div>
+      <div class="acts"><span class="btn accent">Connect as svc-admin</span><span class="btn"><svg class="bi"><use href="#i-copy"/></svg>Copy password</span><span class="btn"><svg class="bi"><use href="#i-copy"/></svg>Copy user</span><span class="btn">Edit<span class="kh">F2</span></span><span class="btn subtle">⋯</span></div>
+      <div class="sess"><div class="h">1 active session</div>
+        <div class="w">Connecting as CONTOSO\svc-admin takes over this session.</div>
+        <table><tr><th>User</th><th>Account</th><th>Machine</th><th>Since</th></tr>
+          <tr><td>Jane Doe</td><td class="mono" style="font-size:12px">CONTOSO\svc-admin</td><td class="mono" style="font-size:12px">PC-42</td><td>10:31</td></tr></table></div>
+      <div class="card"><div class="cap">CONNECTION</div><div class="kv">
+        <span class="k">Host</span><span class="v">srv-app02.contoso.local</span><span class="cp"><svg class=""><use href="#i-copy"/></svg></span>
+        <span class="k">Port</span><span class="v">3389</span><span></span>
+        <span class="k">User</span><span class="v">CONTOSO\svc-admin</span><span class="cp"><svg class=""><use href="#i-copy"/></svg></span>
+        <span class="k">Password</span><span class="v plain">•••••••• encrypted</span><span class="cp"><svg class=""><use href="#i-copy"/></svg></span></div></div>
+      <div class="card"><div class="cap">RDP PROFILE</div><div class="kv">
+        <span class="k">Display</span><span class="v sm">window · 1920×1080</span><span></span>
+        <span class="k">Redirect</span><span class="v sm">clipboard, drives</span><span></span>
+        <span class="k">Security</span><span class="v sm">warn if unverified</span><span></span>
+        <span class="k">Session</span><span class="v sm">admin</span><span></span></div></div>
+      <div class="card"><div class="cap">NOTES</div><div class="note">Reporting Services + SSRS portal. Maintenance window Sun 02:00–04:00.</div></div>
+      <div class="meta">Changed by <span class="mono">CONTOSO\alex.kim</span> · 10/27/2026 4:12 PM · version 14</div>
+    </div>
+  </div>
+  <div class="status2"><span class="msg2">15 entries</span><span class="use">2 in use</span><span class="st">Shared database · online · synced 10:42:15 AM</span></div>
+  <div class="scrim"></div>
+  <div class="palette">
+    <div class="q"><div class="tb focus">app0</div><svg><use href="#i-search"/></svg></div>
+    <div class="res">
+      <div class="it sel"><svg class="ti"><use href="#i-rdp"/></svg><div class="t"><div class="n">APP02 – Reporting<span class="star">★</span><span class="env prod">PROD</span></div><div class="s">srv-app02.contoso.local  ·  CONTOSO\svc-admin  ·  Production</div></div><span class="p">Jane Doe</span></div>
+      <div class="it"><svg class="ti"><use href="#i-rdp"/></svg><div class="t"><div class="n">APP01 – Line of business<span class="env prod">PROD</span></div><div class="s">srv-app01.contoso.local  ·  CONTOSO\svc-app  ·  Production</div></div></div>
+      <div class="it"><svg class="ti"><use href="#i-user"/></svg><div class="t"><div class="n">APP01 – Line of business<span class="env prod">PROD</span></div><div class="s">srv-app01.contoso.local  ·  CONTOSO\ops  ·  Production</div></div><span class="p">Sam Patel</span></div>
+      <div class="it"><svg class="ti"><use href="#i-rdp"/></svg><div class="t"><div class="n">APP01-STG<span class="env stg">STG</span></div><div class="s">stg-app01.contoso.local  ·  CONTOSO\svc-app  ·  Staging</div></div></div>
+    </div>
+    <div class="ft"><b>↑ ↓</b> move<b style="margin-left:18px">Enter</b> connect<b style="margin-left:18px">Shift+Enter</b> show in list<b style="margin-left:18px">Esc</b> close</div>
+  </div>
+</div></div>
 <!-- ============================================================ main window (offline) -->
 <div class="shot" id="offline"><div class="win" style="width:1100px;height:440px">
   <div class="titlebar"><img src="appicon.png"><span class="t">Remote Desktop Harbor 0.4.0</span><slot-caps></slot-caps></div>
   <div class="toolbar">
-    <div class="search2"><div class="tb typed">sql</div><svg class=""><use href="#i-search"/></svg><span class="kh">Ctrl+K</span></div>
-    <div class="btns"><span class="btn disabled"><svg class="bi"><use href="#i-plus"/></svg>New</span><span class="btn disabled"><svg class="bi"><use href="#i-import"/></svg>Import .rdp…</span><span class="btn"><svg class="bi"><use href="#i-refresh"/></svg>Refresh<span class="kh">F5</span></span></div>
-    <span class="who"><svg><use href="#i-user"/></svg>Alex Kim &lt;alex.kim@contoso.com&gt;<span class="btn subtle" style="width:34px;padding:0;margin-left:6px"><svg class="bi" style="margin:0;width:16px;height:16px"><use href="#i-gear"/></svg></span></span>
+    <div class="search2"><div class="tb typed">sql</div><svg class=""><use href="#i-search"/></svg><span class="kh">Ctrl+F</span></div>
+    <div class="btns"><span class="btn"><svg class="bi"><use href="#i-search"/></svg>Quick connect<span class="kh">Ctrl+K</span></span><span class="btn disabled"><svg class="bi"><use href="#i-plus"/></svg>New</span><span class="btn disabled"><svg class="bi"><use href="#i-import"/></svg>Import .rdp…</span><span class="btn"><svg class="bi"><use href="#i-refresh"/></svg>Refresh<span class="kh">F5</span></span></div>
+    <span class="who"><svg><use href="#i-user"/></svg><span style="max-width:220px;overflow:hidden;text-overflow:ellipsis">Alex Kim &lt;alex.kim@contoso.com&gt;</span><span class="btn subtle" style="width:34px;padding:0;margin-left:6px"><svg class="bi" style="margin:0;width:16px;height:16px"><use href="#i-gear"/></svg></span></span>
   </div>
   <div class="body">
     <div class="list tree">
@@ -304,7 +409,7 @@
       </div>
     </div>
     <div class="details d">
-      <div class="crumb">Production  ·  RDP connection</div>
+      <div class="crumb">Production  ·  RDP connection<span class="env prod">PROD</span></div>
       <h1>SQL01</h1>
       <div class="addr">sql01.contoso.local</div>
       <div class="acts"><span class="btn accent">Connect as sql-admin</span><span class="btn"><svg class="bi"><use href="#i-copy"/></svg>Copy password</span><span class="btn"><svg class="bi"><use href="#i-copy"/></svg>Copy user</span><span class="btn disabled">Edit<span class="kh">F2</span></span><span class="btn subtle">⋯</span></div>

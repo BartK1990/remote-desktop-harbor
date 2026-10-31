@@ -5,7 +5,9 @@ description: Keyboard shortcuts in the main window.
 
 | Shortcut | Action |
 |---|---|
-| <kbd>Ctrl</kbd>+<kbd>K</kbd> or <kbd>Ctrl</kbd>+<kbd>F</kbd> | Focus the search box |
+| <kbd>Ctrl</kbd>+<kbd>K</kbd> | [Quick connect](../connecting/#quick-connect): type, <kbd>Enter</kbd> connects, <kbd>Shift</kbd>+<kbd>Enter</kbd> only selects the entry, <kbd>Esc</kbd> closes |
+| <kbd>Ctrl</kbd>+<kbd>F</kbd> | Focus the search box (filters the list) |
+| <kbd>Ctrl</kbd>+<kbd>D</kbd> | Pin or unpin the selected entry |
 | <kbd>Ctrl</kbd>+<kbd>N</kbd> | New entry |
 | <kbd>Esc</kbd> (in the search box) | Clear the search |
 | <kbd>↓</kbd> (in the search box) | Move into the tree |
@@ -20,8 +22,9 @@ description: Keyboard shortcuts in the main window.
 | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd> | Copy the selected entry's host (`host:port` for a non-default port) |
 | <kbd>F5</kbd> | Sync with the shared database and refresh presence |
 
-The search box has focus when the app starts: type part of a name, press <kbd>↓</kbd> to move to the tree,
-pick the entry with the arrow keys and press <kbd>Enter</kbd> to connect. The main window shows each shortcut next
+The fastest way to connect is <kbd>Ctrl</kbd>+<kbd>K</kbd>, a few letters of the name, host or folder, and
+<kbd>Enter</kbd>. The search box has focus when the app starts: type part of a name, press <kbd>↓</kbd> to move to
+the tree, pick the entry with the arrow keys and press <kbd>Enter</kbd> to connect. The main window shows each shortcut next
 to its button.
 
 In the editor and settings dialogs, <kbd>Ctrl</kbd>+<kbd>S</kbd> (or <kbd>Enter</kbd>) saves, <kbd>Esc</kbd>

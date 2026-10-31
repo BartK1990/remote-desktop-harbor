@@ -17,7 +17,8 @@ public sealed partial class EntryViewModel : TreeNodeViewModel
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(Name), nameof(GroupName), nameof(Subtitle), nameof(KindLabel), nameof(HasPassword), nameof(CanLaunch),
-        nameof(HasAccounts), nameof(Address), nameof(IsCredentialOnly), nameof(RdpSummary), nameof(HasNotes))]
+        nameof(HasAccounts), nameof(Address), nameof(IsCredentialOnly), nameof(RdpSummary), nameof(HasNotes),
+        nameof(Environment), nameof(EnvironmentLabel))]
     private ConnectionEntry _model;
 
     [ObservableProperty]
@@ -44,6 +45,14 @@ public sealed partial class EntryViewModel : TreeNodeViewModel
 
     /// <summary>Host (and non-default port) shown in the tree row. SPEC FR-02</summary>
     public string? Address => Model.Address;
+
+    /// <summary>Environment derived from the folder (SPEC FR-49); <c>null</c> when no folder level names one.</summary>
+    public EnvironmentKind? Environment => EnvironmentTags.FromFolder(Model.Folder);
+
+    public string? EnvironmentLabel => Environment is { } kind ? EnvironmentTags.Label(kind) : null;
+
+    /// <summary>Pinned by this user (SPEC FR-50); set by the main view model from the settings.</summary>
+    [ObservableProperty] private bool _isPinned;
 
     public bool HasNotes => !string.IsNullOrWhiteSpace(Model.Notes);
 
@@ -96,7 +105,7 @@ public sealed partial class EntryViewModel : TreeNodeViewModel
         var n => $"{n} users",
     };
 
-    internal static string Describe(IEnumerable<ActiveSession> sessions) => string.Join(Environment.NewLine, sessions.Select(s =>
+    internal static string Describe(IEnumerable<ActiveSession> sessions) => string.Join(System.Environment.NewLine, sessions.Select(s =>
         $"{s.Describe()}{(s.AccountName is { } account ? $" as {account}" : "")} on {s.MachineName}, since {s.StartedUtc.ToLocalTime():t}"));
 
     /// <summary>The row for <paramref name="accountId"/> (<c>null</c> = default account), or <c>null</c> if it is gone.</summary>

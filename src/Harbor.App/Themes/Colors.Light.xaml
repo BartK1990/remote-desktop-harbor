@@ -8,4 +8,18 @@
   <SolidColorBrush x:Key="Harbor.OnlineBrush" Color="#0F7B0F" />
   <SolidColorBrush x:Key="Harbor.OfflineTextBrush" Color="#B54700" />
   <SolidColorBrush x:Key="Harbor.ErrorTextBrush" Color="#C42B1C" />
+  <!-- Quick connect palette (SPEC FR-48): dims the window behind an opaque panel. -->
+  <SolidColorBrush x:Key="Harbor.ScrimBrush" Color="#66000000" />
+  <SolidColorBrush x:Key="Harbor.PopupBackgroundBrush" Color="#FFFFFF" />
+  <!-- Environment tags (SPEC FR-49): text reaches 4.5:1 on its tag background. -->
+  <SolidColorBrush x:Key="Harbor.Env.Production.BackgroundBrush" Color="#FDE7E9" />
+  <SolidColorBrush x:Key="Harbor.Env.Production.ForegroundBrush" Color="#A4262C" />
+  <SolidColorBrush x:Key="Harbor.Env.Staging.BackgroundBrush" Color="#FFF4CE" />
+  <SolidColorBrush x:Key="Harbor.Env.Staging.ForegroundBrush" Color="#7A4F00" />
+  <SolidColorBrush x:Key="Harbor.Env.Test.BackgroundBrush" Color="#E5EFFA" />
+  <SolidColorBrush x:Key="Harbor.Env.Test.ForegroundBrush" Color="#0F548C" />
+  <SolidColorBrush x:Key="Harbor.Env.Development.BackgroundBrush" Color="#E3F4E8" />
+  <SolidColorBrush x:Key="Harbor.Env.Development.ForegroundBrush" Color="#0E6B2E" />
+  <SolidColorBrush x:Key="Harbor.Env.Lab.BackgroundBrush" Color="#F1EAFB" />
+  <SolidColorBrush x:Key="Harbor.Env.Lab.ForegroundBrush" Color="#6B3FA0" />
 </ResourceDictionary>

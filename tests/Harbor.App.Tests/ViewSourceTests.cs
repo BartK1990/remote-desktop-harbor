@@ -100,7 +100,7 @@ public class ViewSourceTests
         Assert.Empty(used.Except(defined));
     }
 
-    // SPEC FR-47, ADR-0026: the main window binds its shortcuts, and every shortcut shown on a button is bound.
+    // SPEC FR-47, FR-48, FR-50, ADR-0026, ADR-0028: the main window binds its shortcuts, and every shortcut shown on a button is bound.
     [Fact]
     public void Main_window_binds_the_shortcuts_it_shows()
     {
@@ -111,7 +111,7 @@ public class ViewSourceTests
 
         foreach (var (gesture, command) in new Dictionary<string, string>
                  {
-                     ["Ctrl+F"] = "FocusSearchCommand", ["Ctrl+K"] = "FocusSearchCommand", ["Ctrl+N"] = "AddCommand", ["F5"] = "RefreshCommand",
+                     ["Ctrl+F"] = "FocusSearchCommand", ["Ctrl+K"] = "OpenQuickConnectCommand", ["Ctrl+D"] = "TogglePinCommand", ["Ctrl+N"] = "AddCommand", ["F5"] = "RefreshCommand",
                      ["F2"] = "EditCommand", ["Ctrl+Shift+C"] = "CopyPasswordCommand", ["Ctrl+Shift+U"] = "CopyUserNameCommand",
                      ["Ctrl+Shift+H"] = "CopyHostCommand",
                  })

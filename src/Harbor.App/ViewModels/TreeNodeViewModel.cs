@@ -21,7 +21,14 @@ public abstract partial class TreeNodeViewModel : ObservableObject
 /// <summary>A folder of the entry tree. <see cref="Path"/> is its canonical path (see <c>FolderTree.Normalize</c>).</summary>
 public sealed partial class FolderViewModel(string path, Action<FolderViewModel> expandedChanged) : TreeNodeViewModel
 {
-    [ObservableProperty] private string _name = "";
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Environment), nameof(EnvironmentLabel))]
+    private string _name = "";
+
+    /// <summary>The environment this folder's own name stands for (SPEC FR-49); sub-folders do not repeat the tag.</summary>
+    public Harbor.Core.Model.EnvironmentKind? Environment => Harbor.Core.Model.EnvironmentTags.FromName(Name);
+
+    public string? EnvironmentLabel => Environment is { } kind ? Harbor.Core.Model.EnvironmentTags.Label(kind) : null;
 
     /// <summary>Entries in this folder and its sub-folders that match the current search.</summary>
     [ObservableProperty] private int _count;

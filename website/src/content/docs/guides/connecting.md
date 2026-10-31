@@ -10,6 +10,19 @@ from the arrow next to the button — to connect as that account; the entry row 
 Desktop client (`mstsc.exe`) opens as **its own normal window** — it is not embedded in Harbor, so you can move,
 full-screen or close it like any other Remote Desktop session.
 
+## Quick connect
+
+Press <kbd>Ctrl</kbd>+<kbd>K</kbd> (or click **Quick connect**) and type a few letters. Every word must match the
+name, host, user or folder, so `prod sql` finds the SQL servers in a *Production* folder. Results include each
+additional account of an entry, show the environment tag and who is connected, and list pinned and recently used
+entries first; with nothing typed, the palette shows your pinned and recent entries.
+
+- <kbd>↑</kbd>/<kbd>↓</kbd> pick a result, <kbd>Enter</kbd> (or a double-click) connects with it.
+- <kbd>Shift</kbd>+<kbd>Enter</kbd> only selects it in the list, e.g. to copy the password or edit it.
+- <kbd>Esc</kbd> or a click outside closes the palette.
+
+![Quick connect palette over the main window: the query "app0" with matching entries, one account row, environment tags and an in-use marker.](../../../assets/screenshots/quick-connect.png)
+
 ## What happens under the hood
 
 1. **A temporary `.rdp` file is built** in the data folder's `tmp` directory from:

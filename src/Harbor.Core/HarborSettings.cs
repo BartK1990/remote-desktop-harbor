@@ -88,4 +88,10 @@ public sealed class HarborSettings
 
     /// <summary>Canonical paths of the folders collapsed in the entry tree (SPEC FR-02); restored at start.</summary>
     public List<string> CollapsedFolders { get; set; } = [];
+
+    /// <summary>Entries this user pinned (SPEC FR-50); personal, never written to a shared database.</summary>
+    public List<Guid> PinnedEntryIds { get; set; } = [];
+
+    /// <summary>Entries this user connected to, most recent first, at most <see cref="Model.RecentList.Capacity"/> (SPEC FR-50).</summary>
+    public List<Guid> RecentEntryIds { get; set; } = [];
 }
