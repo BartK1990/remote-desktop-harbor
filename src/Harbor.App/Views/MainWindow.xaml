@@ -590,7 +590,8 @@
                   </Grid.RowDefinitions>
                   <TextBlock Text="Host" Style="{StaticResource Harbor.Text.Key}" />
                   <TextBox Grid.Column="1" Text="{Binding Model.Host, Mode=OneWay, TargetNullValue='—'}" IsReadOnly="True" BorderThickness="0"
-                           Background="Transparent" Padding="0" VerticalAlignment="Center" FontFamily="{StaticResource Harbor.MonoFont}" FontSize="13"
+                           Background="Transparent" Padding="0" MinHeight="0" VerticalAlignment="Center" VerticalContentAlignment="Center"
+                           FontFamily="{StaticResource Harbor.MonoFont}" FontSize="13"
                            AutomationProperties.Name="Host" />
                   <Button Grid.Column="2" Style="{StaticResource Harbor.CopyButton}" ToolTip="Copy host (Ctrl+Shift+H)" AutomationProperties.Name="Copy host"
                           Command="{Binding DataContext.CopyHostCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
@@ -601,7 +602,8 @@
                   <TextBlock Grid.Row="2" Text="User" Style="{StaticResource Harbor.Text.Key}" />
                   <TextBox Grid.Row="2" Grid.Column="1" DataContext="{Binding DataContext.SelectedAccount, RelativeSource={RelativeSource AncestorType=Window}}"
                            Text="{Binding QualifiedUserName, Mode=OneWay, TargetNullValue='—'}" IsReadOnly="True" BorderThickness="0" Background="Transparent"
-                           Padding="0" VerticalAlignment="Center" FontFamily="{StaticResource Harbor.MonoFont}" FontSize="13" AutomationProperties.Name="User" />
+                           Padding="0" MinHeight="0" VerticalAlignment="Center" VerticalContentAlignment="Center" FontFamily="{StaticResource Harbor.MonoFont}"
+                           FontSize="13" AutomationProperties.Name="User" />
                   <Button Grid.Row="2" Grid.Column="2" Style="{StaticResource Harbor.CopyButton}" ToolTip="Copy user (Ctrl+Shift+U)" AutomationProperties.Name="Copy user"
                           Command="{Binding DataContext.CopyUserNameCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
 

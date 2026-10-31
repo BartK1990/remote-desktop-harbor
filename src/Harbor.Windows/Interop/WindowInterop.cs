@@ -44,6 +44,31 @@ public static partial class WindowInterop
         TrackMouseEvent(ref request);
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    private struct WTA_OPTIONS
+    {
+        public uint dwFlags;
+        public uint dwMask;
+    }
+
+    private const int WTA_NONCLIENT = 1;
+    private const uint WTNCA_NODRAWCAPTION = 0x1, WTNCA_NODRAWICON = 0x2, WTNCA_NOSYSMENU = 0x4;
+
+    [LibraryImport("uxtheme.dll")]
+    private static partial int SetWindowThemeAttribute(nint hwnd, int attribute, ref WTA_OPTIONS options, uint size);
+
+    /// <summary>
+    /// Stops Windows from drawing its own caption, icon and caption buttons in a window whose frame is extended into
+    /// the client area (WindowChrome with <c>GlassFrameThickness=-1</c>); otherwise they show through under the app's
+    /// title bar. Resizing, snapping and the system menu (Alt+Space) are unaffected.
+    /// </summary>
+    public static void HideSystemCaption(nint hwnd)
+    {
+        var options = new WTA_OPTIONS { dwFlags = WTNCA_NODRAWCAPTION | WTNCA_NODRAWICON | WTNCA_NOSYSMENU };
+        options.dwMask = options.dwFlags;
+        _ = SetWindowThemeAttribute(hwnd, WTA_NONCLIENT, ref options, (uint)Marshal.SizeOf<WTA_OPTIONS>());
+    }
+
     /// <summary>Screen coordinates (device pixels) packed into a mouse message's <c>lParam</c>.</summary>
     public static (int X, int Y) ScreenPoint(nint lParam)
     {

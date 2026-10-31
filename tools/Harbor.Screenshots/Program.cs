@@ -141,6 +141,7 @@ internal static class Program
 
         // Main window with APP02 selected (quick connect, Shift+Enter only selects).
         Focus(main);
+        await Task.Delay(500);
         await ShotAsync("main", main, async () =>
         {
             await QuickSelectAsync("APP02");
@@ -297,12 +298,16 @@ internal static class Program
         throw new TimeoutException($"No dialog appeared for '{name}'.");
     }
 
-    // Windows only lets a process take the foreground while a key event is in flight; a lone Alt press provides one.
+    // Windows only lets a process take the foreground while it sent the last input; a Shift tap provides that. (Not
+    // Alt: an Alt tap enters the window menu mode, which swallows the next key — it lost Ctrl+K and F5 in CI.)
     private static void Focus(nint hwnd)
     {
-        Press(VkMenu);
-        SetForegroundWindow(hwnd);
-        Thread.Sleep(300);
+        for (var i = 0; i < 5 && GetForegroundWindow() != hwnd; i++)
+        {
+            Press(VkShift);
+            SetForegroundWindow(hwnd);
+            Thread.Sleep(300);
+        }
     }
 
     /// <summary>Copies the window's visible frame from the screen (it is in front) to <c>&lt;name&gt;.png</c>.</summary>

@@ -21,7 +21,8 @@ public partial class MessageWindow : Window
     public MessageWindow(string title, string message, MessageKind kind, string confirmText = "Yes", string cancelText = "No")
     {
         InitializeComponent();
-        Title = title;
+        // The heading names the question; the title bar (and taskbar) names the app, so it is not said twice.
+        Title = "Remote Desktop Harbor";
         Heading.Text = title;
         Message.Text = message;
 

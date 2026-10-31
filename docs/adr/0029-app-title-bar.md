@@ -45,3 +45,8 @@ Option 3.
   click from `WM_NCLBUTTONUP` (`WM_NCLBUTTONDOWN` is swallowed so Windows draws no classic button). Win32 bits live
   in `Harbor.Windows.Interop.WindowInterop`.
 * Message boxes got the same title bar later (ADR-0030).
+* With the frame extended into the whole window (`GlassFrameThickness=-1`) Windows still draws its own caption,
+  icon and caption buttons under the app's title bar (`UseAeroCaptionButtons=False` only stops them reacting); the
+  first real screenshots (ADR-0031) showed doubled buttons. `WindowInterop.HideSystemCaption` turns that drawing off
+  with `SetWindowThemeAttribute(WTA_NONCLIENT, NODRAWCAPTION | NODRAWICON | NOSYSMENU)`; Alt+Space, snapping and
+  resizing keep working.

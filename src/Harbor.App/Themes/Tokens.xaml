@@ -90,8 +90,18 @@
   </Style>
   <!-- Dialogs (SPEC FR-45, FR-46, ADR-0027): the TabControl keeps its keyboard behaviour (Ctrl+Tab, Ctrl+PgDn,
        arrow keys) but its tabs are drawn as a side navigation list. -->
+  <!-- Focus ring shown only when focus came from the keyboard (FocusVisualStyle), not after a mouse click. -->
+  <Style x:Key="Harbor.FocusRing">
+    <Setter Property="Control.Template">
+      <Setter.Value>
+        <ControlTemplate>
+          <Border CornerRadius="4" BorderThickness="2" BorderBrush="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,1" />
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
   <Style x:Key="Harbor.NavTab" TargetType="TabItem">
-    <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+    <Setter Property="FocusVisualStyle" Value="{StaticResource Harbor.FocusRing}" />
     <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
     <Setter Property="Template">
       <Setter.Value>
@@ -100,7 +110,6 @@
             <Border x:Name="Fill" CornerRadius="4" Background="Transparent" />
             <Border x:Name="Bar" Width="3" Height="16" CornerRadius="1.5" HorizontalAlignment="Left" Visibility="Collapsed"
                     Background="{DynamicResource AccentFillColorDefaultBrush}" />
-            <Border x:Name="Focus" CornerRadius="4" BorderThickness="2" BorderBrush="{DynamicResource TextFillColorPrimaryBrush}" Visibility="Collapsed" />
             <ContentPresenter ContentSource="Header" Margin="14,0,10,0" VerticalAlignment="Center" RecognizesAccessKey="True" />
           </Grid>
           <ControlTemplate.Triggers>
@@ -111,9 +120,6 @@
               <Setter TargetName="Fill" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
               <Setter TargetName="Bar" Property="Visibility" Value="Visible" />
               <Setter Property="FontWeight" Value="SemiBold" />
-            </Trigger>
-            <Trigger Property="IsKeyboardFocused" Value="True">
-              <Setter TargetName="Focus" Property="Visibility" Value="Visible" />
             </Trigger>
             <Trigger Property="IsEnabled" Value="False">
               <Setter Property="Opacity" Value="0.5" />
@@ -148,6 +154,7 @@
   <!-- A choice shown as a selectable card (title + description), e.g. the storage mode. -->
   <Style x:Key="Harbor.CardRadio" TargetType="RadioButton">
     <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+    <Setter Property="FocusVisualStyle" Value="{StaticResource Harbor.FocusRing}" />
     <Setter Property="HorizontalContentAlignment" Value="Stretch" />
     <Setter Property="Template">
       <Setter.Value>
@@ -164,9 +171,6 @@
               <Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
               <Setter TargetName="Card" Property="BorderThickness" Value="2" />
               <Setter TargetName="Card" Property="Padding" Value="12,9" />
-            </Trigger>
-            <Trigger Property="IsKeyboardFocused" Value="True">
-              <Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource TextFillColorPrimaryBrush}" />
             </Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>
