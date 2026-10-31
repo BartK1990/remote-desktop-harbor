@@ -45,6 +45,19 @@ internal static partial class Native
     [LibraryImport("user32.dll")]
     internal static partial nint GetForegroundWindow();
 
+    [LibraryImport("user32.dll", EntryPoint = "GetWindowTextW", StringMarshalling = StringMarshalling.Utf16)]
+    private static partial int GetWindowText(nint hwnd, [Out] char[] text, int max);
+
+    [LibraryImport("user32.dll")]
+    internal static partial int GetSystemMetrics(int index);
+
+    internal static string WindowTitle(nint hwnd)
+    {
+        var buffer = new char[256];
+        var length = GetWindowText(hwnd, buffer, buffer.Length);
+        return new string(buffer, 0, Math.Max(0, length));
+    }
+
     [LibraryImport("user32.dll")]
     internal static partial uint GetWindowThreadProcessId(nint hwnd, out uint processId);
 

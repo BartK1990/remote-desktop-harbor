@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Windows.Automation;
 using System.Windows.Interop;
 using System.Windows.Media.Imaging;
 using Harbor.App.Infrastructure;
@@ -81,8 +82,44 @@ internal static class Program
             if (!app.HasExited) app.Kill(entireProcessTree: true);
         }
 
+        if (Failures.Count > 0)
+        {
+            Step($"Failed: {string.Join(", ", Failures)} (screen captures in {DiagnosticsFolder})");
+            return 1;
+        }
+
         Step($"Done: {output}");
         return 0;
+    }
+
+    private static readonly List<string> Failures = [];
+    private static string DiagnosticsFolder => Path.Combine(AppPaths.DataDirectory, "logs");
+
+    /// <summary>
+    /// Runs one group of shots; a failure is recorded (with a capture of the whole screen and the foreground window's
+    /// title) and the next group still runs after Esc presses bring the app back to its main window.
+    /// </summary>
+    private static async Task ShotAsync(string name, nint main, Func<Task> shot)
+    {
+        try
+        {
+            await shot();
+        }
+        catch (Exception ex) when (ex is TimeoutException or InvalidOperationException or ElementNotAvailableException)
+        {
+            Failures.Add(name);
+            var foreground = GetForegroundWindow();
+            Step($"FAILED {name}: {ex.Message} Foreground window: '{WindowTitle(foreground)}'.");
+            Directory.CreateDirectory(DiagnosticsFolder);
+            await CaptureRectAsync(new Rect { Right = GetSystemMetrics(0), Bottom = GetSystemMetrics(1) }, DiagnosticsFolder, $"failed-{name}");
+            for (var i = 0; i < 3; i++)
+            {
+                Press(VkEscape);
+                await Task.Delay(400);
+            }
+
+            Focus(main);
+        }
     }
 
     private static async Task CaptureAllAsync(Process app, string output)
@@ -96,60 +133,104 @@ internal static class Program
 
         // Main window with APP02 selected (quick connect, Shift+Enter only selects).
         Focus(main);
-        await QuickSelectAsync("APP02");
-        await CaptureAsync(main, output, "main");
+        await ShotAsync("main", main, async () =>
+        {
+            await QuickSelectAsync("APP02");
+            await CaptureAsync(main, output, "main");
+        });
 
         // Quick connect palette.
-        Press(VkControl, 'K');
-        await Task.Delay(400);
-        Type("app0");
-        await Task.Delay(800);
-        await CaptureAsync(main, output, "quick-connect");
-        Press(VkEscape);
-        await Task.Delay(400);
+        await ShotAsync("quick-connect", main, async () =>
+        {
+            Press(VkControl, 'K');
+            await Task.Delay(400);
+            Type("app0");
+            await Task.Delay(800);
+            await CaptureAsync(main, output, "quick-connect");
+            Press(VkEscape);
+            await Task.Delay(400);
+        });
 
         // Connecting to APP02 as svc-admin would take over Jane's session: the app's confirmation (FR-33, FR-53).
-        await QuickSelectAsync("APP02");
-        Press(VkReturn);
-        await CaptureDialogAsync(app, output, "inuse");
-        Press(VkEscape); // Cancel is the default of a risky question
+        await ShotAsync("inuse", main, async () =>
+        {
+            await QuickSelectAsync("APP02");
+            Press(VkReturn);
+            await CaptureDialogAsync(app, output, "inuse");
+            Press(VkEscape); // Cancel is the default of a risky question
+            await WaitForForegroundAsync(main, "the main window after the question");
+        });
 
         // Entry editor: General, Accounts, Display.
-        await QuickSelectAsync("line of business");
-        Press(VkF2);
-        var editor = await CaptureDialogAsync(app, output, "editor");
-        Press(VkControl, VkTab);
-        await CaptureAsync(editor, output, "editor-accounts");
-        Press(VkControl, VkTab);
-        await CaptureAsync(editor, output, "editor-display");
-        Press(VkEscape);
-        await Task.Delay(600);
+        await ShotAsync("editor", main, async () =>
+        {
+            await QuickSelectAsync("line of business");
+            Press(VkF2);
+            var editor = await CaptureDialogAsync(app, output, "editor");
+            Press(VkControl, VkTab);
+            await CaptureAsync(editor, output, "editor-accounts");
+            Press(VkControl, VkTab);
+            await CaptureAsync(editor, output, "editor-display");
+            Press(VkEscape);
+            await WaitForForegroundAsync(main, "the main window after the editor");
+        });
 
-        // Settings: Storage, Shared vault, Sign-in, (Remote Desktop), Appearance.
-        Focus(main);
-        Press(VkControl, VkOemComma);
-        var settings = await CaptureDialogAsync(app, output, "settings");
-        Press(VkControl, VkTab);
-        await CaptureAsync(settings, output, "settings-vault");
-        Press(VkControl, VkTab);
-        await CaptureAsync(settings, output, "settings-signin");
-        Press(VkControl, VkTab);
-        Press(VkControl, VkTab);
-        await CaptureAsync(settings, output, "settings-appearance");
-        Press(VkEscape);
-        await Task.Delay(600);
+        // Settings: Storage, Shared vault, Sign-in, (Remote Desktop), Appearance. Opened with the toolbar button
+        // through UI Automation; Ctrl+, if the button cannot be found.
+        await ShotAsync("settings", main, async () =>
+        {
+            Focus(main);
+            var clicked = InvokeButton(main, "Settings");
+            Step(clicked ? "Opening Settings with its toolbar button" : "Settings button not found; pressing Ctrl+,");
+            if (!clicked) Press(VkControl, VkOemComma);
+            var settings = await CaptureDialogAsync(app, output, "settings");
+            Press(VkControl, VkTab);
+            await CaptureAsync(settings, output, "settings-vault");
+            Press(VkControl, VkTab);
+            await CaptureAsync(settings, output, "settings-signin");
+            Press(VkControl, VkTab);
+            Press(VkControl, VkTab);
+            await CaptureAsync(settings, output, "settings-appearance");
+            Press(VkEscape);
+            await WaitForForegroundAsync(main, "the main window after Settings");
+        });
 
         // Offline: take the demo database offline, refresh, search "sql" (FR-22). (Stopping LocalDB would not do:
         // it starts again on the next connection attempt.)
-        await SetDatabaseOfflineAsync();
-        Focus(main);
-        Press(VkF5);
-        await Task.Delay(8000);
-        Press(VkControl, 'F');
-        Type("sql");
-        await Task.Delay(500);
-        await QuickSelectAsync("SQL01");
-        await CaptureAsync(main, output, "offline");
+        await ShotAsync("offline", main, async () =>
+        {
+            await SetDatabaseOfflineAsync();
+            Focus(main);
+            Press(VkF5);
+            await Task.Delay(8000);
+            Press(VkControl, 'F');
+            Type("sql");
+            await Task.Delay(500);
+            await QuickSelectAsync("SQL01");
+            await CaptureAsync(main, output, "offline");
+        });
+    }
+
+    /// <summary>Clicks the button named <paramref name="name"/> (its AutomationProperties.Name) in the window.</summary>
+    private static bool InvokeButton(nint window, string name)
+    {
+        var button = AutomationElement.FromHandle(window).FindFirst(TreeScope.Descendants, new AndCondition(
+            new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Button),
+            new PropertyCondition(AutomationElement.NameProperty, name)));
+        if (button?.GetCurrentPattern(InvokePattern.Pattern) is not InvokePattern invoke) return false;
+        invoke.Invoke(); // WPF performs the click asynchronously, so a modal dialog does not block this call
+        return true;
+    }
+
+    private static async Task WaitForForegroundAsync(nint hwnd, string what)
+    {
+        for (var i = 0; i < 40; i++)
+        {
+            if (GetForegroundWindow() == hwnd) return;
+            await Task.Delay(250);
+        }
+
+        throw new TimeoutException($"Timed out waiting for {what}.");
     }
 
     private static async Task QuickSelectAsync(string query)
@@ -210,6 +291,11 @@ internal static class Program
             throw new InvalidOperationException($"Cannot read the bounds of the window for '{name}'.");
         }
 
+        await CaptureRectAsync(r, output, name);
+    }
+
+    private static async Task CaptureRectAsync(Rect r, string output, string name)
+    {
         int width = r.Right - r.Left, height = r.Bottom - r.Top;
         var screen = GetDC(0);
         var memory = CreateCompatibleDC(screen);
