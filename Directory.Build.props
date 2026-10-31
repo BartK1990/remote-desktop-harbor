@@ -9,6 +9,8 @@
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <Company>Remote Desktop Harbor</Company>
     <Product>Remote Desktop Harbor</Product>
+    <Copyright>Copyright (c) 2026 Bartosz Kuriata</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Version>0.1.0</Version>
     <Deterministic>true</Deterministic>
     <!-- Symbols inside the binaries: release folders contain only the exe. -->
