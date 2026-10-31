@@ -12,7 +12,7 @@ Start with the log: `logs\harbor.log` in the [data folder](../data-and-files/). 
   and paste it into the prompt.
 - Check that the entry has a **user name** — without one, no credential is handed over.
 - A reconnect started from the Remote Desktop window more than ~30 s after launch may prompt, because the
-  credential has already been removed. Enable **Settings → General → Keep the password…** if you need this.
+  credential has already been removed. Enable **Settings → Remote Desktop → Keep the password…** if you need this.
 
 ## Connect is disabled
 

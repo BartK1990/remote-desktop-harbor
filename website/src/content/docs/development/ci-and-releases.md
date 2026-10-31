@@ -32,6 +32,14 @@ git tag v0.2.0
 git push origin v0.2.0
 ```
 
+## Screenshots
+
+`.github/workflows/screenshots.yml` captures the screenshots in this documentation from the **real app** on
+`windows-latest`: [`tools/Harbor.Screenshots`](https://github.com/BartK1990/remote-desktop-harbor/tree/master/tools/Harbor.Screenshots)
+creates a demo shared database on SQL Server LocalDB, seeds a fictional catalog and two colleagues' sessions, starts
+the app in portable mode and drives it with the keyboard. Pull requests that touch the app get the images as the
+*screenshots* artifact; run the workflow by hand with **commit** to update `website/src/assets/screenshots/`.
+
 ## Documentation
 
 `.github/workflows/docs.yml` builds this site on pull requests that touch `website/`, and deploys it to GitHub Pages on

@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Input;
 using Harbor.App.ViewModels;
 
 namespace Harbor.App.Views;
@@ -14,6 +15,8 @@ public partial class SettingsWindow : Window
         DataContext = _viewModel = viewModel;
         DbPasswordBox.Password = viewModel.DbPassword ?? "";
         viewModel.PropertyChanged += ViewModel_PropertyChanged;
+        // Start in the section list, so arrows and Ctrl+Tab move between sections at once (SPEC FR-45).
+        Loaded += (_, _) => (Tabs.ItemContainerGenerator.ContainerFromItem(Tabs.SelectedItem) as UIElement ?? Tabs).Focus();
         Closed += (_, _) => viewModel.PropertyChanged -= ViewModel_PropertyChanged;
     }
 
@@ -27,6 +30,8 @@ public partial class SettingsWindow : Window
     }
 
     private void DbPasswordBox_PasswordChanged(object sender, RoutedEventArgs e) => _viewModel.DbPassword = DbPasswordBox.Password;
+
+    private void Save_Executed(object sender, ExecutedRoutedEventArgs e) => Save_Click(sender, e);
 
     private async void Save_Click(object sender, RoutedEventArgs e)
     {

@@ -1,18 +1,26 @@
 <Window x:Class="Harbor.App.Views.PassphraseWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="clr-namespace:Harbor.App.Views"
         Title="Shared vault passphrase" Width="440" SizeToContent="Height"
         Icon="/Assets/AppIcon.ico"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False" ResizeMode="NoResize">
-  <StackPanel Margin="16">
+  <!-- Own title bar with Close only (SPEC FR-52, ADR-0029). -->
+  <WindowChrome.WindowChrome>
+    <WindowChrome CaptionHeight="32" ResizeBorderThickness="6" GlassFrameThickness="-1" CornerRadius="0" UseAeroCaptionButtons="False" />
+  </WindowChrome.WindowChrome>
+  <StackPanel>
+  <views:TitleBar ShowMinimizeMaximize="False" />
+  <StackPanel Margin="16,8,16,16">
     <TextBlock x:Name="Prompt" TextWrapping="Wrap" />
     <PasswordBox x:Name="First" Margin="0,12,0,0" />
     <TextBlock x:Name="ConfirmLabel" Text="Repeat passphrase" Style="{StaticResource FieldLabel}" />
     <PasswordBox x:Name="Second" />
-    <TextBlock x:Name="ErrorText" Foreground="OrangeRed" Margin="0,8,0,0" TextWrapping="Wrap" />
+    <TextBlock x:Name="ErrorText" Style="{StaticResource Harbor.Text.Error}" Margin="0,8,0,0" />
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
       <Button Content="OK" IsDefault="True" Click="Ok_Click" Style="{DynamicResource AccentButtonStyle}" MinWidth="90" Margin="0,0,8,0" />
       <Button Content="Cancel" IsCancel="True" MinWidth="90" />
     </StackPanel>
+  </StackPanel>
   </StackPanel>
 </Window>

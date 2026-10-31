@@ -28,5 +28,12 @@ Process: see [spec/README.md](../spec/README.md).
 | [0020](0020-wpf-ui-library.md) | Fluent look with WPF UI (lepoco) instead of the built-in WPF Fluent theme | Superseded by 0021 |
 | [0021](0021-keep-built-in-fluent-theme.md) | Keep the built-in WPF Fluent theme (WPF UI reverted) | Accepted |
 | [0022](0022-rdp-settings-form.md) | RDP settings edited as a form over the stored `.rdp` text | Accepted |
-| [0023](0023-tabbed-settings-dialog.md) | Settings dialog on tabs with compact, paired fields | Accepted |
-| [0024](0024-tabbed-entry-editor.md) | Entry editor on tabs with compact, paired fields | Accepted |
+| [0023](0023-tabbed-settings-dialog.md) | Settings dialog on tabs with compact, paired fields | Accepted (amended by 0027) |
+| [0024](0024-tabbed-entry-editor.md) | Entry editor on tabs with compact, paired fields | Accepted (amended by 0027) |
+| [0025](0025-theme-tokens.md) | Harbor colour and type tokens on top of the built-in Fluent theme | Accepted |
+| [0026](0026-main-window-layout.md) | Main window laid out for keyboard-driven engineers | Accepted |
+| [0027](0027-side-navigation-dialogs.md) | Side navigation in the editor and Settings; theme chosen in Settings | Accepted |
+| [0028](0028-quick-connect-tags-pins.md) | Quick connect palette, environment tags from folder names, personal pins and recents | Accepted |
+| [0029](0029-app-title-bar.md) | The app draws its own narrow title bar; production entries ask before connecting | Accepted |
+| [0030](0030-app-message-box.md) | The app's own message box; risky confirmations default to Cancel | Accepted |
+| [0031](0031-screenshots-from-ci.md) | Documentation screenshots captured from the real app in CI | Accepted |

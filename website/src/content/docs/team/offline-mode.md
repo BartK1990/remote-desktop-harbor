@@ -13,7 +13,7 @@ from that copy.
 |---|---|
 | Start the app, browse, search | ✅ |
 | Connect to an entry | ✅ |
-| Copy user name / password | ✅ |
+| Copy user name / password / host | ✅ |
 | Create, import, edit, delete | ❌ disabled |
 | See who is connected | ❌ (no presence shown) |
 

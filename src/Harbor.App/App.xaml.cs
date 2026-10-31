@@ -27,7 +27,15 @@ public partial class App : Application
     private static void OnUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
         Log.Error("Unhandled exception", e.Exception);
-        MessageBox.Show(e.Exception.Message, "Remote Desktop Harbor", MessageBoxButton.OK, MessageBoxImage.Error);
+        try
+        {
+            MessageWindow.Show(Current?.MainWindow, "Something went wrong", e.Exception.Message, MessageKind.Error); // SPEC FR-53
+        }
+        catch (Exception)
+        {
+            // The app's own window could not be shown (e.g. resources broken); fall back to the system message box.
+            MessageBox.Show(e.Exception.Message, "Remote Desktop Harbor", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
         e.Handled = true;
     }
 }

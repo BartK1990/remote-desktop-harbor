@@ -27,6 +27,18 @@ public enum AppTheme
     Dark = 2,
 }
 
+/// <summary>Helpers for <see cref="AppTheme"/>. SPEC FR-08</summary>
+public static class AppThemeExtensions
+{
+    /// <summary>Whether <paramref name="theme"/> shows dark colours, given the current Windows app mode.</summary>
+    public static bool IsDark(this AppTheme theme, bool windowsUsesDarkMode) => theme switch
+    {
+        AppTheme.Light => false,
+        AppTheme.Dark => true,
+        _ => windowsUsesDarkMode,
+    };
+}
+
 /// <summary>User-editable app configuration, persisted as JSON in the data directory. See SPEC section 7.</summary>
 public sealed class HarborSettings
 {
@@ -71,9 +83,18 @@ public sealed class HarborSettings
     /// <summary>Keep the TERMSRV credential in Windows Credential Manager after launch (otherwise removed shortly after).</summary>
     public bool KeepCredentialAfterLaunch { get; set; }
 
+    /// <summary>Ask before connecting to an entry tagged PROD (SPEC FR-51, FR-49).</summary>
+    public bool ConfirmProductionConnect { get; set; } = true;
+
     /// <summary>Colour theme, chosen in the main toolbar and applied immediately (SPEC FR-08).</summary>
     public AppTheme Theme { get; set; } = AppTheme.System;
 
     /// <summary>Canonical paths of the folders collapsed in the entry tree (SPEC FR-02); restored at start.</summary>
     public List<string> CollapsedFolders { get; set; } = [];
+
+    /// <summary>Entries this user pinned (SPEC FR-50); personal, never written to a shared database.</summary>
+    public List<Guid> PinnedEntryIds { get; set; } = [];
+
+    /// <summary>Entries this user connected to, most recent first, at most <see cref="Model.RecentList.Capacity"/> (SPEC FR-50).</summary>
+    public List<Guid> RecentEntryIds { get; set; } = [];
 }

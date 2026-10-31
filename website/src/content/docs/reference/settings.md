@@ -3,30 +3,34 @@ title: Settings
 description: Every setting in the Settings dialog and settings.json.
 ---
 
-Open **Settings** from the toolbar. The dialog has four tabs: **Storage**, **Shared vault**, **Sign-in** and
-**General**. **Save** stores the settings of all tabs; a validation error is shown below the tabs whichever tab is
-open. After saving, the app offers to restart, because storage and sign-in changes take effect at startup.
+Open **Settings** with the gear button at the right of the toolbar. The sections are listed on the left:
+**Storage**, **Shared vault**, **Sign-in**, **Remote Desktop**, **Appearance** and **About**. **Save**
+(<kbd>Ctrl</kbd>+<kbd>S</kbd>) stores the settings of all sections; a validation error is shown at the bottom
+whichever section is open, and **Cancel** (<kbd>Esc</kbd>) discards everything. After saving, the app offers to
+restart when something besides the theme changed, because storage and sign-in changes take effect at startup.
 
 Settings are stored as JSON in `settings.json` in the [data folder](../data-and-files/). The remote connection string is
 DPAPI-protected for your Windows account, so a copied `settings.json` does not reveal it.
 
-## Storage tab
+## Storage
 
-![Settings, Storage tab: shared database sql01 / Harbor with a SQL Server login, Encrypt on, and a successful Test connection.](../../../assets/screenshots/settings.png)
+![Settings, Storage: the Shared database card selected; server sql01, database Harbor, SQL Server login, Encrypt on, the masked connection string preview and a successful Test connection.](../../../assets/screenshots/settings.png)
 
 | UI | JSON property | Default | Description |
 |---|---|---|---|
-| Local vault / Shared database | `StorageMode` | `Local` | `Local` — SQLite file on this computer. `Remote` — shared database with offline copy. |
+| **Local vault** / **Shared database** cards | `StorageMode` | `Local` | `Local` — SQLite file on this computer. `Remote` — shared database with offline copy. |
 | Provider | `RemoteProvider` | `SqlServer` | Registered database provider for the shared database. |
 | Server, Database name, Database sign-in, User name, Password, Encrypt, Trust server certificate | `RemoteConnectionStringProtected` | — | Built into a connection string, DPAPI-protected (base64). Edit it in the UI only. |
 | Edit as connection string (advanced) | (same) | off | Edit the raw connection string instead of the fields. Strings the fields cannot describe open here automatically. |
+| Connection string preview | (read-only) | — | The connection string the fields produce — what Test and Save use — with the password shown as `********`. |
 | Create the database if it does not exist | — (not stored) | off | On **Test connection** and **Save**, create the database if missing. Needs `CREATE DATABASE` rights. |
+| Test connection | — | — | Connects with the current fields; the result is shown in green (OK) or red (failed). |
 
-## Shared vault tab
+## Shared vault
 
 Used with a shared database only; disabled while *Local vault* is chosen.
 
-![Settings, Shared vault tab: vault key protection, schema auto-upgrade, sync interval and presence timings.](../../../assets/screenshots/settings-vault.png)
+![Settings, Shared vault: vault key protection, schema auto-upgrade, sync interval and presence timings.](../../../assets/screenshots/settings-vault.png)
 
 | UI | JSON property | Default | Description |
 |---|---|---|---|
@@ -38,9 +42,9 @@ Used with a shared database only; disabled while *Local vault* is chosen.
 | Presence timeout (s) | `PresenceTtlSeconds` | `120` | Lifetime of a presence record without heartbeat. |
 | Presence heartbeat (s) | `PresenceHeartbeatSeconds` | `45` | Refresh interval; must be ≤ half the timeout. |
 
-## Sign-in tab
+## Sign-in
 
-![Settings, Sign-in tab with “No sign-in” and a name.](../../../assets/screenshots/settings-signin.png)
+![Settings, Sign-in with “No sign-in” and a name.](../../../assets/screenshots/settings-signin.png)
 
 | UI | JSON property | Default | Description |
 |---|---|---|---|
@@ -49,30 +53,34 @@ Used with a shared database only; disabled while *Local vault* is chosen.
 | Tenant ID or domain | `EntraTenantId` | `organizations` | Tenant ID, domain, or `organizations`. |
 | Your name | `AnonymousName` | — | Required for *No sign-in*. Shown to others as “*name* (not signed in)” and in “Last changed by”. Not verified. |
 
-## General tab
-
-![Settings, General tab: Remote Desktop credential option, data folder and version.](../../../assets/screenshots/settings-general.png)
-
-### Remote Desktop
+## Remote Desktop
 
 | UI | JSON property | Default | Description |
 |---|---|---|---|
 | Keep the password in Windows Credential Manager after connecting | `KeepCredentialAfterLaunch` | `false` | Off: credential removed ~30 s after launch and never survives logoff. On: kept, so reconnects work without the app. |
+| Ask before connecting to a production (PROD) entry | `ConfirmProductionConnect` | `true` | Connecting to an entry in a *Production*/*Prod*/*PRD*/*Live* folder asks first. See [Production entries](../../guides/connecting/#production-entries). |
 
-### Data folder
+## Appearance
 
-Read-only. Shows where the app stores its data, with “(portable mode)” when [portable mode](../../getting-started/portable-mode/)
-is active.
+![Settings, Appearance: the theme choice System, Light and Dark.](../../../assets/screenshots/settings-appearance.png)
 
-### About
+| UI | JSON property | Default | Description |
+|---|---|---|---|
+| Theme: System / Light / Dark | `Theme` | `System` | *System* follows the Windows light/dark setting, also when it changes. The theme changes as soon as you pick it; **Save** keeps it without a restart, **Cancel** goes back. |
 
-Read-only. The app version and, when known, the build commit.
+## About
+
+Read-only. The app version and, when known, the build commit, and the data folder — where the app stores its data,
+with “(portable mode)” when [portable mode](../../getting-started/portable-mode/) is active. **Open** shows it in
+Explorer.
 
 ## Remembered by the main window
 
 | UI | JSON property | Default | Description |
 |---|---|---|---|
 | Folder arrows in the entry tree | `CollapsedFolders` | `[]` | Folders collapsed in the entry tree, restored at start. Written when the app closes. |
+| Pin (star, <kbd>Ctrl</kbd>+<kbd>D</kbd>) | `PinnedEntryIds` | `[]` | Ids of the entries you pinned. Personal: never written to the shared database. |
+| (connecting) | `RecentEntryIds` | `[]` | Ids of the last 10 entries you connected to, most recent first. Personal. |
 
 ## Validation
 
@@ -105,6 +113,10 @@ The dialog refuses to save when:
   "PresenceTtlSeconds": 120,
   "PresenceHeartbeatSeconds": 45,
   "KeepCredentialAfterLaunch": false,
-  "CollapsedFolders": [ "Lab" ]
+  "ConfirmProductionConnect": true,
+  "Theme": "System",
+  "CollapsedFolders": [ "Lab" ],
+  "PinnedEntryIds": [ "5b0c3f0e-2f63-4a5e-9a4f-1f0c2a8e7d11" ],
+  "RecentEntryIds": [ "5b0c3f0e-2f63-4a5e-9a4f-1f0c2a8e7d11", "c2a1f1d4-8e0b-4f7e-b7a1-3b6d2c9e4a20" ]
 }
 ```

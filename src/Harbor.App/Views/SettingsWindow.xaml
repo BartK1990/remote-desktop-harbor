@@ -1,45 +1,88 @@
 <Window x:Class="Harbor.App.Views.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Settings" Width="640" Height="640" MinWidth="520" MinHeight="420"
+        xmlns:views="clr-namespace:Harbor.App.Views"
+        xmlns:core="clr-namespace:Harbor.Core;assembly=Harbor.Core"
+        Title="Settings" Width="860" Height="640" MinWidth="700" MinHeight="460"
         Icon="/Assets/AppIcon.ico"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False" ResizeMode="CanResizeWithGrip">
+  <!-- Own title bar with Close only (SPEC FR-52, ADR-0029). -->
+  <WindowChrome.WindowChrome>
+    <WindowChrome CaptionHeight="32" ResizeBorderThickness="6" GlassFrameThickness="-1" CornerRadius="0" UseAeroCaptionButtons="False" />
+  </WindowChrome.WindowChrome>
+  <Window.InputBindings>
+    <KeyBinding Key="S" Modifiers="Ctrl" Command="ApplicationCommands.Save" />
+  </Window.InputBindings>
+  <Window.CommandBindings>
+    <CommandBinding Command="ApplicationCommands.Save" Executed="Save_Executed" />
+  </Window.CommandBindings>
   <Window.Resources>
-    <!-- SPEC FR-45: the Fluent scroll bar overlays the content, so every tab page keeps a right gutter for it. -->
-    <Style x:Key="TabPage" TargetType="StackPanel">
-      <Setter Property="Margin" Value="4,8,20,12" />
-    </Style>
-    <Style x:Key="TabScroller" TargetType="ScrollViewer">
-      <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
-      <Setter Property="HorizontalScrollBarVisibility" Value="Disabled" />
-    </Style>
-    <Style x:Key="Hint" TargetType="TextBlock">
-      <Setter Property="FontSize" Value="11" />
-      <Setter Property="Opacity" Value="0.6" />
-      <Setter Property="TextWrapping" Value="Wrap" />
-      <Setter Property="Margin" Value="0,4,0,0" />
-    </Style>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/Themes/Controls.xaml" />
+      </ResourceDictionary.MergedDictionaries>
+      <views:EnumToBooleanConverter x:Key="EnumToBool" />
+      <!-- SPEC FR-45: the Fluent scroll bar overlays the content, so every tab page keeps a right gutter for it. -->
+      <Style x:Key="TabPage" TargetType="StackPanel">
+        <Setter Property="Margin" Value="4,0,20,12" />
+      </Style>
+      <Style x:Key="TabScroller" TargetType="ScrollViewer">
+        <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
+        <Setter Property="HorizontalScrollBarVisibility" Value="Disabled" />
+      </Style>
+      <Style x:Key="Hint" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Margin" Value="0,4,0,0" />
+      </Style>
+    </ResourceDictionary>
   </Window.Resources>
 
-  <DockPanel Margin="16">
-    <StackPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
-      <TextBlock Text="{Binding Error}" Foreground="OrangeRed" TextWrapping="Wrap" Margin="0,0,0,8" />
-      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-        <Button Content="Save" IsDefault="True" Click="Save_Click" Style="{DynamicResource AccentButtonStyle}" MinWidth="90" Margin="0,0,8,0" />
-        <Button Content="Cancel" IsCancel="True" MinWidth="90" />
+  <DockPanel>
+  <views:TitleBar DockPanel.Dock="Top" ShowMinimizeMaximize="False" />
+  <DockPanel Margin="16,8,16,16">
+    <Grid DockPanel.Dock="Bottom" Margin="0,12,0,0">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
+      <TextBlock Text="{Binding Error}" Style="{StaticResource Harbor.Text.Error}" VerticalAlignment="Center" Margin="0,0,16,0" />
+      <StackPanel Grid.Column="1" Orientation="Horizontal">
+        <Button Content="Save" IsDefault="True" Click="Save_Click" Style="{DynamicResource AccentButtonStyle}" MinWidth="90" Margin="0,0,8,0" ToolTip="Save (Ctrl+S or Enter)" />
+        <Button Content="Cancel" IsCancel="True" MinWidth="90" ToolTip="Cancel (Esc); also undoes a theme preview" />
       </StackPanel>
-    </StackPanel>
+    </Grid>
 
-    <!-- SPEC FR-45: settings split into tabs instead of one long scrolling page. -->
-    <TabControl>
+    <!-- SPEC FR-45, ADR-0023, ADR-0027: settings split into tabs, drawn as a side navigation. -->
+    <TabControl x:Name="Tabs" Style="{StaticResource Harbor.NavTabControl}">
       <TabItem Header="Storage">
         <ScrollViewer Style="{StaticResource TabScroller}">
           <StackPanel Style="{StaticResource TabPage}">
             <!-- Each radio pair needs its own GroupName: radios in one panel otherwise form a single group. SPEC FR-26 -->
-            <RadioButton GroupName="Storage" Content="Local vault on this computer (SQLite)" IsChecked="{Binding IsLocal}" Margin="0,4" />
-            <RadioButton GroupName="Storage" Content="Shared database with offline copy" IsChecked="{Binding IsRemote}" Margin="0,4" />
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+              <RadioButton GroupName="Storage" Style="{StaticResource Harbor.CardRadio}" IsChecked="{Binding IsLocal}"
+                           AutomationProperties.Name="Local vault on this computer">
+                <StackPanel>
+                  <TextBlock Text="Local vault" Style="{StaticResource Harbor.Text.CardTitle}" />
+                  <TextBlock Text="SQLite on this computer, readable only by you on this computer." Style="{StaticResource Harbor.Text.CardDescription}" />
+                </StackPanel>
+              </RadioButton>
+              <RadioButton Grid.Column="2" GroupName="Storage" Style="{StaticResource Harbor.CardRadio}" IsChecked="{Binding IsRemote}"
+                           AutomationProperties.Name="Shared database with offline copy">
+                <StackPanel>
+                  <TextBlock Text="Shared database" Style="{StaticResource Harbor.Text.CardTitle}" />
+                  <TextBlock Text="Team catalog and presence, with an encrypted offline copy." Style="{StaticResource Harbor.Text.CardDescription}" />
+                </StackPanel>
+              </RadioButton>
+            </Grid>
 
-            <StackPanel Visibility="{Binding IsRemote, Converter={StaticResource BoolToVisibility}}" Margin="24,0,0,0">
+            <StackPanel Visibility="{Binding IsRemote, Converter={StaticResource BoolToVisibility}}" Margin="0,4,0,0">
               <TextBlock Text="Provider" Style="{StaticResource FieldLabel}" />
               <ComboBox ItemsSource="{Binding Providers}" SelectedItem="{Binding RemoteProvider}" Width="200" HorizontalAlignment="Left" />
 
@@ -53,12 +96,12 @@
                   </Grid.ColumnDefinitions>
                   <StackPanel Grid.Column="0">
                     <TextBlock Text="Server (name or IP address)" Style="{StaticResource FieldLabel}" />
-                    <TextBox Text="{Binding DbServer, UpdateSourceTrigger=PropertyChanged}"
+                    <TextBox Text="{Binding DbServer, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Harbor.MonoTextBox}" AutomationProperties.Name="Server"
                              ToolTip="e.g. 10.0.0.5, sql01, sql01\INSTANCE, 10.0.0.5,1433 or contoso.database.windows.net" />
                   </StackPanel>
                   <StackPanel Grid.Column="2">
                     <TextBlock Text="Database name" Style="{StaticResource FieldLabel}" />
-                    <TextBox Text="{Binding DbName, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBox Text="{Binding DbName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Harbor.MonoTextBox}" AutomationProperties.Name="Database name" />
                   </StackPanel>
                 </Grid>
                 <TextBlock Text="Database sign-in" Style="{StaticResource FieldLabel}" />
@@ -72,7 +115,7 @@
                   </Grid.ColumnDefinitions>
                   <StackPanel Grid.Column="0">
                     <TextBlock Text="User name" Style="{StaticResource FieldLabel}" />
-                    <TextBox Text="{Binding DbUserName, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBox Text="{Binding DbUserName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Harbor.MonoTextBox}" AutomationProperties.Name="Database user name" />
                   </StackPanel>
                   <StackPanel Grid.Column="2">
                     <TextBlock Text="Password" Style="{StaticResource FieldLabel}" />
@@ -84,13 +127,24 @@
                   <CheckBox Content="Trust the server certificate" IsChecked="{Binding DbTrustServerCertificate}"
                             ToolTip="For a self-signed certificate, e.g. when connecting by IP address." />
                 </WrapPanel>
+                <!-- What Test and Save use, generated from the fields; the password is masked (SPEC FR-45, NFR-12). -->
+                <Border Margin="0,10,0,0" Padding="10,6" CornerRadius="4" BorderThickness="1" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                        Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
+                  <StackPanel>
+                    <TextBlock Text="CONNECTION STRING · generated from the fields, password masked" Style="{StaticResource Harbor.Text.Caption}" />
+                    <TextBox Text="{Binding ConnectionStringPreview, Mode=OneWay, TargetNullValue='—'}" IsReadOnly="True" BorderThickness="0"
+                             Background="Transparent" Padding="0" TextWrapping="Wrap" FontFamily="{StaticResource Harbor.MonoFont}"
+                             FontSize="{StaticResource Harbor.FontSize.Mono}" AutomationProperties.Name="Connection string preview" />
+                  </StackPanel>
+                </Border>
               </StackPanel>
 
               <CheckBox Content="Edit as connection string (advanced)" IsChecked="{Binding EditRawConnectionString}" Margin="0,10,0,0"
                         Visibility="{Binding SupportsFields, Converter={StaticResource BoolToVisibility}}" />
               <StackPanel Visibility="{Binding EditRawConnectionString, Converter={StaticResource BoolToVisibility}}">
                 <TextBlock Text="Connection string" Style="{StaticResource FieldLabel}" />
-                <TextBox Text="{Binding ConnectionString, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" />
+                <TextBox Text="{Binding ConnectionString, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" Style="{StaticResource Harbor.MonoTextBox}"
+                         AutomationProperties.Name="Connection string" />
                 <TextBlock Style="{StaticResource Hint}"
                            Text="Examples: Server=sql01;Database=Harbor;Integrated Security=true;Encrypt=true  ·  Server=tcp:x.database.windows.net;Database=Harbor;Authentication=Active Directory Default" />
               </StackPanel>
@@ -102,7 +156,20 @@
                         IsChecked="{Binding CreateDatabaseIfMissing}" Margin="0,10,0,0" />
               <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                 <Button Content="Test connection" Command="{Binding TestConnectionCommand}" />
-                <TextBlock Text="{Binding TestResult}" Margin="12,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="360" />
+                <TextBlock Text="{Binding TestResult}" Margin="12,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="420">
+                  <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                      <Style.Triggers>
+                        <DataTrigger Binding="{Binding TestOk}" Value="True">
+                          <Setter Property="Foreground" Value="{DynamicResource Harbor.OnlineBrush}" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding TestOk}" Value="False">
+                          <Setter Property="Foreground" Value="{DynamicResource Harbor.ErrorTextBrush}" />
+                        </DataTrigger>
+                      </Style.Triggers>
+                    </Style>
+                  </TextBlock.Style>
+                </TextBlock>
               </StackPanel>
             </StackPanel>
           </StackPanel>
@@ -114,7 +181,7 @@
           <StackPanel Style="{StaticResource TabPage}">
             <TextBlock Style="{StaticResource Hint}" Margin="0,0,0,8"
                        Visibility="{Binding IsLocal, Converter={StaticResource BoolToVisibility}}"
-                       Text="These settings apply to a shared database only. Choose “Shared database with offline copy” on the Storage tab to use them." />
+                       Text="These settings apply to a shared database only. Choose the Shared database card under Storage to use them." />
 
             <StackPanel IsEnabled="{Binding IsRemote}">
               <TextBlock Text="Vault key protection" Style="{StaticResource SectionHeader}" Margin="0,0,0,4" />
@@ -123,7 +190,7 @@
               <TextBlock Style="{StaticResource Hint}" Margin="24,2,0,4"
                          Text="The vault key is saved in the database as is, so the passwords are only as safe as the database: anyone who can read it or a backup of it – including database administrators – can decrypt every stored password." />
               <RadioButton GroupName="KeyProtection" Content="Active Directory group (DPAPI-NG) – strongest" IsChecked="{Binding UseDpapiNg}" Margin="0,6,0,2" />
-              <TextBox Text="{Binding KeyDescriptor, UpdateSourceTrigger=PropertyChanged}" Margin="24,4,0,0"
+              <TextBox Text="{Binding KeyDescriptor, UpdateSourceTrigger=PropertyChanged}" Margin="24,4,0,0" Style="{StaticResource Harbor.MonoTextBox}"
                        IsEnabled="{Binding UseDpapiNg}" ToolTip="Protection descriptor of the group allowed to decrypt, e.g. SID=S-1-5-21-…-1234" />
               <TextBlock Style="{StaticResource Hint}" Margin="24,2,0,4"
                          Text="SID= followed by the SID of the AD security group whose members may open the vault, e.g. SID=S-1-5-21-1004336348-1177238915-682003330-5126. Find it with: Get-ADGroup &quot;RDP Vault Users&quot; | Select-Object -ExpandProperty SID" />
@@ -172,11 +239,11 @@
               </Grid.ColumnDefinitions>
               <StackPanel Grid.Column="0">
                 <TextBlock Text="Application (client) ID" Style="{StaticResource FieldLabel}" />
-                <TextBox Text="{Binding EntraClientId, UpdateSourceTrigger=PropertyChanged}" />
+                <TextBox Text="{Binding EntraClientId, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Harbor.MonoTextBox}" />
               </StackPanel>
               <StackPanel Grid.Column="2">
                 <TextBlock Text="Tenant ID or domain" Style="{StaticResource FieldLabel}" />
-                <TextBox Text="{Binding EntraTenantId, UpdateSourceTrigger=PropertyChanged}" />
+                <TextBox Text="{Binding EntraTenantId, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Harbor.MonoTextBox}" />
               </StackPanel>
             </Grid>
             <!-- SPEC FR-44 -->
@@ -191,22 +258,69 @@
         </ScrollViewer>
       </TabItem>
 
-      <TabItem Header="General">
+      <TabItem Header="Remote Desktop">
         <ScrollViewer Style="{StaticResource TabScroller}">
           <StackPanel Style="{StaticResource TabPage}">
-            <TextBlock Text="Remote Desktop" Style="{StaticResource SectionHeader}" Margin="0,0,0,4" />
             <CheckBox Content="Keep the password in Windows Credential Manager after connecting" IsChecked="{Binding KeepCredential}" Margin="0,4" />
             <TextBlock Style="{StaticResource Hint}"
                        Text="Off (default): the credential is removed ~30 s after Remote Desktop starts and never survives logoff. On: reconnects work without the app, but the password stays in Credential Manager." />
+            <!-- SPEC FR-51 -->
+            <CheckBox Content="Ask before connecting to a production (PROD) entry" IsChecked="{Binding ConfirmProductionConnect}" Margin="0,16,0,4" />
+            <TextBlock Style="{StaticResource Hint}"
+                       Text="Entries in a folder named Production, Prod, PRD or Live are tagged PROD. On (default): Connect asks first, so a production server is never opened by a slip of Enter." />
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
 
-            <TextBlock Text="Data folder" Style="{StaticResource SectionHeader}" />
-            <TextBox Text="{Binding DataDirectory, Mode=OneWay}" IsReadOnly="True" />
+      <!-- SPEC FR-08: the theme previews as soon as it is picked; Save keeps it (no restart), Cancel undoes it. -->
+      <TabItem Header="Appearance">
+        <ScrollViewer Style="{StaticResource TabScroller}">
+          <StackPanel Style="{StaticResource TabPage}">
+            <TextBlock Text="Theme" Style="{StaticResource FieldLabel}" Margin="0,0,0,6" />
+            <StackPanel Orientation="Horizontal" AutomationProperties.Name="Theme">
+              <RadioButton GroupName="Theme" Style="{StaticResource Harbor.Segment}" AutomationProperties.Name="System theme"
+                           IsChecked="{Binding Theme, Converter={StaticResource EnumToBool}, ConverterParameter={x:Static core:AppTheme.System}}">
+                <StackPanel Orientation="Horizontal">
+                  <TextBlock FontFamily="{StaticResource Harbor.IconFont}" Text="&#xE7F4;" VerticalAlignment="Center" Margin="0,0,8,0" />
+                  <TextBlock Text="System" />
+                </StackPanel>
+              </RadioButton>
+              <RadioButton GroupName="Theme" Style="{StaticResource Harbor.Segment}" AutomationProperties.Name="Light theme"
+                           IsChecked="{Binding Theme, Converter={StaticResource EnumToBool}, ConverterParameter={x:Static core:AppTheme.Light}}">
+                <StackPanel Orientation="Horizontal">
+                  <TextBlock FontFamily="{StaticResource Harbor.IconFont}" Text="&#xE706;" VerticalAlignment="Center" Margin="0,0,8,0" />
+                  <TextBlock Text="Light" />
+                </StackPanel>
+              </RadioButton>
+              <RadioButton GroupName="Theme" Style="{StaticResource Harbor.Segment}" AutomationProperties.Name="Dark theme"
+                           IsChecked="{Binding Theme, Converter={StaticResource EnumToBool}, ConverterParameter={x:Static core:AppTheme.Dark}}">
+                <StackPanel Orientation="Horizontal">
+                  <TextBlock FontFamily="{StaticResource Harbor.IconFont}" Text="&#xE708;" VerticalAlignment="Center" Margin="0,0,8,0" />
+                  <TextBlock Text="Dark" />
+                </StackPanel>
+              </RadioButton>
+            </StackPanel>
+            <TextBlock Style="{StaticResource Hint}"
+                       Text="System follows the Windows light/dark setting, also when it changes. The theme changes as soon as you pick it; Save keeps it, Cancel goes back." />
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
 
-            <TextBlock Text="About" Style="{StaticResource SectionHeader}" />
-            <TextBox Text="{Binding AboutText, Mode=OneWay}" IsReadOnly="True" BorderThickness="0" Background="Transparent" Padding="0" TextWrapping="Wrap" />
+      <TabItem Header="About">
+        <ScrollViewer Style="{StaticResource TabScroller}">
+          <StackPanel Style="{StaticResource TabPage}">
+            <TextBox Text="{Binding AboutText, Mode=OneWay}" IsReadOnly="True" BorderThickness="0" Background="Transparent" Padding="0" TextWrapping="Wrap"
+                     AutomationProperties.Name="Version" />
+            <TextBlock Text="Data folder" Style="{StaticResource FieldLabel}" Margin="0,16,0,4" />
+            <DockPanel>
+              <Button DockPanel.Dock="Right" Content="Open" Command="{Binding OpenDataFolderCommand}" Style="{StaticResource Harbor.Button}" Margin="8,0,0,0"
+                      ToolTip="Open the data folder (settings, local vault, logs) in Explorer" />
+              <TextBox Text="{Binding DataDirectory, Mode=OneWay}" IsReadOnly="True" Style="{StaticResource Harbor.MonoTextBox}" AutomationProperties.Name="Data folder" />
+            </DockPanel>
           </StackPanel>
         </ScrollViewer>
       </TabItem>
     </TabControl>
+  </DockPanel>
   </DockPanel>
 </Window>

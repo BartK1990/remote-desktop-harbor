@@ -48,11 +48,42 @@ public sealed partial class EntryEditorViewModel : ObservableValidator
     [ObservableProperty] private string? _domain;
     [ObservableProperty] private string? _userName;
     [ObservableProperty] private string? _notes;
-    [ObservableProperty] private bool _changePassword;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowStoredPassword), nameof(PasswordRemovalPending))]
+    private bool _changePassword;
+
     [ObservableProperty] private string? _error;
 
-    /// <summary>Set from the PasswordBox in code-behind (PasswordBox cannot bind).</summary>
-    public string Password { get; set; } = "";
+    /// <summary>Where the last validation error is (SPEC FR-46): the tab header and the field to focus.</summary>
+    public (string Tab, string Field)? ErrorLocation { get; private set; }
+
+    /// <summary>Set from the PasswordBox in code-behind (PasswordBox cannot bind); cleared by <see cref="RemovePasswordCommand"/>.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PasswordRemovalPending))]
+    private string _password = "";
+
+    /// <summary>The stored password is kept: the editor shows "Stored, encrypted" with Replace and Remove. SPEC FR-46</summary>
+    public bool ShowStoredPassword => HadPassword && !ChangePassword;
+
+    /// <summary>Saving now removes the stored password.</summary>
+    public bool PasswordRemovalPending => HadPassword && ChangePassword && Password.Length == 0;
+
+    [RelayCommand]
+    private void ReplacePassword() => ChangePassword = true;
+
+    [RelayCommand]
+    private void RemovePassword()
+    {
+        ChangePassword = true;
+        Password = "";
+    }
+
+    [RelayCommand]
+    private void KeepPassword()
+    {
+        Password = "";
+        ChangePassword = !HadPassword;
+    }
 
     /// <summary>The RDP settings form (SPEC FR-13); only used for RDP connections.</summary>
     public RdpSettingsEditorViewModel RdpSettings { get; }
@@ -95,14 +126,47 @@ public sealed partial class EntryEditorViewModel : ObservableValidator
 
     public bool Validate()
     {
-        Error = null;
-        if (string.IsNullOrWhiteSpace(Name)) Error = "Name is required.";
-        else if (IsRdpConnection && string.IsNullOrWhiteSpace(Host)) Error = "Host is required for an RDP connection.";
-        else if (Port is < 1 or > 65535) Error = "Port must be between 1 and 65535.";
-        else if (Accounts.Any(a => string.IsNullOrWhiteSpace(a.UserName))) Error = "Each additional account needs a user name.";
-        else if (DuplicateAccount() is { } duplicate) Error = $"The account {duplicate} is listed more than once.";
-        else if (IsRdpConnection && RdpSettings.Validate() is { } rdpError) Error = rdpError;
+        NormalizeFields();
+        (Error, ErrorLocation) = (null, null);
+        if (string.IsNullOrWhiteSpace(Name)) Fail("Name is required.", "General", "NameBox");
+        else if (IsRdpConnection && string.IsNullOrWhiteSpace(Host)) Fail("Host is required for an RDP connection.", "General", "HostBox");
+        else if (Port is < 1 or > 65535) Fail("Port must be between 1 and 65535.", "General", "PortBox");
+        else if (Accounts.Any(a => string.IsNullOrWhiteSpace(a.UserName))) Fail("Each additional account needs a user name.", "Accounts", "");
+        else if (DuplicateAccount() is { } duplicate) Fail($"The account {duplicate} is listed more than once.", "Accounts", "");
+        else if (IsRdpConnection && RdpSettings.Validate() is { } rdpError) Fail(rdpError, "Display", "");
         return Error is null;
+    }
+
+    private void Fail(string message, string tab, string field)
+    {
+        ErrorLocation = (tab, field);
+        Error = message;
+    }
+
+    /// <summary>
+    /// Splits what was pasted into one box (SPEC FR-46): <c>host:port</c> in Host (when Port still has the default, or
+    /// the same port) and <c>DOMAIN\user</c> in User name (when Domain is empty), for the entry and every account.
+    /// </summary>
+    private void NormalizeFields()
+    {
+        if (Host?.Trim() is { Length: > 0 } host && EntryInput.SplitHostPort(host) is (var h, { } p and >= 1 and <= 65535)
+            && (Port == ConnectionEntry.DefaultRdpPort || Port == p))
+        {
+            (Host, Port) = (h, p);
+        }
+
+        if (string.IsNullOrWhiteSpace(Domain) && UserName?.Trim() is { Length: > 0 } user && EntryInput.SplitDomainUser(user) is ({ } d, var u))
+        {
+            (Domain, UserName) = (d, u);
+        }
+
+        foreach (var account in Accounts)
+        {
+            if (string.IsNullOrWhiteSpace(account.Domain) && EntryInput.SplitDomainUser(account.UserName.Trim()) is ({ } ad, var au))
+            {
+                (account.Domain, account.UserName) = (ad, au);
+            }
+        }
     }
 
     private string? DuplicateAccount()
@@ -155,10 +219,26 @@ public sealed partial class AccountEditorViewModel : ObservableObject
 
     [ObservableProperty] private string? _domain;
     [ObservableProperty] private string _userName;
-    [ObservableProperty] private bool _changePassword;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowStoredPassword))]
+    private bool _changePassword;
 
     /// <summary>Set from the PasswordBox in code-behind (PasswordBox cannot bind).</summary>
     public string Password { get; set; } = "";
+
+    /// <summary>The stored password is kept: the row shows "Stored" with Replace. SPEC FR-46</summary>
+    public bool ShowStoredPassword => HadPassword && !ChangePassword;
+
+    [RelayCommand]
+    private void ReplacePassword() => ChangePassword = true;
+
+    [RelayCommand]
+    private void KeepPassword()
+    {
+        Password = "";
+        ChangePassword = false;
+    }
 
     public ConnectionAccount Build() => _original with
     {

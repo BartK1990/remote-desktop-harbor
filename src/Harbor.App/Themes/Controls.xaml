@@ -1,0 +1,42 @@
+<!-- Harbor control styles built on the Fluent control styles (BasedOn the implicit style of the control). They are
+     merged into each window's resources, not the application's: a window loads after the Fluent theme is in place,
+     so BasedOn resolves to the Fluent style. SPEC FR-08, ADR-0025, ADR-0027 -->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- Toolbar and action buttons: icon + label (+ shortcut). -->
+  <Style x:Key="Harbor.Button" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+    <Setter Property="Padding" Value="10,5" />
+    <Setter Property="Margin" Value="0,0,6,0" />
+  </Style>
+  <!-- Quiet button without a fill until hovered: icon-only actions and copy buttons. -->
+  <Style x:Key="Harbor.SubtleButton" TargetType="Button" BasedOn="{StaticResource Harbor.Button}">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+  <Style x:Key="Harbor.CopyButton" TargetType="Button" BasedOn="{StaticResource Harbor.SubtleButton}">
+    <Setter Property="Padding" Value="6,3" />
+    <Setter Property="Margin" Value="6,0,0,0" />
+    <Setter Property="FontFamily" Value="{StaticResource Harbor.IconFont}" />
+    <Setter Property="FontSize" Value="{StaticResource Harbor.FontSize.Mono}" />
+    <Setter Property="Content" Value="&#xE8C8;" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <!-- Segmented control: radio buttons drawn as joined toggle buttons (entry type, theme). -->
+  <Style x:Key="Harbor.Segment" TargetType="RadioButton" BasedOn="{StaticResource {x:Type ToggleButton}}">
+    <Setter Property="Padding" Value="14,5" />
+    <Setter Property="Margin" Value="0,0,2,0" />
+    <Setter Property="MinWidth" Value="0" />
+  </Style>
+  <!-- Small filter chip above the tree (All / In use / Pinned / Recent). -->
+  <Style x:Key="Harbor.Chip" TargetType="RadioButton" BasedOn="{StaticResource {x:Type ToggleButton}}">
+    <Setter Property="Padding" Value="10,2" />
+    <Setter Property="Margin" Value="0,0,4,0" />
+    <Setter Property="MinWidth" Value="0" />
+    <Setter Property="MinHeight" Value="0" />
+    <Setter Property="FontSize" Value="12" />
+  </Style>
+  <!-- Monospace text input (host, port, domain, user name, folder path). -->
+  <Style x:Key="Harbor.MonoTextBox" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+    <Setter Property="FontFamily" Value="{StaticResource Harbor.MonoFont}" />
+  </Style>
+</ResourceDictionary>
