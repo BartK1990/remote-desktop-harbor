@@ -189,9 +189,14 @@ internal static class Program
         await ShotAsync("settings", main, async () =>
         {
             Focus(main);
-            var clicked = InvokeButton(main, "Settings");
-            Step(clicked ? "Opening Settings with its toolbar button" : "Settings button not found; pressing Ctrl+,");
-            if (!clicked) Press(VkControl, VkOemComma);
+            // Ctrl+, first, so CI checks the shortcut; the toolbar button (UI Automation) if it does not open Settings.
+            Press(VkControl, VkOemComma);
+            if (!await WaitForDialogAsync(app, TimeSpan.FromSeconds(5)))
+            {
+                Step("WARNING: Ctrl+, did not open Settings; using its toolbar button");
+                InvokeButton(main, "Settings");
+            }
+
             var settings = await CaptureDialogAsync(app, output, "settings");
             Press(VkControl, VkTab);
             await CaptureAsync(settings, output, "settings-vault");
@@ -312,6 +317,19 @@ internal static class Program
         }
 
         throw new TimeoutException("The app's main window did not appear.");
+    }
+
+    private static async Task<bool> WaitForDialogAsync(Process app, TimeSpan timeout)
+    {
+        var until = DateTime.UtcNow + timeout;
+        while (DateTime.UtcNow < until)
+        {
+            await Task.Delay(250);
+            GetWindowThreadProcessId(GetForegroundWindow(), out var pid);
+            if (pid == app.Id && GetForegroundWindow() != app.MainWindowHandle) return true;
+        }
+
+        return false;
     }
 
     /// <summary>Waits for a window of the app (other than the main one) to come to the front and captures it.</summary>
