@@ -117,7 +117,7 @@
   #editor .l, #editor-accounts .l, #editor-display .l { font-size: 11px; opacity: .7; margin: 0 0 2px; }
 
   /* Main window layout (SPEC FR-47, ADR-0026): icon toolbar, details as cards, shortcuts next to actions. */
-  .toolbar .search2 { position: relative; width: 250px; }
+  .toolbar .search2 { position: relative; width: 360px; }
   .toolbar .search2 .tb { padding-left: 32px; padding-right: 64px; color: #8a8a8a; white-space: nowrap; overflow: hidden; }
   .toolbar .search2 .tb.typed { color: var(--text); }
   .toolbar .search2 > svg { position: absolute; left: 10px; top: 9px; width: 14px; height: 14px; stroke: var(--muted); fill: none; stroke-width: 1.4; }
@@ -214,6 +214,16 @@
   .palette .it .p::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--inuse); }
   .palette .ft { border-top: 1px solid var(--stroke); padding: 7px 14px; font-size: 11px; color: var(--muted); }
   .palette .ft b { font-family: "Cascadia Mono", "JetBrains Mono", Consolas, monospace; font-weight: 400; }
+
+  /* App title bar (SPEC FR-52, ADR-0029): 32 px, quick connect in the middle, the user on the right. */
+  .titlebar .t { flex: 0 1 auto; margin-right: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .titlebar .mid { flex: 1; display: flex; justify-content: center; min-width: 0; }
+  .titlebar .qcf { width: 340px; height: 24px; display: flex; align-items: center; gap: 8px; padding: 0 10px; border-radius: 4px;
+    background: var(--card); border: 1px solid var(--stroke); color: var(--muted); font-size: 12px; }
+  .titlebar .qcf svg { width: 12px; height: 12px; stroke: var(--muted); fill: none; stroke-width: 1.4; }
+  .titlebar .qcf .kh { margin-left: auto; }
+  .titlebar .usr { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; margin: 0 8px 0 12px; white-space: nowrap; }
+  .titlebar .usr svg { width: 12px; height: 12px; stroke: var(--muted); fill: none; stroke-width: 1.3; }
 </style>
 </head>
 <body>
@@ -255,11 +265,11 @@
 
 <!-- ============================================================ main window (online, shared DB) -->
 <div class="shot" id="main"><div class="win" style="width:1100px;height:745px">
-  <div class="titlebar"><img src="appicon.png"><span class="t">Remote Desktop Harbor 0.4.0</span><slot-caps></slot-caps></div>
+  <div class="titlebar"><img src="appicon.png"><span class="t">Remote Desktop Harbor 0.4.0</span><span class="mid"><span class="qcf"><svg><use href="#i-search"/></svg>Quick connect…<span class="kh">Ctrl+K</span></span></span><span class="usr"><svg><use href="#i-user"/></svg>Alex Kim &lt;alex.kim@contoso.com&gt;</span><slot-caps></slot-caps></div>
   <div class="toolbar">
     <div class="search2"><div class="tb focus"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Search name, host, user…</span></div><svg class=""><use href="#i-search"/></svg><span class="kh">Ctrl+F</span></div>
-    <div class="btns"><span class="btn"><svg class="bi"><use href="#i-search"/></svg>Quick connect<span class="kh">Ctrl+K</span></span><span class="btn"><svg class="bi"><use href="#i-plus"/></svg>New</span><span class="btn"><svg class="bi"><use href="#i-import"/></svg>Import .rdp…</span><span class="btn"><svg class="bi"><use href="#i-refresh"/></svg>Refresh<span class="kh">F5</span></span></div>
-    <span class="who"><svg><use href="#i-user"/></svg><span style="max-width:220px;overflow:hidden;text-overflow:ellipsis">Alex Kim &lt;alex.kim@contoso.com&gt;</span><span class="btn subtle" style="width:34px;padding:0;margin-left:6px"><svg class="bi" style="margin:0;width:16px;height:16px"><use href="#i-gear"/></svg></span></span>
+    <div class="btns"><span class="btn"><svg class="bi"><use href="#i-plus"/></svg>New</span><span class="btn"><svg class="bi"><use href="#i-import"/></svg>Import .rdp…</span><span class="btn"><svg class="bi"><use href="#i-refresh"/></svg>Refresh<span class="kh">F5</span></span></div>
+    <span class="who"><span class="btn subtle" style="width:34px;padding:0;margin-left:6px"><svg class="bi" style="margin:0;width:16px;height:16px"><use href="#i-gear"/></svg></span></span>
   </div>
   <div class="body">
     <div class="list tree">
@@ -320,11 +330,11 @@
 
 <!-- ============================================================ quick connect (SPEC FR-48) -->
 <div class="shot" id="quick-connect"><div class="win" style="width:1100px;height:620px;position:relative">
-  <div class="titlebar"><img src="appicon.png"><span class="t">Remote Desktop Harbor 0.4.0</span><slot-caps></slot-caps></div>
+  <div class="titlebar"><img src="appicon.png"><span class="t">Remote Desktop Harbor 0.4.0</span><span class="mid"><span class="qcf"><svg><use href="#i-search"/></svg>Quick connect…<span class="kh">Ctrl+K</span></span></span><span class="usr"><svg><use href="#i-user"/></svg>Alex Kim &lt;alex.kim@contoso.com&gt;</span><slot-caps></slot-caps></div>
   <div class="toolbar">
     <div class="search2"><div class="tb focus"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Search name, host, user…</span></div><svg class=""><use href="#i-search"/></svg><span class="kh">Ctrl+F</span></div>
-    <div class="btns"><span class="btn"><svg class="bi"><use href="#i-search"/></svg>Quick connect<span class="kh">Ctrl+K</span></span><span class="btn"><svg class="bi"><use href="#i-plus"/></svg>New</span><span class="btn"><svg class="bi"><use href="#i-import"/></svg>Import .rdp…</span><span class="btn"><svg class="bi"><use href="#i-refresh"/></svg>Refresh<span class="kh">F5</span></span></div>
-    <span class="who"><svg><use href="#i-user"/></svg><span style="max-width:220px;overflow:hidden;text-overflow:ellipsis">Alex Kim &lt;alex.kim@contoso.com&gt;</span><span class="btn subtle" style="width:34px;padding:0;margin-left:6px"><svg class="bi" style="margin:0;width:16px;height:16px"><use href="#i-gear"/></svg></span></span>
+    <div class="btns"><span class="btn"><svg class="bi"><use href="#i-plus"/></svg>New</span><span class="btn"><svg class="bi"><use href="#i-import"/></svg>Import .rdp…</span><span class="btn"><svg class="bi"><use href="#i-refresh"/></svg>Refresh<span class="kh">F5</span></span></div>
+    <span class="who"><span class="btn subtle" style="width:34px;padding:0;margin-left:6px"><svg class="bi" style="margin:0;width:16px;height:16px"><use href="#i-gear"/></svg></span></span>
   </div>
   <div class="body">
     <div class="list tree">
@@ -394,11 +404,11 @@
 </div></div>
 <!-- ============================================================ main window (offline) -->
 <div class="shot" id="offline"><div class="win" style="width:1100px;height:440px">
-  <div class="titlebar"><img src="appicon.png"><span class="t">Remote Desktop Harbor 0.4.0</span><slot-caps></slot-caps></div>
+  <div class="titlebar"><img src="appicon.png"><span class="t">Remote Desktop Harbor 0.4.0</span><span class="mid"><span class="qcf"><svg><use href="#i-search"/></svg>Quick connect…<span class="kh">Ctrl+K</span></span></span><span class="usr"><svg><use href="#i-user"/></svg>Alex Kim &lt;alex.kim@contoso.com&gt;</span><slot-caps></slot-caps></div>
   <div class="toolbar">
     <div class="search2"><div class="tb typed">sql</div><svg class=""><use href="#i-search"/></svg><span class="kh">Ctrl+F</span></div>
-    <div class="btns"><span class="btn"><svg class="bi"><use href="#i-search"/></svg>Quick connect<span class="kh">Ctrl+K</span></span><span class="btn disabled"><svg class="bi"><use href="#i-plus"/></svg>New</span><span class="btn disabled"><svg class="bi"><use href="#i-import"/></svg>Import .rdp…</span><span class="btn"><svg class="bi"><use href="#i-refresh"/></svg>Refresh<span class="kh">F5</span></span></div>
-    <span class="who"><svg><use href="#i-user"/></svg><span style="max-width:220px;overflow:hidden;text-overflow:ellipsis">Alex Kim &lt;alex.kim@contoso.com&gt;</span><span class="btn subtle" style="width:34px;padding:0;margin-left:6px"><svg class="bi" style="margin:0;width:16px;height:16px"><use href="#i-gear"/></svg></span></span>
+    <div class="btns"><span class="btn disabled"><svg class="bi"><use href="#i-plus"/></svg>New</span><span class="btn disabled"><svg class="bi"><use href="#i-import"/></svg>Import .rdp…</span><span class="btn"><svg class="bi"><use href="#i-refresh"/></svg>Refresh<span class="kh">F5</span></span></div>
+    <span class="who"><span class="btn subtle" style="width:34px;padding:0;margin-left:6px"><svg class="bi" style="margin:0;width:16px;height:16px"><use href="#i-gear"/></svg></span></span>
   </div>
   <div class="body">
     <div class="list tree">
@@ -424,7 +434,7 @@
 <!-- ============================================================ entry editor (one shot per tab shown in the docs, SPEC FR-46) -->
 <!-- Same entry as in the main window: APP01 with the default account svc-app and the extra account ops (SPEC FR-09). -->
 <div class="shot" id="editor"><div class="win" style="width:820px;height:600px">
-  <div class="titlebar"><img src="appicon.png"><span class="t">Edit – APP01 – Line of business</span><slot-caps></slot-caps></div>
+  <div class="titlebar"><img src="appicon.png"><span class="t">Edit – APP01 – Line of business</span><span style="flex:1"></span><slot-caps class="closeonly"></slot-caps></div>
   <div style="flex:1;display:flex;flex-direction:column;padding:16px;min-height:0">
     <div class="tabs"><span class="tab on">General</span><span class="tab">Accounts</span><span class="tab">Display</span><span class="tab">Local resources</span><span class="tab">Connection</span></div>
     <div class="tabpage">
@@ -447,7 +457,7 @@
 </div></div>
 
 <div class="shot" id="editor-accounts"><div class="win" style="width:820px;height:600px">
-  <div class="titlebar"><img src="appicon.png"><span class="t">Edit – APP01 – Line of business</span><slot-caps></slot-caps></div>
+  <div class="titlebar"><img src="appicon.png"><span class="t">Edit – APP01 – Line of business</span><span style="flex:1"></span><slot-caps class="closeonly"></slot-caps></div>
   <div style="flex:1;display:flex;flex-direction:column;padding:16px;min-height:0">
     <div class="tabs"><span class="tab">General</span><span class="tab on">Accounts</span><span class="tab">Display</span><span class="tab">Local resources</span><span class="tab">Connection</span></div>
     <div class="tabpage">
@@ -467,7 +477,7 @@
 </div></div>
 
 <div class="shot" id="editor-display"><div class="win" style="width:820px;height:600px">
-  <div class="titlebar"><img src="appicon.png"><span class="t">Edit – APP01 – Line of business</span><slot-caps></slot-caps></div>
+  <div class="titlebar"><img src="appicon.png"><span class="t">Edit – APP01 – Line of business</span><span style="flex:1"></span><slot-caps class="closeonly"></slot-caps></div>
   <div style="flex:1;display:flex;flex-direction:column;padding:16px;min-height:0">
     <div class="tabs"><span class="tab">General</span><span class="tab">Accounts</span><span class="tab on">Display</span><span class="tab">Local resources</span><span class="tab">Connection</span></div>
     <div class="tabpage">
@@ -486,7 +496,7 @@
 
 <!-- ============================================================ settings (one shot per tab, SPEC FR-45) -->
 <div class="shot" id="settings"><div class="win" style="width:860px;height:720px">
-  <div class="titlebar"><img src="appicon.png"><span class="t">Settings</span><slot-caps></slot-caps></div>
+  <div class="titlebar"><img src="appicon.png"><span class="t">Settings</span><span style="flex:1"></span><slot-caps class="closeonly"></slot-caps></div>
   <div style="flex:1;display:flex;flex-direction:column;padding:16px;min-height:0">
     <div class="tabs"><span class="tab on">Storage</span><span class="tab">Shared vault</span><span class="tab">Sign-in</span><span class="tab">Remote Desktop</span><span class="tab">Appearance</span><span class="tab">About</span></div>
     <div class="tabpage">
@@ -517,7 +527,7 @@
 </div></div>
 
 <div class="shot" id="settings-vault"><div class="win" style="width:860px;height:600px">
-  <div class="titlebar"><img src="appicon.png"><span class="t">Settings</span><slot-caps></slot-caps></div>
+  <div class="titlebar"><img src="appicon.png"><span class="t">Settings</span><span style="flex:1"></span><slot-caps class="closeonly"></slot-caps></div>
   <div style="flex:1;display:flex;flex-direction:column;padding:16px;min-height:0">
     <div class="tabs"><span class="tab">Storage</span><span class="tab on">Shared vault</span><span class="tab">Sign-in</span><span class="tab">Remote Desktop</span><span class="tab">Appearance</span><span class="tab">About</span></div>
     <div class="tabpage">
@@ -543,7 +553,7 @@
 </div></div>
 
 <div class="shot" id="settings-signin"><div class="win" style="width:860px;height:600px">
-  <div class="titlebar"><img src="appicon.png"><span class="t">Settings</span><slot-caps></slot-caps></div>
+  <div class="titlebar"><img src="appicon.png"><span class="t">Settings</span><span style="flex:1"></span><slot-caps class="closeonly"></slot-caps></div>
   <div style="flex:1;display:flex;flex-direction:column;padding:16px;min-height:0">
     <div class="tabs"><span class="tab">Storage</span><span class="tab">Shared vault</span><span class="tab on">Sign-in</span><span class="tab">Remote Desktop</span><span class="tab">Appearance</span><span class="tab">About</span></div>
     <div class="tabpage">
@@ -561,7 +571,7 @@
 </div></div>
 
 <div class="shot" id="settings-appearance"><div class="win" style="width:860px;height:600px">
-  <div class="titlebar"><img src="appicon.png"><span class="t">Settings</span><slot-caps></slot-caps></div>
+  <div class="titlebar"><img src="appicon.png"><span class="t">Settings</span><span style="flex:1"></span><slot-caps class="closeonly"></slot-caps></div>
   <div style="flex:1;display:flex;flex-direction:column;padding:16px;min-height:0">
     <div class="tabs"><span class="tab">Storage</span><span class="tab">Shared vault</span><span class="tab">Sign-in</span><span class="tab">Remote Desktop</span><span class="tab on">Appearance</span><span class="tab">About</span></div>
     <div class="tabpage">

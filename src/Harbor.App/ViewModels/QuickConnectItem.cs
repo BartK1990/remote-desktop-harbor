@@ -9,6 +9,15 @@ public enum TreeFilter
     Recent,
 }
 
+/// <summary>What a shortcut in the quick connect palette does with the highlighted result. SPEC FR-48</summary>
+public enum QuickAction
+{
+    CopyPassword,
+    CopyUserName,
+    CopyHost,
+    Edit,
+}
+
 /// <summary>
 /// One result of the quick connect palette (SPEC FR-48): an entry, or one of its additional accounts.
 /// </summary>

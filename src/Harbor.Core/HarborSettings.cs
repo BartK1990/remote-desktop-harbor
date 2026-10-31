@@ -83,6 +83,9 @@ public sealed class HarborSettings
     /// <summary>Keep the TERMSRV credential in Windows Credential Manager after launch (otherwise removed shortly after).</summary>
     public bool KeepCredentialAfterLaunch { get; set; }
 
+    /// <summary>Ask before connecting to an entry tagged PROD (SPEC FR-51, FR-49).</summary>
+    public bool ConfirmProductionConnect { get; set; } = true;
+
     /// <summary>Colour theme, chosen in the main toolbar and applied immediately (SPEC FR-08).</summary>
     public AppTheme Theme { get; set; } = AppTheme.System;
 

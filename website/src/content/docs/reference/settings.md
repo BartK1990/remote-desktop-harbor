@@ -58,6 +58,7 @@ Used with a shared database only; disabled while *Local vault* is chosen.
 | UI | JSON property | Default | Description |
 |---|---|---|---|
 | Keep the password in Windows Credential Manager after connecting | `KeepCredentialAfterLaunch` | `false` | Off: credential removed ~30 s after launch and never survives logoff. On: kept, so reconnects work without the app. |
+| Ask before connecting to a production (PROD) entry | `ConfirmProductionConnect` | `true` | Connecting to an entry in a *Production*/*Prod*/*PRD*/*Live* folder asks first. See [Production entries](../../guides/connecting/#production-entries). |
 
 ## Appearance
 
@@ -112,6 +113,7 @@ The dialog refuses to save when:
   "PresenceTtlSeconds": 120,
   "PresenceHeartbeatSeconds": 45,
   "KeepCredentialAfterLaunch": false,
+  "ConfirmProductionConnect": true,
   "Theme": "System",
   "CollapsedFolders": [ "Lab" ],
   "PinnedEntryIds": [ "5b0c3f0e-2f63-4a5e-9a4f-1f0c2a8e7d11" ],

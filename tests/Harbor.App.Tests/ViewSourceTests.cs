@@ -70,6 +70,7 @@ public class ViewSourceTests
     [InlineData("EntryEditorWindow.xaml")]
     [InlineData("SettingsWindow.xaml")]
     [InlineData("PassphraseWindow.xaml")]
+    [InlineData("TitleBar.xaml")]
     public void Views_do_not_hard_code_colours(string view)
     {
         var colourProperties = new[] { "Foreground", "Background", "BorderBrush", "Fill", "Stroke" };
@@ -147,6 +148,23 @@ public class ViewSourceTests
             r => (string?)r.Attribute("GroupName") == "Theme");
         Assert.Equal(3, XDocument.Load(Source("SettingsWindow.xaml")).Descendants(Wpf + "RadioButton")
             .Count(r => (string?)r.Attribute("GroupName") == "Theme"));
+    }
+
+    // SPEC FR-52, ADR-0029: every window draws the app's 32 px title bar over a WindowChrome frame; dialogs show Close only.
+    [Theory]
+    [InlineData("MainWindow.xaml", true)]
+    [InlineData("EntryEditorWindow.xaml", false)]
+    [InlineData("SettingsWindow.xaml", false)]
+    [InlineData("PassphraseWindow.xaml", false)]
+    public void Windows_use_the_app_title_bar(string view, bool minimizeMaximize)
+    {
+        XNamespace views = "clr-namespace:Harbor.App.Views";
+        var doc = XDocument.Load(Source(view));
+        var chrome = Assert.Single(doc.Root!.Element(Wpf + "WindowChrome.WindowChrome")!.Elements(Wpf + "WindowChrome"));
+        Assert.Equal("32", (string?)chrome.Attribute("CaptionHeight"));
+        Assert.Equal("False", (string?)chrome.Attribute("UseAeroCaptionButtons"));
+        var bar = Assert.Single(doc.Descendants(views + "TitleBar"));
+        Assert.Equal(minimizeMaximize ? null : "False", (string?)bar.Attribute("ShowMinimizeMaximize"));
     }
 
     // Closing the main window: Close() inside the Closing event throws

@@ -118,6 +118,30 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         if (ConnectCommand.CanExecute(null)) await ConnectCommand.ExecuteAsync(null);
     }
 
+    /// <summary>
+    /// Copy or edit shortcuts in the palette (SPEC FR-48): select the highlighted result, close the palette and run the
+    /// action on it.
+    /// </summary>
+    public async Task RunQuickActionAsync(QuickAction action)
+    {
+        if (!RevealQuickResult()) return;
+        switch (action)
+        {
+            case QuickAction.CopyPassword when CopyPasswordCommand.CanExecute(null):
+                CopyPasswordCommand.Execute(null);
+                break;
+            case QuickAction.CopyUserName when CopyUserNameCommand.CanExecute(null):
+                CopyUserNameCommand.Execute(null);
+                break;
+            case QuickAction.CopyHost when CopyHostCommand.CanExecute(null):
+                CopyHostCommand.Execute(null);
+                break;
+            case QuickAction.Edit when EditCommand.CanExecute(null):
+                await EditCommand.ExecuteAsync(null);
+                break;
+        }
+    }
+
     /// <summary>Shift+Enter in the palette: only select the result in the tree.</summary>
     [RelayCommand]
     private void QuickConnectReveal() => RevealQuickResult();
@@ -517,8 +541,17 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         // SPEC FR-33: hosts that allow several sessions (e.g. Windows Server) let other accounts connect side by side;
         // only someone using the same account (or an unknown one) would be disconnected.
         var conflicts = vm.ActiveSessions.TakenOverBy(accountName);
+        // SPEC FR-51: one question at most – the takeover warning mentions production too.
+        var production = vm.Environment == EnvironmentKind.Production;
+        var prodNote = production ? $"{Environment.NewLine}{Environment.NewLine}{entry.Name} is a production (PROD) entry." : "";
         if (conflicts.Count > 0 && !_dialogs.Confirm("Connection in use",
-                $"{EntryViewModel.Describe(conflicts)}{Environment.NewLine}{Environment.NewLine}Connect anyway? This may disconnect the other user."))
+                $"{EntryViewModel.Describe(conflicts)}{prodNote}{Environment.NewLine}{Environment.NewLine}Connect anyway? This may disconnect the other user."))
+        {
+            return;
+        }
+
+        if (conflicts.Count == 0 && production && Settings.ConfirmProductionConnect && !_dialogs.Confirm("Production entry",
+                $"{entry.Name} is in {vm.GroupName} (PROD).{Environment.NewLine}{Environment.NewLine}Connect{(accountName is null ? "" : $" as {accountName}")}?"))
         {
             return;
         }

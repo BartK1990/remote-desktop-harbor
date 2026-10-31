@@ -5,7 +5,7 @@ description: Keyboard shortcuts in the main window.
 
 | Shortcut | Action |
 |---|---|
-| <kbd>Ctrl</kbd>+<kbd>K</kbd> | [Quick connect](../connecting/#quick-connect): type, <kbd>Enter</kbd> connects, <kbd>Shift</kbd>+<kbd>Enter</kbd> only selects the entry, <kbd>Esc</kbd> closes |
+| <kbd>Ctrl</kbd>+<kbd>K</kbd> | [Quick connect](../connecting/#quick-connect): type, <kbd>Enter</kbd> connects, <kbd>Shift</kbd>+<kbd>Enter</kbd> only selects the entry, <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd>/<kbd>U</kbd>/<kbd>H</kbd> copy password/user/host, <kbd>F2</kbd> edits, <kbd>Esc</kbd> closes |
 | <kbd>Ctrl</kbd>+<kbd>F</kbd> | Focus the search box (filters the list) |
 | <kbd>Ctrl</kbd>+<kbd>D</kbd> | Pin or unpin the selected entry |
 | <kbd>Ctrl</kbd>+<kbd>N</kbd> | New entry |

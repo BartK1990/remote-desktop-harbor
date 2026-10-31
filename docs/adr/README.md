@@ -34,3 +34,4 @@ Process: see [spec/README.md](../spec/README.md).
 | [0026](0026-main-window-layout.md) | Main window laid out for keyboard-driven engineers | Accepted |
 | [0027](0027-side-navigation-dialogs.md) | Side navigation in the editor and Settings; theme chosen in Settings | Accepted |
 | [0028](0028-quick-connect-tags-pins.md) | Quick connect palette, environment tags from folder names, personal pins and recents | Accepted |
+| [0029](0029-app-title-bar.md) | The app draws its own narrow title bar; production entries ask before connecting | Accepted |

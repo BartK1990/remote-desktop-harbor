@@ -184,4 +184,52 @@
   </Style>
 
 
+  <!-- Caption buttons of the app's title bar (SPEC FR-52): 46 × 32, Segoe Fluent Icons, like the system's. -->
+  <Style x:Key="Harbor.CaptionButton" TargetType="Button">
+    <Setter Property="Width" Value="46" />
+    <Setter Property="Height" Value="32" />
+    <Setter Property="Focusable" Value="False" />
+    <Setter Property="FontFamily" Value="{StaticResource Harbor.IconFont}" />
+    <Setter Property="FontSize" Value="10" />
+    <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Button">
+          <Border x:Name="Fill" Background="{TemplateBinding Background}">
+            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Fill" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+              <Setter TargetName="Fill" Property="Background" Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+  <Style x:Key="Harbor.CaptionCloseButton" TargetType="Button" BasedOn="{StaticResource Harbor.CaptionButton}">
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Button">
+          <Border x:Name="Fill" Background="{TemplateBinding Background}">
+            <ContentPresenter x:Name="Glyph" HorizontalAlignment="Center" VerticalAlignment="Center" />
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Fill" Property="Background" Value="{DynamicResource Harbor.CaptionCloseHoverBrush}" />
+              <Setter Property="Foreground" Value="{DynamicResource Harbor.CaptionCloseForegroundBrush}" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+              <Setter TargetName="Fill" Property="Background" Value="{DynamicResource Harbor.CaptionClosePressedBrush}" />
+              <Setter Property="Foreground" Value="{DynamicResource Harbor.CaptionCloseForegroundBrush}" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
 </ResourceDictionary>

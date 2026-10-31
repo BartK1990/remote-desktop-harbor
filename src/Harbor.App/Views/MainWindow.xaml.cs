@@ -65,6 +65,18 @@ public partial class MainWindow : Window
             case Key.Escape:
                 _viewModel.CloseQuickConnectCommand.Execute(null);
                 break;
+            // Copy or edit the highlighted result without connecting (SPEC FR-48).
+            case Key.C or Key.U or Key.H when Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift):
+                _ = _viewModel.RunQuickActionAsync(e.Key switch
+                {
+                    Key.C => QuickAction.CopyPassword,
+                    Key.U => QuickAction.CopyUserName,
+                    _ => QuickAction.CopyHost,
+                });
+                break;
+            case Key.F2:
+                _ = _viewModel.RunQuickActionAsync(QuickAction.Edit);
+                break;
             default:
                 return;
         }

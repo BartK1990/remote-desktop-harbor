@@ -6,6 +6,10 @@
         Title="Settings" Width="860" Height="640" MinWidth="700" MinHeight="460"
         Icon="/Assets/AppIcon.ico"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False" ResizeMode="CanResizeWithGrip">
+  <!-- Own title bar with Close only (SPEC FR-52, ADR-0029). -->
+  <WindowChrome.WindowChrome>
+    <WindowChrome CaptionHeight="32" ResizeBorderThickness="6" GlassFrameThickness="-1" CornerRadius="0" UseAeroCaptionButtons="False" />
+  </WindowChrome.WindowChrome>
   <Window.InputBindings>
     <KeyBinding Key="S" Modifiers="Ctrl" Command="ApplicationCommands.Save" />
   </Window.InputBindings>
@@ -35,7 +39,9 @@
     </ResourceDictionary>
   </Window.Resources>
 
-  <DockPanel Margin="16">
+  <DockPanel>
+  <views:TitleBar DockPanel.Dock="Top" ShowMinimizeMaximize="False" />
+  <DockPanel Margin="16,8,16,16">
     <Grid DockPanel.Dock="Bottom" Margin="0,12,0,0">
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="*" />
@@ -258,6 +264,10 @@
             <CheckBox Content="Keep the password in Windows Credential Manager after connecting" IsChecked="{Binding KeepCredential}" Margin="0,4" />
             <TextBlock Style="{StaticResource Hint}"
                        Text="Off (default): the credential is removed ~30 s after Remote Desktop starts and never survives logoff. On: reconnects work without the app, but the password stays in Credential Manager." />
+            <!-- SPEC FR-51 -->
+            <CheckBox Content="Ask before connecting to a production (PROD) entry" IsChecked="{Binding ConfirmProductionConnect}" Margin="0,16,0,4" />
+            <TextBlock Style="{StaticResource Hint}"
+                       Text="Entries in a folder named Production, Prod, PRD or Live are tagged PROD. On (default): Connect asks first, so a production server is never opened by a slip of Enter." />
           </StackPanel>
         </ScrollViewer>
       </TabItem>
@@ -311,5 +321,6 @@
         </ScrollViewer>
       </TabItem>
     </TabControl>
+  </DockPanel>
   </DockPanel>
 </Window>

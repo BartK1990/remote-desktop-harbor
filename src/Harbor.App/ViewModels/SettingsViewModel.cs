@@ -35,6 +35,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         _presenceTtlSeconds = settings.PresenceTtlSeconds;
         _presenceHeartbeatSeconds = settings.PresenceHeartbeatSeconds;
         _keepCredential = settings.KeepCredentialAfterLaunch;
+        _confirmProductionConnect = settings.ConfirmProductionConnect;
         _theme = settings.Theme;
         _openedConnectionString = EffectiveConnectionString;
         PropertyChanged += (_, e) =>
@@ -134,6 +135,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private int _presenceTtlSeconds;
     [ObservableProperty] private int _presenceHeartbeatSeconds;
     [ObservableProperty] private bool _keepCredential;
+    [ObservableProperty] private bool _confirmProductionConnect;
     [ObservableProperty] private string? _testResult;
     [ObservableProperty] private string? _error;
 
@@ -351,6 +353,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         _settings.PresenceTtlSeconds = PresenceTtlSeconds;
         _settings.PresenceHeartbeatSeconds = PresenceHeartbeatSeconds;
         _settings.KeepCredentialAfterLaunch = KeepCredential;
+        _settings.ConfirmProductionConnect = ConfirmProductionConnect;
         return SnapshotWithoutTheme() != before;
     }
 
