@@ -82,3 +82,7 @@ Output: `artifacts/publish/win-x64/RemoteDesktopHarbor.exe`.
 
 This repo is spec-driven: change `docs/spec/SPEC.md` first, add an ADR for significant decisions, then code + tests.
 See [docs/spec/README.md](docs/spec/README.md).
+
+## License
+
+[MIT](LICENSE) © 2026 Bartosz Kuriata
