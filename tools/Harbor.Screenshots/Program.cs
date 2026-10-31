@@ -220,6 +220,41 @@ internal static class Program
         });
     }
 
+    /// <summary>
+    /// Waits until the quick connect query box has keyboard focus (SPEC FR-48: keys typed after Ctrl+K go there).
+    /// If it never gets it, that is logged as an app problem and the box is focused through UI Automation so the
+    /// shot can still be taken.
+    /// </summary>
+    private static async Task WaitForQuickConnectFocusAsync()
+    {
+        for (var i = 0; i < 30; i++)
+        {
+            await Task.Delay(100);
+            if (IsQuickConnectBox(AutomationElement.FocusedElement)) return;
+        }
+
+        var focused = AutomationElement.FocusedElement;
+        Step($"WARNING: quick connect box not focused after Ctrl+K (focus on '{focused?.Current.Name}', " +
+             $"{focused?.Current.ControlType.ProgrammaticName}); focusing it through UI Automation");
+        var box = AutomationElement.RootElement.FindFirst(TreeScope.Descendants, new AndCondition(
+            new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Edit),
+            new PropertyCondition(AutomationElement.NameProperty, "Quick connect")));
+        box?.SetFocus();
+        await Task.Delay(300);
+    }
+
+    private static bool IsQuickConnectBox(AutomationElement? element)
+    {
+        try
+        {
+            return element is not null && element.Current.Name == "Quick connect" && element.Current.ControlType == ControlType.Edit;
+        }
+        catch (ElementNotAvailableException)
+        {
+            return false;
+        }
+    }
+
     /// <summary>The text of an app message box (its "Message" box), if <paramref name="window"/> is one.</summary>
     private static string? MessageText(nint window)
     {
@@ -260,7 +295,7 @@ internal static class Program
     private static async Task QuickSelectAsync(string query)
     {
         Press(VkControl, 'K');
-        await Task.Delay(400);
+        await WaitForQuickConnectFocusAsync();
         Type(query);
         await Task.Delay(500);
         Press(VkShift, VkReturn);
