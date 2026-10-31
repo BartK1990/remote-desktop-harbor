@@ -29,12 +29,15 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     private readonly HashSet<string> _collapsedWhileSearching = new(StringComparer.CurrentCultureIgnoreCase);
     private bool _rebuildingTree;
 
+    // Pinned entries of this user (SPEC FR-50), kept in the settings.
+    private readonly HashSet<Guid> _pinned;
+
     public MainViewModel(HarborSettings settings, IDialogService dialogs)
     {
         Settings = settings;
         _dialogs = dialogs;
         _collapsed = new HashSet<string>(settings.CollapsedFolders, StringComparer.CurrentCultureIgnoreCase);
-        _theme = settings.Theme;
+        _pinned = [.. settings.PinnedEntryIds];
         _syncTimer.Tick += async (_, _) => await SyncAsync();
         _presenceTimer.Tick += async (_, _) => await RefreshPresenceAsync();
     }
@@ -48,20 +51,162 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
 
     [ObservableProperty] private string _searchText = "";
 
-    /// <summary>Colour theme; applied immediately and remembered across restarts (SPEC FR-08).</summary>
-    [ObservableProperty] private AppTheme _theme;
+    /// <summary>All entries, or only those in use, pinned or recently connected (SPEC FR-50).</summary>
+    [ObservableProperty] private TreeFilter _treeFilter;
+
+    partial void OnTreeFilterChanged(TreeFilter value)
+    {
+        RebuildTree();
+        UpdateCountText();
+    }
+
+    private bool PassesFilter(EntryViewModel e) => TreeFilter switch
+    {
+        TreeFilter.InUse => e.IsInUse,
+        TreeFilter.Pinned => e.IsPinned,
+        TreeFilter.Recent => Settings.RecentEntryIds.Contains(e.Model.Id),
+        _ => true,
+    };
+
+    public string PinText => Selected?.IsPinned == true ? "Unpin" : "Pin";
+
+    // ------------------------------------------------------------------ quick connect (SPEC FR-48)
+
+    [ObservableProperty] private bool _isQuickConnectOpen;
+    [ObservableProperty] private string _quickQuery = "";
+    [ObservableProperty] private QuickConnectItem? _selectedQuickResult;
+
+    public ObservableCollection<QuickConnectItem> QuickResults { get; } = [];
+
+    partial void OnQuickQueryChanged(string value) => UpdateQuickResults();
+
+    [RelayCommand]
+    private void OpenQuickConnect()
+    {
+        QuickQuery = "";
+        UpdateQuickResults();
+        IsQuickConnectOpen = true;
+    }
+
+    [RelayCommand]
+    private void CloseQuickConnect() => IsQuickConnectOpen = false;
+
+    private void UpdateQuickResults()
+    {
+        var recent = Settings.RecentEntryIds;
+        var candidates = new List<QuickSearchCandidate<QuickConnectItem>>();
+        foreach (var e in Entries)
+        {
+            var rank = recent.IndexOf(e.Model.Id) is var i and >= 0 ? i : (int?)null;
+            candidates.Add(new(new QuickConnectItem(e, null), e.Name, e.Address, e.Model.QualifiedUserName, e.Model.Folder, e.IsPinned, rank));
+            foreach (var account in e.Children.OfType<AccountViewModel>().Where(a => !a.IsDefault))
+            {
+                candidates.Add(new(new QuickConnectItem(e, account), e.Name, e.Address, account.QualifiedUserName, e.Model.Folder, e.IsPinned, rank));
+            }
+        }
+
+        QuickResults.Clear();
+        foreach (var item in QuickSearch.Rank(candidates, QuickQuery)) QuickResults.Add(item);
+        SelectedQuickResult = QuickResults.FirstOrDefault();
+    }
+
+    /// <summary>Enter in the palette: select the result in the tree and connect with its account.</summary>
+    [RelayCommand]
+    private async Task QuickConnectAcceptAsync()
+    {
+        if (!RevealQuickResult()) return;
+        if (ConnectCommand.CanExecute(null)) await ConnectCommand.ExecuteAsync(null);
+    }
+
+    /// <summary>
+    /// Copy or edit shortcuts in the palette (SPEC FR-48): select the highlighted result, close the palette and run the
+    /// action on it.
+    /// </summary>
+    public async Task RunQuickActionAsync(QuickAction action)
+    {
+        if (!RevealQuickResult()) return;
+        switch (action)
+        {
+            case QuickAction.CopyPassword when CopyPasswordCommand.CanExecute(null):
+                CopyPasswordCommand.Execute(null);
+                break;
+            case QuickAction.CopyUserName when CopyUserNameCommand.CanExecute(null):
+                CopyUserNameCommand.Execute(null);
+                break;
+            case QuickAction.CopyHost when CopyHostCommand.CanExecute(null):
+                CopyHostCommand.Execute(null);
+                break;
+            case QuickAction.Edit when EditCommand.CanExecute(null):
+                await EditCommand.ExecuteAsync(null);
+                break;
+        }
+    }
+
+    /// <summary>Shift+Enter in the palette: only select the result in the tree.</summary>
+    [RelayCommand]
+    private void QuickConnectReveal() => RevealQuickResult();
+
+    private bool RevealQuickResult()
+    {
+        IsQuickConnectOpen = false;
+        if (SelectedQuickResult is not { } item) return false;
+        if (TreeFilter != TreeFilter.All && !PassesFilter(item.Entry)) TreeFilter = TreeFilter.All;
+        if (!item.Entry.Matches(SearchText)) SearchText = "";
+        RevealFolder(item.Entry.Model.Folder);
+        if (item.Account is not null) item.Entry.IsExpanded = true;
+        SelectedNode = (TreeNodeViewModel?)item.Account ?? item.Entry;
+        return true;
+    }
+
+    // ------------------------------------------------------------------ pinned and recent (SPEC FR-50)
+
+    [RelayCommand(CanExecute = nameof(HasSelection))]
+    private void TogglePin()
+    {
+        if (Selected is not { } vm) return;
+        vm.IsPinned = !vm.IsPinned;
+        if (vm.IsPinned) _pinned.Add(vm.Model.Id);
+        else _pinned.Remove(vm.Model.Id);
+        Settings.PinnedEntryIds = [.. _pinned];
+        SaveSettingsQuietly("Pinned entries");
+        OnPropertyChanged(nameof(PinText));
+        StatusText = vm.IsPinned ? $"Pinned {vm.Name}" : $"Unpinned {vm.Name}";
+        if (TreeFilter == TreeFilter.Pinned) RebuildTree();
+    }
+
+    private void RememberRecent(Guid id)
+    {
+        Settings.RecentEntryIds = RecentList.Push(Settings.RecentEntryIds, id);
+        SaveSettingsQuietly("Recent entries");
+        if (TreeFilter == TreeFilter.Recent) RebuildTree();
+    }
+
+    private void SaveSettingsQuietly(string what)
+    {
+        try
+        {
+            SettingsStore.Save(Settings);
+        }
+        catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException)
+        {
+            Log.Error($"{what} could not be saved", ex);
+        }
+    }
 
     /// <summary>The selected tree row (folder, entry or account); kept in sync with <see cref="Selected"/>.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(SelectedAccount))]
+    [NotifyPropertyChangedFor(nameof(SelectedAccount), nameof(ConnectText), nameof(TakeoverWarning))]
     private TreeNodeViewModel? _selectedNode;
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(ConnectCommand), nameof(EditCommand), nameof(DeleteCommand), nameof(CopyPasswordCommand), nameof(CopyUserNameCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ConnectCommand), nameof(EditCommand), nameof(DeleteCommand), nameof(CopyPasswordCommand), nameof(CopyUserNameCommand),
+        nameof(CopyHostCommand), nameof(ConnectAsCommand),
+        nameof(TogglePinCommand))]
+    [NotifyPropertyChangedFor(nameof(PinText))]
     private EntryViewModel? _selected;
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(AddCommand), nameof(EditCommand), nameof(DeleteCommand), nameof(ImportRdpCommand), nameof(ConnectCommand))]
+    [NotifyCanExecuteChangedFor(nameof(AddCommand), nameof(EditCommand), nameof(DeleteCommand), nameof(ImportRdpCommand), nameof(ConnectCommand), nameof(ConnectAsCommand))]
     private bool _isReady;
 
     [ObservableProperty]
@@ -71,7 +216,31 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     [ObservableProperty] private string _userText = "Signing in…";
     [ObservableProperty] private string _storeText = "";
     [ObservableProperty] private bool _isOffline;
+    [ObservableProperty] private bool _isRemote;
     [ObservableProperty] private string _statusText = "Starting…";
+
+    /// <summary>"Connect as svc-admin": the account Connect uses, so nobody connects with the wrong one. SPEC FR-47</summary>
+    public string ConnectText => SelectedAccount?.QualifiedUserName is { } user ? $"Connect as {user[(user.LastIndexOf('\\') + 1)..]}" : "Connect";
+
+    /// <summary>
+    /// Shown above the active-sessions table: whether connecting with the selected account would take a session over.
+    /// SPEC FR-33, FR-47
+    /// </summary>
+    public string? TakeoverWarning
+    {
+        get
+        {
+            if (Selected is not { IsInUse: true } vm || SelectedAccount is not { } account) return null;
+            var name = account.QualifiedUserName;
+            var takenOver = vm.ActiveSessions.TakenOverBy(name);
+            if (takenOver.Count == 0) return $"Connecting as {name} runs side by side with these sessions.";
+            var who = takenOver.Count == 1 ? "this session" : $"{takenOver.Count} of these sessions";
+            return name is null ? $"Connecting without a user name takes over {who}." : $"Connecting as {name} takes over {who}.";
+        }
+    }
+
+    /// <summary>"2 in use" for the status bar; empty when nothing is in use. SPEC FR-47</summary>
+    public string InUseText => Entries.Count(e => e.IsInUse) is var n and > 0 ? $"{n} in use" : "";
 
     private bool IsSearching => !string.IsNullOrWhiteSpace(SearchText);
 
@@ -165,6 +334,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         }
 
         CanWrite = ws.CanWrite;
+        IsRemote = ws.IsRemote;
         IsOffline = ws.IsRemote && !ws.IsOnline;
         StoreText = !ws.IsRemote
             ? "Local vault"
@@ -189,6 +359,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         {
             var vm = byId.TryGetValue(entry.Id, out var existing) ? existing : new EntryViewModel(entry);
             vm.Model = entry;
+            vm.IsPinned = _pinned.Contains(entry.Id);
             Entries.Add(vm);
         }
 
@@ -200,6 +371,9 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         }
 
         OnPropertyChanged(nameof(SelectedAccount));
+        OnPropertyChanged(nameof(ConnectText));
+        OnPropertyChanged(nameof(TakeoverWarning));
+        OnPropertyChanged(nameof(InUseText));
         UpdateCountText();
     }
 
@@ -216,7 +390,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     /// <summary>Rebuilds the tree from <see cref="Entries"/> and <see cref="SearchText"/>, reusing existing rows.</summary>
     private void RebuildTree()
     {
-        var root = FolderTree.Build(Entries.Where(e => e.Matches(SearchText)), e => e.Model.Folder, e => e.Name);
+        var root = FolderTree.Build(Entries.Where(e => e.Matches(SearchText) && PassesFilter(e)), e => e.Model.Folder, e => e.Name);
         var previous = _folders;
         _folders = new Dictionary<string, FolderViewModel>(StringComparer.CurrentCultureIgnoreCase);
 
@@ -343,6 +517,10 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         {
             e.ActiveSessions = byConnection[e.Model.Id].ToList();
         }
+
+        OnPropertyChanged(nameof(TakeoverWarning));
+        OnPropertyChanged(nameof(InUseText));
+        if (TreeFilter == TreeFilter.InUse) RebuildTree();
     }
 
     // ------------------------------------------------------------------ commands
@@ -362,9 +540,20 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
 
         // SPEC FR-33: hosts that allow several sessions (e.g. Windows Server) let other accounts connect side by side;
         // only someone using the same account (or an unknown one) would be disconnected.
-        var conflicts = vm.ActiveSessions.Where(s => accountName is null || s.UsesAccount(accountName)).ToList();
-        if (conflicts.Count > 0 && !_dialogs.Confirm("Connection in use",
-                $"{EntryViewModel.Describe(conflicts)}{Environment.NewLine}{Environment.NewLine}Connect anyway? This may disconnect the other user."))
+        var conflicts = vm.ActiveSessions.TakenOverBy(accountName);
+        // SPEC FR-51: one question at most – the takeover warning mentions production too.
+        var production = vm.Environment == EnvironmentKind.Production;
+        var prodNote = production ? $"{Environment.NewLine}{Environment.NewLine}{entry.Name} is a production (PROD) entry." : "";
+        if (conflicts.Count > 0 && !_dialogs.ConfirmRisky("Connection in use",
+                $"{EntryViewModel.Describe(conflicts)}{prodNote}{Environment.NewLine}{Environment.NewLine}Connect anyway? This may disconnect the other user.",
+                "Connect anyway"))
+        {
+            return;
+        }
+
+        if (conflicts.Count == 0 && production && Settings.ConfirmProductionConnect && !_dialogs.ConfirmRisky("Production entry",
+                $"{entry.Name} is in {vm.GroupName} (PROD).{Environment.NewLine}{Environment.NewLine}Connect{(accountName is null ? "" : $" as {accountName}")}?",
+                "Connect"))
         {
             return;
         }
@@ -374,6 +563,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
             var password = _host.Workspace.RevealPassword(entry, account?.Id);
             var session = await _host.Launcher.LaunchAsync(entry.ForAccount(account), password);
             StatusText = accountName is null ? $"Launched {entry.Name}" : $"Launched {entry.Name} as {accountName}";
+            RememberRecent(entry.Id);
             Log.Info($"Launched {entry.Id}");
 
             var lease = await _host.Presence.BeginAsync(entry.Id, accountName, _host.User);
@@ -400,6 +590,16 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
             await lease.DisposeAsync();
             await RefreshPresenceAsync();
         }
+    }
+
+    /// <summary>Connects with <paramref name="account"/> of the selected entry (the Connect button's account menu). SPEC FR-47</summary>
+    [RelayCommand(CanExecute = nameof(CanConnectSelection))]
+    private async Task ConnectAsAsync(AccountViewModel? account)
+    {
+        if (account is null || account.Entry != Selected) return;
+        account.Entry.IsExpanded = true; // show the account row that is now selected
+        SelectedNode = account;
+        await ConnectAsync();
     }
 
     [RelayCommand(CanExecute = nameof(CanEdit))]
@@ -455,7 +655,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     private async Task DeleteAsync()
     {
         if (_host is null || Selected is not { } vm) return;
-        if (!_dialogs.Confirm("Delete entry", $"Delete '{vm.Name}'?{(_host.Workspace.IsRemote ? " It will be removed for everyone using the shared database." : "")}"))
+        if (!_dialogs.ConfirmRisky("Delete entry", $"Delete '{vm.Name}'?{(_host.Workspace.IsRemote ? " It will be removed for everyone using the shared database." : "")}", "Delete"))
         {
             return;
         }
@@ -510,6 +710,16 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
+    [RelayCommand(CanExecute = nameof(HasSelection))]
+    private void CopyHost()
+    {
+        if (Selected?.Model.Address is { } address)
+        {
+            Clipboard.SetDataObject(address, copy: false);
+            StatusText = "Host copied.";
+        }
+    }
+
     [RelayCommand]
     private async Task RefreshAsync()
     {
@@ -522,28 +732,18 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     private void OpenSettings()
     {
         var vm = new SettingsViewModel(Settings);
-        if (!_dialogs.EditSettings(vm)) return;
-        vm.Apply();
+        if (!_dialogs.EditSettings(vm))
+        {
+            vm.RevertTheme(); // SPEC FR-08: Cancel undoes the theme preview
+            return;
+        }
+
+        var restart = vm.Apply();
         SettingsStore.Save(Settings);
-        if (_dialogs.Confirm("Restart required", "Settings were saved. Restart Remote Desktop Harbor now to apply them?"))
+        if (restart && _dialogs.Confirm("Restart required", "Settings were saved. Restart Remote Desktop Harbor now to apply them?"))
         {
             System.Diagnostics.Process.Start(Environment.ProcessPath!);
             Application.Current.Shutdown();
-        }
-    }
-
-    partial void OnThemeChanged(AppTheme value)
-    {
-        ThemeService.Apply(value);
-        if (Settings.Theme == value) return;
-        Settings.Theme = value;
-        try
-        {
-            SettingsStore.Save(Settings);
-        }
-        catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException)
-        {
-            Log.Error("Theme could not be saved", ex);
         }
     }
 

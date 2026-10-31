@@ -22,10 +22,10 @@ background; your name appears in the top-right corner. The status bar shows **Lo
 4. Optionally enter **Domain**, **User name** and **Password**, and put the entry in a **Folder** to group it.
 5. Click **Save**.
 
-All of this is on the editor's **General** tab; the other tabs (additional accounts and the RDP settings) are
+All of this is in the editor's **General** section; the other sections (additional accounts and the RDP settings) are
 optional.
 
-![The entry editor, General tab: Type, Name and Folder, Host and Port, Domain and User name, Password and Notes; the Accounts, Display, Local resources and Connection tabs next to it.](../../../assets/screenshots/editor.png)
+![The entry editor, General section: Type, Name and Folder, Host and Port, Domain and User name, Password and Notes; the Accounts, Display, Local resources and Connection tabs next to it.](../../../assets/screenshots/editor.png)
 
 The password is encrypted before it is written to disk.
 

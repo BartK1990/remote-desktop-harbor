@@ -30,3 +30,14 @@ public sealed record ActiveSession(
         return string.IsNullOrWhiteSpace(Email) ? who : $"{who} <{Email}>";
     }
 }
+
+/// <summary>Helpers for lists of <see cref="ActiveSession"/>.</summary>
+public static class ActiveSessionExtensions
+{
+    /// <summary>
+    /// The sessions that connecting as <paramref name="qualifiedUserName"/> would take over: those using the same
+    /// account, those that name no account (older clients) and, without a user name, all of them. SPEC FR-33
+    /// </summary>
+    public static IReadOnlyList<ActiveSession> TakenOverBy(this IEnumerable<ActiveSession> sessions, string? qualifiedUserName) =>
+        sessions.Where(s => qualifiedUserName is null || s.UsesAccount(qualifiedUserName)).ToList();
+}

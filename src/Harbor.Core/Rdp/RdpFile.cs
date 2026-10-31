@@ -29,7 +29,7 @@ public static class RdpFile
             switch (key.ToLowerInvariant())
             {
                 case "full address":
-                    (host, var p) = SplitHostPort(value);
+                    (host, var p) = EntryInput.SplitHostPort(value);
                     if (p is not null) port = p.Value;
                     break;
                 case "server port" when int.TryParse(value, out var sp):
@@ -129,28 +129,5 @@ public static class RdpFile
             if (second < 0) continue;
             yield return (line[..first].Trim(), line[(first + 1)..second], line[(second + 1)..], line);
         }
-    }
-
-    private static (string Host, int? Port) SplitHostPort(string value)
-    {
-        // IPv6 literal: [::1]:3390
-        if (value.StartsWith('['))
-        {
-            var close = value.IndexOf(']');
-            if (close > 0 && close + 1 < value.Length && value[close + 1] == ':' && int.TryParse(value[(close + 2)..], out var p6))
-            {
-                return (value[..(close + 1)], p6);
-            }
-
-            return (value, null);
-        }
-
-        var colon = value.LastIndexOf(':');
-        if (colon > 0 && value.IndexOf(':') == colon && int.TryParse(value[(colon + 1)..], out var p))
-        {
-            return (value[..colon], p);
-        }
-
-        return (value, null);
     }
 }

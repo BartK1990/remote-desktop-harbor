@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using Harbor.Core.Model;
+using Harbor.Core.Rdp;
 
 namespace Harbor.App.ViewModels;
 
@@ -16,11 +17,13 @@ public sealed partial class EntryViewModel : TreeNodeViewModel
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(Name), nameof(GroupName), nameof(Subtitle), nameof(KindLabel), nameof(HasPassword), nameof(CanLaunch),
-        nameof(HasAccounts))]
+        nameof(HasAccounts), nameof(Address), nameof(IsCredentialOnly), nameof(RdpSummary), nameof(HasNotes),
+        nameof(Environment), nameof(EnvironmentLabel))]
     private ConnectionEntry _model;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsInUse), nameof(PresenceText), nameof(PresenceDetails))]
+    [NotifyPropertyChangedFor(nameof(IsInUse), nameof(PresenceText), nameof(PresenceName), nameof(PresenceDetails), nameof(Sessions),
+        nameof(SessionsHeader))]
     private IReadOnlyList<ActiveSession> _activeSessions = [];
 
     /// <summary>The entry's own user name and password; selected when the entry row itself is selected.</summary>
@@ -38,13 +41,38 @@ public sealed partial class EntryViewModel : TreeNodeViewModel
     public string GroupName => string.IsNullOrWhiteSpace(Model.Folder) ? NoFolder : Model.Folder;
     public bool HasPassword => Model.HasPassword;
     public bool CanLaunch => Model.CanLaunch;
+    public bool IsCredentialOnly => Model.Kind == EntryKind.CredentialOnly;
+
+    /// <summary>Host (and non-default port) shown in the tree row. SPEC FR-02</summary>
+    public string? Address => Model.Address;
+
+    /// <summary>Environment derived from the folder (SPEC FR-49); <c>null</c> when no folder level names one.</summary>
+    public EnvironmentKind? Environment => EnvironmentTags.FromFolder(Model.Folder);
+
+    public string? EnvironmentLabel => Environment is { } kind ? EnvironmentTags.Label(kind) : null;
+
+    /// <summary>Pinned by this user (SPEC FR-50); set by the main view model from the settings.</summary>
+    [ObservableProperty] private bool _isPinned;
+
+    public bool HasNotes => !string.IsNullOrWhiteSpace(Model.Notes);
+
+    /// <summary>How the connection opens, for the details pane; empty for credentials only. SPEC FR-47</summary>
+    public IReadOnlyList<RdpSummaryLine> RdpSummary => IsCredentialOnly ? [] : Core.Rdp.RdpSummary.Describe(Model.RdpSettings);
+
+    /// <summary>Rows of the active-sessions table in the details pane. SPEC FR-33, FR-47</summary>
+    public IReadOnlyList<SessionRow> Sessions => ActiveSessions.Select(s => new SessionRow(
+        string.IsNullOrWhiteSpace(s.DisplayName) ? s.UserName : s.DisplayName!, s.Email, s.AccountName ?? "—", s.MachineName,
+        s.StartedUtc.ToLocalTime().ToString("t", System.Globalization.CultureInfo.CurrentCulture))).ToList();
+
+    public string SessionsHeader => ActiveSessions.Count == 1 ? "1 active session" : $"{ActiveSessions.Count} active sessions";
+
     public string KindLabel => Model.Kind == EntryKind.RdpConnection ? "RDP connection" : "Credentials only";
 
     public string Subtitle
     {
         get
         {
-            var host = Model.Host is null ? null : Model.Port == ConnectionEntry.DefaultRdpPort ? Model.Host : $"{Model.Host}:{Model.Port}";
+            var host = Model.Address;
             var user = HasAccounts ? $"{Model.Accounts.Count + 1} accounts" : Model.QualifiedUserName;
             return (user, host) switch
             {
@@ -65,9 +93,19 @@ public sealed partial class EntryViewModel : TreeNodeViewModel
         var n => $"In use by {n} users",
     };
 
+    /// <summary>Who is connected, short enough for the tree row next to the in-use dot. SPEC FR-33</summary>
+    public string PresenceName => ShortName(ActiveSessions);
+
     public string PresenceDetails => Describe(ActiveSessions);
 
-    internal static string Describe(IEnumerable<ActiveSession> sessions) => string.Join(Environment.NewLine, sessions.Select(s =>
+    internal static string ShortName(IReadOnlyList<ActiveSession> sessions) => sessions.Count switch
+    {
+        0 => "",
+        1 => string.IsNullOrWhiteSpace(sessions[0].DisplayName) ? sessions[0].UserName : sessions[0].DisplayName!,
+        var n => $"{n} users",
+    };
+
+    internal static string Describe(IEnumerable<ActiveSession> sessions) => string.Join(System.Environment.NewLine, sessions.Select(s =>
         $"{s.Describe()}{(s.AccountName is { } account ? $" as {account}" : "")} on {s.MachineName}, since {s.StartedUtc.ToLocalTime():t}"));
 
     /// <summary>The row for <paramref name="accountId"/> (<c>null</c> = default account), or <c>null</c> if it is gone.</summary>
@@ -119,6 +157,9 @@ public sealed partial class EntryViewModel : TreeNodeViewModel
     }
 }
 
+/// <summary>One row of the active-sessions table. SPEC FR-33</summary>
+public sealed record SessionRow(string Who, string? Email, string Account, string Machine, string Since);
+
 /// <summary>
 /// An account row under an entry with several accounts (SPEC FR-09). <see cref="Account"/> is <c>null</c> for the
 /// entry's default account.
@@ -132,7 +173,7 @@ public sealed partial class AccountViewModel(EntryViewModel entry, ConnectionAcc
     private ConnectionAccount? _account = account;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsInUse), nameof(PresenceText), nameof(PresenceDetails))]
+    [NotifyPropertyChangedFor(nameof(IsInUse), nameof(PresenceText), nameof(PresenceName), nameof(PresenceDetails))]
     private IReadOnlyList<ActiveSession> _activeSessions = [];
 
     public bool IsDefault => Account is null;
@@ -143,6 +184,7 @@ public sealed partial class AccountViewModel(EntryViewModel entry, ConnectionAcc
 
     public bool IsInUse => ActiveSessions.Count > 0;
     public string PresenceText => IsInUse ? $"In use by {ActiveSessions[0].DisplayName ?? ActiveSessions[0].UserName}" : "";
+    public string PresenceName => EntryViewModel.ShortName(ActiveSessions);
     public string PresenceDetails => EntryViewModel.Describe(ActiveSessions);
 
     /// <summary>Raises change notifications after the entry's model changed (domain and default user come from it).</summary>

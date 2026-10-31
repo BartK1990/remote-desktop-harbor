@@ -22,7 +22,85 @@ public partial class MainWindow : Window
         Title = Infrastructure.AppInfo.Title;
         FocusSearchCommand = new RelayCommand(() => { SearchBox.Focus(); SearchBox.SelectAll(); });
         Loaded += OnLoaded;
+        viewModel.PropertyChanged += ViewModel_PropertyChanged;
     }
+
+    // Quick connect (SPEC FR-48): focus the query when the palette opens, and the list when it closes.
+    private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(MainViewModel.IsQuickConnectOpen)) return;
+        // Focus the query at once, so keys typed right after Ctrl+K land in it (they reached the tree search box when
+        // focus moved only on a later dispatcher pass); the posted call below covers a box not laid out yet.
+        if (_viewModel.IsQuickConnectOpen)
+        {
+            QuickConnectOverlay.UpdateLayout();
+            QuickBox.Focus();
+        }
+
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input, () =>
+        {
+            if (_viewModel.IsQuickConnectOpen)
+            {
+                QuickBox.Focus();
+                QuickBox.SelectAll();
+            }
+            else if (_viewModel.SelectedNode is { } node && EntryTree.ItemContainerGenerator.ContainerFromItem(node) is TreeViewItem row)
+            {
+                row.Focus();
+            }
+            else
+            {
+                EntryTree.Focus();
+            }
+        });
+    }
+
+    private void QuickBox_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case Key.Down or Key.Up when QuickList.Items.Count > 0:
+                var index = QuickList.SelectedIndex + (e.Key == Key.Down ? 1 : -1);
+                QuickList.SelectedIndex = Math.Clamp(index, 0, QuickList.Items.Count - 1);
+                QuickList.ScrollIntoView(QuickList.SelectedItem);
+                break;
+            case Key.Enter when Keyboard.Modifiers.HasFlag(ModifierKeys.Shift):
+                _viewModel.QuickConnectRevealCommand.Execute(null);
+                break;
+            case Key.Enter:
+                _viewModel.QuickConnectAcceptCommand.Execute(null);
+                break;
+            case Key.Escape:
+                _viewModel.CloseQuickConnectCommand.Execute(null);
+                break;
+            // Copy or edit the highlighted result without connecting (SPEC FR-48).
+            case Key.C or Key.U or Key.H when Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift):
+                _ = _viewModel.RunQuickActionAsync(e.Key switch
+                {
+                    Key.C => QuickAction.CopyPassword,
+                    Key.U => QuickAction.CopyUserName,
+                    _ => QuickAction.CopyHost,
+                });
+                break;
+            case Key.F2:
+                _ = _viewModel.RunQuickActionAsync(QuickAction.Edit);
+                break;
+            default:
+                return;
+        }
+
+        e.Handled = true;
+    }
+
+    private void QuickList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (QuickList.SelectedItem is not null) _viewModel.QuickConnectAcceptCommand.Execute(null);
+    }
+
+    // A click on the dimmed window closes the palette; a click inside it does not.
+    private void QuickConnectOverlay_MouseDown(object sender, MouseButtonEventArgs e) => _viewModel.CloseQuickConnectCommand.Execute(null);
+
+    private void QuickConnectPanel_MouseDown(object sender, MouseButtonEventArgs e) => e.Handled = true;
 
     public IRelayCommand FocusSearchCommand { get; }
 
@@ -65,6 +143,14 @@ public partial class MainWindow : Window
 
     private void EntryTree_KeyDown(object sender, KeyEventArgs e)
     {
+        // Del deletes the selected entry, after confirmation (SPEC FR-47).
+        if (e.Key == Key.Delete && Keyboard.Modifiers == ModifierKeys.None && _viewModel.DeleteCommand.CanExecute(null))
+        {
+            _viewModel.DeleteCommand.Execute(null);
+            e.Handled = true;
+            return;
+        }
+
         if (e.Key != Key.Enter) return;
         if (_viewModel.SelectedNode is FolderViewModel folder)
         {
@@ -86,6 +172,34 @@ public partial class MainWindow : Window
             row.Focus();
             row.IsSelected = true;
         }
+    }
+
+    // The arrow next to Connect lists the entry's accounts; picking one connects with it (SPEC FR-09, FR-47).
+    private void AccountsButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.Selected is not { } entry) return;
+        var menu = new ContextMenu { PlacementTarget = AccountsButton, Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom };
+        foreach (var account in entry.Children.OfType<AccountViewModel>())
+        {
+            menu.Items.Add(new MenuItem
+            {
+                Header = $"Connect as {account.Name}",
+                Command = _viewModel.ConnectAsCommand,
+                CommandParameter = account,
+                IsChecked = ReferenceEquals(account, _viewModel.SelectedAccount),
+            });
+        }
+
+        menu.IsOpen = true;
+    }
+
+    private void MoreButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (MoreButton.ContextMenu is not { } menu) return;
+        menu.PlacementTarget = MoreButton;
+        menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+        menu.DataContext = DataContext;
+        menu.IsOpen = true;
     }
 
     private void SearchBox_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -122,10 +236,10 @@ public partial class MainWindow : Window
         if (_disposed) return;
 
         // Presence is published by this app; closing it ends the "in use" records (SPEC FR-34).
-        if (_viewModel.ActiveLaunchCount > 0 && MessageBox.Show(this,
+        if (_viewModel.ActiveLaunchCount > 0 && !MessageWindow.Show(this, "Sessions still open",
                 $"{_viewModel.ActiveLaunchCount} Remote Desktop session(s) started from this app are still open. " +
                 "After closing, other users will no longer see them as in use. Close anyway?",
-                "Remote Desktop Harbor", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+                MessageKind.Risky, "Close anyway", "Cancel"))
         {
             e.Cancel = true;
             return;

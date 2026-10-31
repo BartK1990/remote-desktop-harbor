@@ -22,7 +22,13 @@ internal sealed class TempDb : IDisposable
 
     public void Dispose()
     {
-        SqliteConnection.ClearAllPools();
+        // Release only this database's pooled connections so the file can be deleted. ClearAllPools would also close
+        // the connections of tests running in parallel on other files (ObjectDisposedException in those tests).
+        using (var connection = new SqliteConnection(SqliteProvider.ConnectionStringForFile(Path)))
+        {
+            SqliteConnection.ClearPool(connection);
+        }
+
         foreach (var suffix in new[] { "", "-wal", "-shm" })
         {
             try { File.Delete(Path + suffix); } catch (IOException) { }

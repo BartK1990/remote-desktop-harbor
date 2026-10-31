@@ -7,11 +7,13 @@ With a shared database, Harbor shows which entries are currently in use and by w
 
 > **In use by Jane Doe &lt;jane@contoso.com&gt; on PC-42 since 10:31**
 
-The badge appears in the list; the details pane lists every active session for the selected entry, with the
-account each one is connected as. For an entry with
-[several accounts](../../guides/managing-entries/#several-accounts-per-entry), each account row shows its own badge.
+In the list an entry in use shows a dot and the name of who is connected (or “2 users”) in place of its host; hover
+it for the full text. The details pane lists every active session for the selected entry in a table — user, account,
+machine and since when — and says whether connecting with the selected account would take one over or run side by
+side. For an entry with
+[several accounts](../../guides/managing-entries/#several-accounts-per-entry), each account row shows its own marker.
 
-![Main window showing "In use by Jane Doe" and "In use by Sam Patel" badges in the list, and an "Active sessions" box in the details of the selected entry.](../../../assets/screenshots/main.png)
+![Main window showing in-use dots for Jane Doe and Sam Patel in the list, and an "Active sessions" box in the details of the selected entry.](../../../assets/screenshots/main.png)
 
 ## How it works
 
@@ -39,9 +41,10 @@ Expired records older than a day are purged automatically.
 Connecting with an account that someone is already using asks for confirmation — your connection would take over
 their session. Connecting with a **different account** of the same entry does not ask: hosts such as Windows Server
 run several sessions side by side. Sessions published by older app versions do not record the account, so they
-always ask; so does connecting without a user name.
+always ask; so does connecting without a user name. In that question **Cancel** is the default: <kbd>Enter</kbd> and
+<kbd>Esc</kbd> cancel, so a second <kbd>Enter</kbd> never takes a session over by accident.
 
-![Confirmation dialog "Connection in use" with Yes and No buttons.](../../../assets/screenshots/inuse.png)
+![Confirmation dialog "Connection in use" naming Jane Doe's session, with Connect anyway and the default Cancel button.](../../../assets/screenshots/inuse.png)
 
 ## Settings
 

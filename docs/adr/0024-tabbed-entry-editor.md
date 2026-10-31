@@ -1,6 +1,6 @@
 # ADR-0024: Entry editor on tabs with compact, paired fields
 
-* Status: Accepted
+* Status: Accepted (tabs drawn as a side navigation since ADR-0027)
 * Date: 2026-10-30
 * Requirements: FR-09, FR-13, FR-46
 

@@ -12,11 +12,13 @@ public sealed class DialogService : IDialogService
 
     public bool EditSettings(SettingsViewModel settings) => new SettingsWindow(settings) { Owner = Owner }.ShowDialog() == true;
 
-    public bool Confirm(string title, string message) =>
-        MessageBox.Show(Owner!, message, title, MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes;
+    // SPEC FR-53, ADR-0030: the app's own message box instead of the system one.
+    public bool Confirm(string title, string message) => MessageWindow.Show(Owner, title, message, MessageKind.Question);
 
-    public void ShowError(string title, string message) =>
-        MessageBox.Show(Owner!, message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
+    public bool ConfirmRisky(string title, string message, string confirmText) =>
+        MessageWindow.Show(Owner, title, message, MessageKind.Risky, confirmText, "Cancel");
+
+    public void ShowError(string title, string message) => MessageWindow.Show(Owner, title, message, MessageKind.Error);
 
     public string? PickRdpFile()
     {

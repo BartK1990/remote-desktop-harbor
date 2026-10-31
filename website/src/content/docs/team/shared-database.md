@@ -54,7 +54,7 @@ All entries are encrypted with one shared vault key. Decide who can unlock it �
 
 ## 3. Configure the app
 
-Open **Settings → Storage** and choose **Shared database with offline copy**:
+Open **Settings → Storage** and choose the **Shared database** card:
 
 | Field | Value |
 |---|---|
@@ -63,15 +63,16 @@ Open **Settings → Storage** and choose **Shared database with offline copy**:
 | Database name | e.g. `Harbor`. Tick **Create the database if it does not exist** to have it created. |
 | Database sign-in | **Windows account**, **SQL Server login** (user + password), or **Microsoft Entra ID** |
 | Encrypt / Trust server certificate | Encrypt is on by default. Tick *Trust the server certificate* for servers with a self-signed certificate (typical when connecting by IP). |
-| Shared vault key protection (*Shared vault* tab) | **Not protected** (default, key stored unencrypted), **Active Directory group** with `SID=S-1-5-21-…`, or **Shared passphrase** |
-| Create / upgrade schema automatically (*Shared vault* tab) | On for the first client (needs DDL rights) |
-| Sync interval (*Shared vault* tab) | Default `60` seconds (minimum 10) |
+| Shared vault key protection (*Shared vault* section) | **Not protected** (default, key stored unencrypted), **Active Directory group** with `SID=S-1-5-21-…`, or **Shared passphrase** |
+| Create / upgrade schema automatically (*Shared vault* section) | On for the first client (needs DDL rights) |
+| Sync interval (*Shared vault* section) | Default `60` seconds (minimum 10) |
 
-Use **Test connection** to check the settings before saving. Everything is stored as one connection string,
+Below the fields, a preview shows the connection string they produce, with the password masked. Use
+**Test connection** to check the settings before saving. Everything is stored as one connection string,
 encrypted for your Windows account (a SQL login password included). The database sign-in is independent of the
 app's own [sign-in](../entra-id/): Windows or Entra ID app sign-in both work with a shared database.
 
-![Settings dialog, Storage tab, with "Shared database with offline copy" selected: server sql01, database Harbor, SQL Server login with user name and password, and Test connection.](../../../assets/screenshots/settings.png)
+![Settings dialog, Storage section, with the Shared database card selected: server sql01, database Harbor, SQL Server login with user name and password, and Test connection.](../../../assets/screenshots/settings.png)
 
 ### Connection string examples
 
