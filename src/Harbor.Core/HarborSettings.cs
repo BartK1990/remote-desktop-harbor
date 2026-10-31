@@ -27,6 +27,18 @@ public enum AppTheme
     Dark = 2,
 }
 
+/// <summary>Helpers for <see cref="AppTheme"/>. SPEC FR-08</summary>
+public static class AppThemeExtensions
+{
+    /// <summary>Whether <paramref name="theme"/> shows dark colours, given the current Windows app mode.</summary>
+    public static bool IsDark(this AppTheme theme, bool windowsUsesDarkMode) => theme switch
+    {
+        AppTheme.Light => false,
+        AppTheme.Dark => true,
+        _ => windowsUsesDarkMode,
+    };
+}
+
 /// <summary>User-editable app configuration, persisted as JSON in the data directory. See SPEC section 7.</summary>
 public sealed class HarborSettings
 {

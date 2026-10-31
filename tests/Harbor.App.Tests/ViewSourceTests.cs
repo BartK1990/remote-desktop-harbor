@@ -1,4 +1,5 @@
 using System.IO;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
 namespace Harbor.App.Tests;
@@ -60,6 +61,43 @@ public class ViewSourceTests
         var page = doc.Descendants(Wpf + "Style").Single(s => (string?)s.Attribute(Xaml + "Key") == "TabPage");
         var margin = (string)page.Elements(Wpf + "Setter").Single(s => (string?)s.Attribute("Property") == "Margin").Attribute("Value")!;
         Assert.True(int.Parse(margin.Split(',')[2]) >= 16, margin);
+    }
+
+    // SPEC FR-08, ADR-0025: views take colours from the Fluent theme or Harbor's tokens, never fixed values, so both
+    // themes stay readable.
+    [Theory]
+    [InlineData("MainWindow.xaml")]
+    [InlineData("EntryEditorWindow.xaml")]
+    [InlineData("SettingsWindow.xaml")]
+    [InlineData("PassphraseWindow.xaml")]
+    public void Views_do_not_hard_code_colours(string view)
+    {
+        var colourProperties = new[] { "Foreground", "Background", "BorderBrush", "Fill", "Stroke" };
+        var elements = XDocument.Load(Source(view)).Descendants().ToList();
+        var values = elements.SelectMany(e => e.Attributes()).Where(a => colourProperties.Contains(a.Name.LocalName)).Select(a => a.Value)
+            .Concat(elements.Where(e => e.Name.LocalName == "Setter" && colourProperties.Contains((string?)e.Attribute("Property")))
+                .Select(e => (string?)e.Attribute("Value") ?? "{element}"));
+        var fixedColours = values.Where(v => !v.StartsWith('{') && v != "Transparent").ToList();
+
+        Assert.Empty(fixedColours);
+    }
+
+    // ADR-0025: the light and dark colour sets define the same keys, and every Harbor token a view uses exists.
+    [Fact]
+    public void Light_and_dark_colour_tokens_match_and_cover_the_views()
+    {
+        static HashSet<string> Keys(string file) => XDocument.Load(Source(Path.Combine("Themes", file))).Root!.Elements()
+            .Select(e => (string)e.Attribute(Xaml + "Key")!).ToHashSet();
+        var light = Keys("Colors.Light.xaml");
+        var dark = Keys("Colors.Dark.xaml");
+        Assert.Equal(light.Order(), dark.Order());
+
+        var defined = light.Concat(Keys("Tokens.xaml")).ToHashSet();
+        var used = Directory.GetFiles(Path.GetDirectoryName(Source("MainWindow.xaml"))!, "*.xaml", SearchOption.AllDirectories)
+            .SelectMany(f => Regex.Matches(File.ReadAllText(f), @"Resource (Harbor\.[\w.]+)\}").Select(m => m.Groups[1].Value))
+            .ToHashSet();
+        Assert.NotEmpty(used);
+        Assert.Empty(used.Except(defined));
     }
 
     // Closing the main window: Close() inside the Closing event throws

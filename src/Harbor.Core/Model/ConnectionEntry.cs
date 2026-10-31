@@ -52,6 +52,12 @@ public sealed record ConnectionEntry
     public bool HasPassword => PasswordCipher is { Length: > 0 };
     public bool CanLaunch => !string.IsNullOrWhiteSpace(Host);
 
+    /// <summary>
+    /// Host as shown in the tree and details: <c>host</c>, or <c>host:port</c> when the port is not the RDP default;
+    /// <c>null</c> without a host. SPEC FR-02
+    /// </summary>
+    public string? Address => string.IsNullOrWhiteSpace(Host) ? null : Port == DefaultRdpPort ? Host : $"{Host}:{Port}";
+
     /// <summary>User name as Windows expects it: <c>DOMAIN\user</c> when a domain is set.</summary>
     public string? QualifiedUserName => Qualify(Domain, UserName);
 

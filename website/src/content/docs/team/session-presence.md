@@ -7,11 +7,12 @@ With a shared database, Harbor shows which entries are currently in use and by w
 
 > **In use by Jane Doe &lt;jane@contoso.com&gt; on PC-42 since 10:31**
 
-The badge appears in the list; the details pane lists every active session for the selected entry, with the
-account each one is connected as. For an entry with
-[several accounts](../../guides/managing-entries/#several-accounts-per-entry), each account row shows its own badge.
+In the list an entry in use shows a dot and the name of who is connected (or “2 users”) in place of its host; hover
+it for the full text. The details pane lists every active session for the selected entry, with the account each one
+is connected as. For an entry with
+[several accounts](../../guides/managing-entries/#several-accounts-per-entry), each account row shows its own marker.
 
-![Main window showing "In use by Jane Doe" and "In use by Sam Patel" badges in the list, and an "Active sessions" box in the details of the selected entry.](../../../assets/screenshots/main.png)
+![Main window showing in-use dots for Jane Doe and Sam Patel in the list, and an "Active sessions" box in the details of the selected entry.](../../../assets/screenshots/main.png)
 
 ## How it works
 

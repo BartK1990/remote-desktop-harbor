@@ -70,7 +70,7 @@
             <Style TargetType="TextBlock">
               <Style.Triggers>
                 <DataTrigger Binding="{Binding IsOffline}" Value="True">
-                  <Setter Property="Foreground" Value="OrangeRed" />
+                  <Setter Property="Foreground" Value="{DynamicResource Harbor.OfflineTextBrush}" />
                   <Setter Property="FontWeight" Value="SemiBold" />
                 </DataTrigger>
               </Style.Triggers>
@@ -127,10 +127,14 @@
             </Setter>
           </Style>
 
+          <!-- Row content (SPEC FR-02, ADR-0025): icon, name and, for entries, the host in monospace on the right.
+               An entry or account in use shows a dot and who is connected instead of the host (SPEC FR-33). -->
           <HierarchicalDataTemplate DataType="{x:Type vm:FolderViewModel}" ItemsSource="{Binding Children}">
             <StackPanel Orientation="Horizontal" ToolTip="{Binding Path}">
-              <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-              <TextBlock Text="{Binding Count}" Margin="6,0,0,0" FontSize="11" Opacity="0.5" VerticalAlignment="Center" />
+              <TextBlock Style="{StaticResource Harbor.Text.Icon}" Text="&#xE8B7;" Margin="0,0,6,0" />
+              <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+              <TextBlock Text="{Binding Count}" Margin="6,0,0,0" FontSize="{StaticResource Harbor.FontSize.Caption}" VerticalAlignment="Center"
+                         Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
             </StackPanel>
           </HierarchicalDataTemplate>
 
@@ -138,34 +142,66 @@
           <HierarchicalDataTemplate DataType="{x:Type vm:EntryViewModel}" ItemsSource="{Binding Children}">
             <Grid ToolTip="{Binding Subtitle}">
               <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
               </Grid.ColumnDefinitions>
-              <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-              <Border Grid.Column="1" Background="#33FF8C00" CornerRadius="3" Padding="4,0" Margin="6,0,0,0" VerticalAlignment="Center"
-                      Visibility="{Binding IsInUse, Converter={StaticResource BoolToVisibility}}" ToolTip="{Binding PresenceDetails}">
-                <TextBlock Text="{Binding PresenceText}" FontSize="11" />
-              </Border>
+              <TextBlock Margin="0,0,6,0">
+                <TextBlock.Style>
+                  <Style TargetType="TextBlock" BasedOn="{StaticResource Harbor.Text.Icon}">
+                    <Setter Property="Text" Value="&#xE7F4;" />
+                    <Style.Triggers>
+                      <DataTrigger Binding="{Binding IsCredentialOnly}" Value="True">
+                        <Setter Property="Text" Value="&#xE8D7;" />
+                      </DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </TextBlock.Style>
+              </TextBlock>
+              <TextBlock Grid.Column="1" Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="2" Text="{Binding Address}" Margin="10,0,0,0" MaxWidth="200" TextTrimming="CharacterEllipsis"
+                         VerticalAlignment="Center">
+                <TextBlock.Style>
+                  <Style TargetType="TextBlock" BasedOn="{StaticResource Harbor.Text.MonoSecondary}">
+                    <Style.Triggers>
+                      <DataTrigger Binding="{Binding IsInUse}" Value="True">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                      </DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </TextBlock.Style>
+              </TextBlock>
+              <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="10,0,0,0" MaxWidth="200" ToolTip="{Binding PresenceDetails}"
+                          Visibility="{Binding IsInUse, Converter={StaticResource BoolToVisibility}}"
+                          AutomationProperties.Name="{Binding PresenceText}">
+                <Ellipse Style="{StaticResource Harbor.StatusDot}" />
+                <TextBlock Style="{StaticResource Harbor.Text.Presence}" Text="{Binding PresenceName}" />
+              </StackPanel>
             </Grid>
           </HierarchicalDataTemplate>
 
           <DataTemplate DataType="{x:Type vm:AccountViewModel}">
             <Grid ToolTip="Connect or copy with this account">
               <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
               </Grid.ColumnDefinitions>
-              <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Opacity="0.85" />
-              <Border Grid.Column="1" Background="#33FF8C00" CornerRadius="3" Padding="4,0" Margin="6,0,0,0" VerticalAlignment="Center"
-                      Visibility="{Binding IsInUse, Converter={StaticResource BoolToVisibility}}" ToolTip="{Binding PresenceDetails}">
-                <TextBlock Text="{Binding PresenceText}" FontSize="11" />
-              </Border>
+              <TextBlock Style="{StaticResource Harbor.Text.Icon}" Text="&#xE77B;" FontSize="{StaticResource Harbor.FontSize.Mono}" Margin="0,0,6,0" />
+              <TextBlock Grid.Column="1" Style="{StaticResource Harbor.Text.Mono}" Text="{Binding Name}" TextTrimming="CharacterEllipsis"
+                         VerticalAlignment="Center" />
+              <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="10,0,0,0" MaxWidth="200" ToolTip="{Binding PresenceDetails}"
+                          Visibility="{Binding IsInUse, Converter={StaticResource BoolToVisibility}}"
+                          AutomationProperties.Name="{Binding PresenceText}">
+                <Ellipse Style="{StaticResource Harbor.StatusDot}" />
+                <TextBlock Style="{StaticResource Harbor.Text.Presence}" Text="{Binding PresenceName}" />
+              </StackPanel>
             </Grid>
           </DataTemplate>
         </TreeView.Resources>
 
         <TreeView.ItemContainerStyle>
-          <!-- Compact rows: one line, ~22 px high, 16 px indent per level. -->
+          <!-- Compact rows: one line (Harbor.TreeRowHeight), 16 px indent per level. -->
           <Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
             <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
             <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
@@ -181,7 +217,7 @@
                       <RowDefinition Height="Auto" />
                       <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
-                    <Grid x:Name="Row" Background="Transparent" MinHeight="22">
+                    <Grid x:Name="Row" Background="Transparent" MinHeight="{StaticResource Harbor.TreeRowHeight}">
                       <Border x:Name="Fill" CornerRadius="3" Background="{TemplateBinding Foreground}" Opacity="0" />
                       <Border x:Name="Bar" Width="3" Height="12" CornerRadius="1.5" HorizontalAlignment="Left" Visibility="Collapsed"
                               Background="{DynamicResource {x:Static SystemColors.AccentColorBrushKey}}" />
@@ -277,7 +313,7 @@
             <TextBlock Text="{Binding Name}" FontSize="22" FontWeight="SemiBold" TextWrapping="Wrap" />
             <TextBlock Text="{Binding KindLabel}" Opacity="0.7" Margin="0,2,0,0" />
 
-            <Border Margin="0,12,0,0" Padding="10" CornerRadius="6" Background="#22FF8C00"
+            <Border Margin="0,12,0,0" Padding="10" CornerRadius="6" Background="{DynamicResource Harbor.InUseBackgroundBrush}"
                     Visibility="{Binding IsInUse, Converter={StaticResource BoolToVisibility}}">
               <StackPanel>
                 <TextBlock Text="Active sessions" FontWeight="SemiBold" />
@@ -296,13 +332,14 @@
             </StackPanel>
 
             <TextBlock Text="Host" Style="{StaticResource FieldLabel}" />
-            <TextBlock Text="{Binding Model.Host, TargetNullValue='—'}" />
+            <TextBlock Text="{Binding Model.Host, TargetNullValue='—'}" Style="{StaticResource Harbor.Text.Mono}" FontSize="13" />
             <TextBlock Text="Port" Style="{StaticResource FieldLabel}" />
-            <TextBlock Text="{Binding Model.Port}" />
+            <TextBlock Text="{Binding Model.Port}" Style="{StaticResource Harbor.Text.Mono}" FontSize="13" />
             <!-- The account Connect and Copy use: the selected account row, else the default account (SPEC FR-09). -->
             <StackPanel DataContext="{Binding DataContext.SelectedAccount, RelativeSource={RelativeSource AncestorType=Window}}">
               <TextBlock Text="User" Style="{StaticResource FieldLabel}" />
-              <TextBox Text="{Binding QualifiedUserName, Mode=OneWay, TargetNullValue='—'}" IsReadOnly="True" BorderThickness="0" Background="Transparent" Padding="0" />
+              <TextBox Text="{Binding QualifiedUserName, Mode=OneWay, TargetNullValue='—'}" IsReadOnly="True" BorderThickness="0" Background="Transparent" Padding="0"
+                       FontFamily="{StaticResource Harbor.MonoFont}" FontSize="13" />
               <TextBlock Text="Password" Style="{StaticResource FieldLabel}" />
               <TextBlock>
                 <TextBlock.Style>

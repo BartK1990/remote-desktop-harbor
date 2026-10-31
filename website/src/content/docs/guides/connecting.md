@@ -59,7 +59,7 @@ or leave the setting off.
 
 ## Connecting to an entry that is in use
 
-With a shared database, an entry another team member is connected to shows an **In use by …** badge. Connecting
+With a shared database, an entry another team member is connected to shows a dot and their name in the list. Connecting
 with the **same account** asks for confirmation first, because your connection would take over their session.
 Connecting with another account of the entry does not ask — Windows Server runs the sessions side by side. See
 [Session presence](../../team/session-presence/).

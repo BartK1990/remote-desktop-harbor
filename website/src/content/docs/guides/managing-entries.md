@@ -83,8 +83,10 @@ Settings imported from an `.rdp` file land in the matching fields. See
 
 ## The folder tree
 
-Each folder and entry is one low row showing just its name; folders also show how many entries they contain, and
-entries in use show an **In use by …** badge. Hover an entry for its user and host. Entries with
+Each folder and entry is one low row with an icon and its name; folders also show how many entries they contain.
+Entry rows show the host on the right in a monospace font, with the port when it is not the default 3389. An entry
+in use shows a dot and the name of who is connected instead (hover it for the details). Hover an entry for its user
+and host. Entries with
 [several accounts](#several-accounts-per-entry) can be expanded to one row per account.
 
 - Click the arrow next to a folder, double-click it, or press <kbd>←</kbd>/<kbd>→</kbd> to collapse or expand it.
@@ -139,3 +141,5 @@ When the app uses a shared database that is currently unreachable, **New**, **Im
 
 The three theme icons at the right of the toolbar switch the app between **System** (monitor icon — follows the
 Windows light/dark setting, the default), **Light** (sun icon) and **Dark** (moon icon); hover an icon for its name. The change applies immediately and is remembered for the next start.
+Harbor's own colours (the in-use dot, offline and error messages) switch with it, also when Windows changes between
+light and dark while **System** is chosen.
