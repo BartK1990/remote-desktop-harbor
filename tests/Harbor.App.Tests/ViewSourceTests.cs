@@ -31,6 +31,26 @@ public class ViewSourceTests
         var tabs = doc.Descendants(Wpf + "TabItem").Select(t => (string)t.Attribute("Header")!).ToList();
         Assert.Equal(new[] { "Storage", "Shared vault", "Sign-in", "General" }, tabs);
 
+        AssertTabsKeepGutter(doc);
+    }
+
+    // SPEC FR-46, ADR-0024: the entry editor sits on tabs like Settings; the RDP tabs only show for an RDP connection,
+    // and every tab keeps the scroll bar gutter.
+    [Fact]
+    public void Entry_editor_tabs_scroll_with_a_gutter_for_the_scroll_bar()
+    {
+        var doc = XDocument.Load(Source("EntryEditorWindow.xaml"));
+        var tabs = doc.Descendants(Wpf + "TabItem").ToList();
+        Assert.Equal(new[] { "General", "Accounts", "Display", "Local resources", "Connection" },
+            tabs.Select(t => (string)t.Attribute("Header")!));
+        Assert.Equal(new[] { "Display", "Local resources", "Connection" },
+            tabs.Where(t => (string?)t.Attribute("Style") == "{StaticResource RdpTab}").Select(t => (string)t.Attribute("Header")!));
+
+        AssertTabsKeepGutter(doc);
+    }
+
+    private static void AssertTabsKeepGutter(XDocument doc)
+    {
         Assert.All(doc.Descendants(Wpf + "TabItem"), tab =>
         {
             var scroller = Assert.Single(tab.Elements(Wpf + "ScrollViewer"));

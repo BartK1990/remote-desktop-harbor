@@ -17,6 +17,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\src\Harbor.App\Views\SettingsWindow.xaml" Link="Xaml\SettingsWindow.xaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\src\Harbor.App\Views\EntryEditorWindow.xaml" Link="Xaml\EntryEditorWindow.xaml" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\src\Harbor.App\Views\MainWindow.xaml.cs" Link="Xaml\MainWindow.xaml.cs" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>

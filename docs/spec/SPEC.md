@@ -77,6 +77,7 @@ shows who is currently connected to which machine.
 | FR-41 | Optional Microsoft Entra ID sign-in via the Windows account broker (WAM): silent SSO on Entra/hybrid-joined devices, interactive otherwise. |
 | FR-44 | Optional **no sign-in** mode: the user enters a name (required), used for presence and audit and shown as "(not signed in)". It is unverified, so Windows or Entra ID sign-in stays the default and recommended ([ADR-0015](../adr/0015-anonymous-named-mode.md)). |
 | FR-45 | The Settings dialog is split into tabs — **Storage** (local or shared database and its connection), **Shared vault** (vault key protection, schema, sync and presence timings; disabled with a hint while local storage is chosen), **Sign-in** and **General** (Remote Desktop, data folder, about) — so no tab needs a long scroll. Related short fields share a row (server + database name, user name + password, encrypt + trust server certificate, client ID + tenant), short values get narrow boxes, and every tab keeps a gutter so its scroll bar never covers an input. Validation errors show below the tabs, whatever tab is open. See [ADR-0023](../adr/0023-tabbed-settings-dialog.md). |
+| FR-46 | The entry editor is split into tabs — **General** (type, name + folder, host + port, domain + user name, password, notes), **Accounts** (additional accounts, FR-09), and for RDP connections only **Display**, **Local resources** and **Connection** (the RDP settings form and "Other .rdp settings", FR-13) — so no tab needs a long scroll. Related short fields share a row, each additional account fits on one row (domain, user name, password, Remove), and every tab keeps a gutter so its scroll bar never covers an input. Validation errors show below the tabs, whatever tab is open. See [ADR-0024](../adr/0024-tabbed-entry-editor.md). |
 | FR-42 | The signed-in identity is used for presence (FR-30) and audit (`UpdatedBy` on entries). |
 | FR-43 | Access to the shared SQL database uses the connection string's authentication: Windows integrated, SQL Server login, or Entra ID (`Authentication=Active Directory …`). It is independent of the app sign-in (FR-40/41): every sign-in works with both storage modes. |
 
@@ -177,5 +178,6 @@ for the full list.
 | FR-40..43 | `Windows/Identity/*`, `App/Infrastructure/AppHost` | manual (Windows) |
 | FR-44 | `Core/Identity/AnonymousIdentityProvider`, `App/ViewModels/SettingsViewModel` | `AnonymousIdentityTests`, `SettingsViewModelTests` |
 | FR-45 | `App/Views/SettingsWindow` | `ViewSourceTests` (Windows), manual (Windows) |
+| FR-46 | `App/Views/EntryEditorWindow` | `ViewSourceTests` (Windows), manual (Windows) |
 | NFR-10..13 | `Core/Security/*`, `Windows/Security/*` | `SecretCipherTests`, `WorkspaceTests` |
 | NFR-01..05 | `App/*`, publish profile, workflows | CI publish |
