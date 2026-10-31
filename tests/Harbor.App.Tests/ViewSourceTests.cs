@@ -20,7 +20,7 @@ public class ViewSourceTests
 
         Assert.All(radios, r => Assert.False(string.IsNullOrEmpty((string?)r.Attribute("GroupName")), (string?)r.Attribute("Content")));
         var groups = radios.GroupBy(r => (string)r.Attribute("GroupName")!).ToDictionary(g => g.Key, g => g.Count());
-        Assert.Equal(new Dictionary<string, int> { ["Storage"] = 2, ["KeyProtection"] = 3, ["SignIn"] = 3 }, groups);
+        Assert.Equal(new Dictionary<string, int> { ["Storage"] = 2, ["KeyProtection"] = 3, ["SignIn"] = 3, ["Theme"] = 3 }, groups);
     }
 
     // SPEC FR-45: settings sit on tabs; each tab scrolls on its own and keeps a right gutter so the overlay
@@ -30,7 +30,7 @@ public class ViewSourceTests
     {
         var doc = XDocument.Load(Source("SettingsWindow.xaml"));
         var tabs = doc.Descendants(Wpf + "TabItem").Select(t => (string)t.Attribute("Header")!).ToList();
-        Assert.Equal(new[] { "Storage", "Shared vault", "Sign-in", "General" }, tabs);
+        Assert.Equal(new[] { "Storage", "Shared vault", "Sign-in", "Remote Desktop", "Appearance", "About" }, tabs);
 
         AssertTabsKeepGutter(doc);
     }
@@ -92,7 +92,7 @@ public class ViewSourceTests
         var dark = Keys("Colors.Dark.xaml");
         Assert.Equal(light.Order(), dark.Order());
 
-        var defined = light.Concat(Keys("Tokens.xaml")).ToHashSet();
+        var defined = light.Concat(Keys("Tokens.xaml")).Concat(Keys("Controls.xaml")).ToHashSet();
         var used = Directory.GetFiles(Path.GetDirectoryName(Source("MainWindow.xaml"))!, "*.xaml", SearchOption.AllDirectories)
             .SelectMany(f => Regex.Matches(File.ReadAllText(f), @"Resource (Harbor\.[\w.]+)\}").Select(m => m.Groups[1].Value))
             .ToHashSet();
@@ -124,6 +124,29 @@ public class ViewSourceTests
             .Where(t => (string?)t.Attribute("Style") == "{StaticResource Harbor.Text.KeyHint}")
             .Select(t => (string)t.Attribute("Text")!);
         Assert.All(shown, hint => Assert.Contains(hint, bound.Keys));
+    }
+
+    // SPEC FR-08, FR-45, FR-46, ADR-0027: both dialogs use the side navigation and save with Ctrl+S; the theme is
+    // chosen in Settings, not in the main window.
+    [Theory]
+    [InlineData("SettingsWindow.xaml")]
+    [InlineData("EntryEditorWindow.xaml")]
+    public void Dialogs_use_the_side_navigation_and_save_with_ctrl_s(string view)
+    {
+        var doc = XDocument.Load(Source(view));
+        Assert.Equal("{StaticResource Harbor.NavTabControl}", (string?)Assert.Single(doc.Descendants(Wpf + "TabControl")).Attribute("Style"));
+        var save = Assert.Single(doc.Root!.Element(Wpf + "Window.InputBindings")!.Elements(Wpf + "KeyBinding"));
+        Assert.Equal(("S", "Ctrl", "ApplicationCommands.Save"),
+            ((string?)save.Attribute("Key"), (string?)save.Attribute("Modifiers"), (string?)save.Attribute("Command")));
+    }
+
+    [Fact]
+    public void Theme_is_chosen_in_settings_not_in_the_main_window()
+    {
+        Assert.DoesNotContain(XDocument.Load(Source("MainWindow.xaml")).Descendants(Wpf + "RadioButton"),
+            r => (string?)r.Attribute("GroupName") == "Theme");
+        Assert.Equal(3, XDocument.Load(Source("SettingsWindow.xaml")).Descendants(Wpf + "RadioButton")
+            .Count(r => (string?)r.Attribute("GroupName") == "Theme"));
     }
 
     // Closing the main window: Close() inside the Closing event throws

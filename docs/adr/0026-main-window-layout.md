@@ -47,4 +47,4 @@ Option 3, built from the ADR-0025 tokens and the stock Fluent controls.
 * Copy host is new (FR-06): it copies `host` or `host:port`, the form `mstsc /v:` and most tools accept.
 * `Ctrl+K` is reserved for a future quick-connect palette; until then it focuses the search box.
 * Delete is one click further away (More menu or `Del`), which makes it harder to hit by accident.
-* Moving the theme toggles to Settings, proposed with the redesign, is not part of this change (FR-08 unchanged).
+* The theme toggles moved to Settings → Appearance later (ADR-0027).

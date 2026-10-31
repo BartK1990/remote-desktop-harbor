@@ -53,3 +53,26 @@ public class DetailsPaneTests
         Assert.Equal(sessions, sessions.TakenOverBy(null));
     }
 }
+
+// SPEC FR-46: pasted host:port and DOMAIN\user are split into the editor's fields.
+public class EntryInputTests
+{
+    [Theory]
+    [InlineData("srv01", "srv01", null)]
+    [InlineData("srv01.contoso.local:3390", "srv01.contoso.local", 3390)]
+    [InlineData("10.20.4.12:3389", "10.20.4.12", 3389)]
+    [InlineData("[fe80::1]:3390", "[fe80::1]", 3390)]
+    [InlineData("fe80::1", "fe80::1", null)]
+    [InlineData("srv:abc", "srv:abc", null)]
+    public void Host_and_port_are_split(string value, string host, int? port) =>
+        Assert.Equal((host, port), EntryInput.SplitHostPort(value));
+
+    [Theory]
+    [InlineData(@"CONTOSO\jdoe", "CONTOSO", "jdoe")]
+    [InlineData("jdoe", null, "jdoe")]
+    [InlineData("jdoe@contoso.com", null, "jdoe@contoso.com")]
+    [InlineData(@".\admin", null, @".\admin")]
+    [InlineData(@"CONTOSO\", null, @"CONTOSO\")]
+    public void Domain_and_user_are_split(string value, string? domain, string user) =>
+        Assert.Equal((domain, user), EntryInput.SplitDomainUser(value));
+}

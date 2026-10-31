@@ -30,9 +30,11 @@ public static class SettingsStore
     {
         Directory.CreateDirectory(AppPaths.DataDirectory);
         var tmp = AppPaths.SettingsFile + ".tmp";
-        File.WriteAllText(tmp, JsonSerializer.Serialize(settings, SettingsJsonContext.Default.HarborSettings));
+        File.WriteAllText(tmp, Serialize(settings));
         File.Move(tmp, AppPaths.SettingsFile, overwrite: true);
     }
+
+    public static string Serialize(HarborSettings settings) => JsonSerializer.Serialize(settings, SettingsJsonContext.Default.HarborSettings);
 
     public static string? GetRemoteConnectionString(HarborSettings settings) =>
         string.IsNullOrEmpty(settings.RemoteConnectionStringProtected)

@@ -88,22 +88,100 @@
     <Setter Property="VerticalAlignment" Value="Center" />
     <Setter Property="IsHitTestVisible" Value="False" />
   </Style>
-  <!-- Toolbar and action buttons: icon + label (+ shortcut). -->
-  <Style x:Key="Harbor.Button" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-    <Setter Property="Padding" Value="10,5" />
-    <Setter Property="Margin" Value="0,0,6,0" />
+  <!-- Dialogs (SPEC FR-45, FR-46, ADR-0027): the TabControl keeps its keyboard behaviour (Ctrl+Tab, Ctrl+PgDn,
+       arrow keys) but its tabs are drawn as a side navigation list. -->
+  <Style x:Key="Harbor.NavTab" TargetType="TabItem">
+    <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="TabItem">
+          <Grid x:Name="Row" MinHeight="34" Margin="0,1" Background="Transparent">
+            <Border x:Name="Fill" CornerRadius="4" Background="Transparent" />
+            <Border x:Name="Bar" Width="3" Height="16" CornerRadius="1.5" HorizontalAlignment="Left" Visibility="Collapsed"
+                    Background="{DynamicResource AccentFillColorDefaultBrush}" />
+            <Border x:Name="Focus" CornerRadius="4" BorderThickness="2" BorderBrush="{DynamicResource TextFillColorPrimaryBrush}" Visibility="Collapsed" />
+            <ContentPresenter ContentSource="Header" Margin="14,0,10,0" VerticalAlignment="Center" RecognizesAccessKey="True" />
+          </Grid>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Fill" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+            </Trigger>
+            <Trigger Property="IsSelected" Value="True">
+              <Setter TargetName="Fill" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+              <Setter TargetName="Bar" Property="Visibility" Value="Visible" />
+              <Setter Property="FontWeight" Value="SemiBold" />
+            </Trigger>
+            <Trigger Property="IsKeyboardFocused" Value="True">
+              <Setter TargetName="Focus" Property="Visibility" Value="Visible" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter Property="Opacity" Value="0.5" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
   </Style>
-  <!-- Quiet button without a fill until hovered: icon-only actions and copy buttons. -->
-  <Style x:Key="Harbor.SubtleButton" TargetType="Button" BasedOn="{StaticResource Harbor.Button}">
-    <Setter Property="Background" Value="Transparent" />
-    <Setter Property="BorderBrush" Value="Transparent" />
+  <Style x:Key="Harbor.NavTabControl" TargetType="TabControl">
+    <Setter Property="TabStripPlacement" Value="Left" />
+    <Setter Property="ItemContainerStyle" Value="{StaticResource Harbor.NavTab}" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="TabControl">
+          <Grid KeyboardNavigation.TabNavigation="Local">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="180" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Border BorderThickness="0,0,1,0" BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}" Padding="0,0,10,0">
+              <StackPanel IsItemsHost="True" KeyboardNavigation.TabIndex="1" KeyboardNavigation.DirectionalNavigation="Cycle" />
+            </Border>
+            <ContentPresenter x:Name="PART_SelectedContentHost" Grid.Column="1" ContentSource="SelectedContent" Margin="16,0,0,0"
+                              KeyboardNavigation.TabNavigation="Local" KeyboardNavigation.TabIndex="2" />
+          </Grid>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
   </Style>
-  <Style x:Key="Harbor.CopyButton" TargetType="Button" BasedOn="{StaticResource Harbor.SubtleButton}">
-    <Setter Property="Padding" Value="6,3" />
-    <Setter Property="Margin" Value="6,0,0,0" />
-    <Setter Property="FontFamily" Value="{StaticResource Harbor.IconFont}" />
-    <Setter Property="FontSize" Value="{StaticResource Harbor.FontSize.Mono}" />
-    <Setter Property="Content" Value="&#xE8C8;" />
-    <Setter Property="VerticalAlignment" Value="Center" />
+
+  <!-- A choice shown as a selectable card (title + description), e.g. the storage mode. -->
+  <Style x:Key="Harbor.CardRadio" TargetType="RadioButton">
+    <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="RadioButton">
+          <Border x:Name="Card" CornerRadius="6" BorderThickness="1" Padding="13,10"
+                  Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
+            <ContentPresenter />
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Card" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+            </Trigger>
+            <Trigger Property="IsChecked" Value="True">
+              <Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+              <Setter TargetName="Card" Property="BorderThickness" Value="2" />
+              <Setter TargetName="Card" Property="Padding" Value="12,9" />
+            </Trigger>
+            <Trigger Property="IsKeyboardFocused" Value="True">
+              <Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
   </Style>
+  <Style x:Key="Harbor.Text.CardTitle" TargetType="TextBlock">
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style x:Key="Harbor.Text.CardDescription" TargetType="TextBlock">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+    <Setter Property="Margin" Value="0,3,0,0" />
+  </Style>
+
+
 </ResourceDictionary>

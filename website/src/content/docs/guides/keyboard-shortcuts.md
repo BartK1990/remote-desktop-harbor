@@ -24,4 +24,6 @@ The search box has focus when the app starts: type part of a name, press <kbd>â†
 pick the entry with the arrow keys and press <kbd>Enter</kbd> to connect. The main window shows each shortcut next
 to its button.
 
-In the editor and settings dialogs, <kbd>Enter</kbd> saves and <kbd>Esc</kbd> cancels.
+In the editor and settings dialogs, <kbd>Ctrl</kbd>+<kbd>S</kbd> (or <kbd>Enter</kbd>) saves, <kbd>Esc</kbd>
+cancels, and <kbd>Ctrl</kbd>+<kbd>Tab</kbd> / <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Tab</kbd> move between the
+sections listed on the left.

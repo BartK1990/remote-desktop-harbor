@@ -4,7 +4,7 @@
 const path = require('path');
 const { chromium } = require('playwright');
 
-const shots = ['main', 'offline', 'editor', 'editor-accounts', 'editor-display', 'settings', 'settings-vault', 'settings-signin', 'settings-general', 'passphrase', 'inuse'];
+const shots = ['main', 'offline', 'editor', 'editor-accounts', 'editor-display', 'settings', 'settings-vault', 'settings-signin', 'settings-appearance', 'passphrase', 'inuse'];
 const outDir = path.join(__dirname, '..', 'src', 'assets', 'screenshots');
 
 (async () => {

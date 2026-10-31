@@ -15,28 +15,30 @@ and the details of the selected entry on the right.
 | **RDP connection** | Host, port, credentials **and** additional `.rdp` settings | Default settings + the entry's own `.rdp` settings |
 | **Credentials only** | User name and password, optional host | Default settings only |
 
-Pick the kind at the top of the editor's **General** tab. You can switch it later; the RDP settings tabs
-(**Display**, **Local resources**, **Connection**) are only shown for RDP connections.
+Pick the kind with the switch at the top of the editor's **General** section. You can switch it later; the RDP
+settings sections (**Display**, **Local resources**, **Connection**) are only shown for RDP connections.
 
 ## Fields
 
-The editor has five tabs: **General** for the fields below, **Accounts** for
+The editor lists its sections on the left: **General** for the fields below, **Accounts** for
 [additional accounts](#several-accounts-per-entry), and **Display**, **Local resources** and **Connection** for the
-[RDP settings](#rdp-settings). Errors are shown below the tabs, whichever tab is open.
+[RDP settings](#rdp-settings) (<kbd>Ctrl</kbd>+<kbd>Tab</kbd> moves between them). **Save**
+(<kbd>Ctrl</kbd>+<kbd>S</kbd>) checks the entry first: a problem is shown at the bottom, and the editor opens the
+section with the problem and puts the cursor in the field.
 
-![The entry editor, General tab: Type, Name and Folder, Host and Port, Domain and User name, Password and Notes.](../../../assets/screenshots/editor.png)
+![The entry editor, General section: Type, Name and Folder, Host and Port, Domain and User name, Password and Notes.](../../../assets/screenshots/editor.png)
 
 | Field | Notes |
 |---|---|
 | **Name** | Required. Shown in the list. |
 | **Folder** | Optional. Type a new name or pick an existing one. Use `/` (or `\`) for sub-folders, e.g. `Production/Web`. |
-| **Host** / **Port** | Host name or IP address (IPv6 literals like `[fe80::1]` work). Port defaults to `3389`. An entry without a host cannot be launched, but you can still copy its credentials. |
-| **Domain** / **User name** | Combined as `DOMAIN\user`. If the user name already contains `\` or `@` (UPN), the domain is not added. |
-| **Password** | Optional. Encrypted before it is written to any database. When editing an entry that already has a password, tick **Change stored password** to replace or clear it. |
+| **Host** / **Port** | Host name or IP address (IPv6 literals like `[fe80::1]` work). Port defaults to `3389`. Paste `host:port` into **Host** and it is split into both fields when you save (unless you typed another port). An entry without a host cannot be launched, but you can still copy its credentials. |
+| **Domain** / **User name** | Combined as `DOMAIN\user`. Type `DOMAIN\user` into **User name** with **Domain** empty and it is split into both fields when you save. If the user name contains `@` (UPN), the domain is not added. |
+| **Password** | Optional. Encrypted before it is written to any database. An entry that already has a password shows **Stored, encrypted** with **Replace…** (type a new one) and **Remove** (save without a password); **Keep stored password** undoes either. |
 | **Notes** | Free text. Searchable. |
-| **Accounts** tab | Optional. More users for the same host — see [Several accounts per entry](#several-accounts-per-entry). |
-| **Display**, **Local resources**, **Connection** tabs | RDP connections only. The common Remote Desktop settings as form fields — see [RDP settings](#rdp-settings). |
-| **Other .rdp settings** | RDP connections only, on the **Connection** tab under *advanced*. Any other `.rdp` lines in `key:type:value` format, e.g. `gatewayhostname:s:gw.contoso.com`. |
+| **Accounts** section | Optional. More users for the same host — see [Several accounts per entry](#several-accounts-per-entry). |
+| **Display**, **Local resources**, **Connection** sections | RDP connections only. The common Remote Desktop settings as form fields — see [RDP settings](#rdp-settings). |
+| **Other .rdp settings** | RDP connections only, in the **Connection** section under *advanced*. Any other `.rdp` lines in `key:type:value` format, e.g. `gatewayhostname:s:gw.contoso.com`. |
 
 ## The details pane
 
@@ -58,14 +60,14 @@ Selecting an entry shows, from top to bottom:
 Windows Server lets several people — or one person with several accounts — be connected at once. Instead of
 copying an entry for each account, add the accounts to one entry:
 
-1. Open the entry in the editor. The **Domain**, **User name** and **Password** on the **General** tab are the
+1. Open the entry in the editor. The **Domain**, **User name** and **Password** in the **General** section are the
    entry's **default account**.
-2. On the **Accounts** tab, click **Add account** and fill in the **User name** (required), an optional
+2. In the **Accounts** section, click **Add account** and fill in the **User name** (required), an optional
    **Domain** — left empty, the entry's domain is used — and an optional **Password**. Each account takes one row;
    add as many as you need. **Remove** deletes one.
 3. Save.
 
-![The entry editor, Accounts tab: one additional account "ops" with Domain, User name, Password, Remove and "Change stored password", and an Add account button.](../../../assets/screenshots/editor-accounts.png)
+![The entry editor, Accounts section: one additional account "ops" with Domain, User name, a stored password ("Stored") with Replace…, Remove, and an Add account button.](../../../assets/screenshots/editor-accounts.png)
 
 In the tree, an entry with additional accounts gets an arrow: expand it to see one row per account, the default
 account first. Select an **account row** and **Connect**, **Copy user** or **Copy password** use that account;
@@ -78,10 +80,10 @@ are shared and synced with their entry; deleting the entry deletes its accounts 
 
 ## RDP settings
 
-For an RDP connection the editor shows the usual Remote Desktop options as fields on three tabs, like the
+For an RDP connection the editor shows the usual Remote Desktop options as fields in three sections, like the
 *Show options* tabs of the Remote Desktop client:
 
-![The entry editor, Display tab: Mode "Window", Resolution 1920 × 1080, Colour depth, and the monitor, resize and smart sizing check boxes.](../../../assets/screenshots/editor-display.png)
+![The entry editor, Display section: Mode "Window", Resolution 1920 × 1080, Colour depth, and the monitor, resize and smart sizing check boxes.](../../../assets/screenshots/editor-display.png)
 
 | Tab | Settings |
 |---|---|
@@ -91,7 +93,7 @@ For an RDP connection the editor shows the usual Remote Desktop options as field
 
 New entries start with the defaults (full screen, clipboard on, warn on authentication problems, …); only the
 settings you change are stored. Anything else — a Remote Desktop Gateway, specific drives, … — goes into
-**Other .rdp settings (advanced)** on the **Connection** tab as ordinary `.rdp` lines; it opens by itself when the entry has such lines.
+**Other .rdp settings (advanced)** in the **Connection** section as ordinary `.rdp` lines; it opens by itself when the entry has such lines.
 Settings imported from an `.rdp` file land in the matching fields. See
 [RDP settings format](../importing-rdp-files/#rdp-settings-format).
 
@@ -157,7 +159,8 @@ When the app uses a shared database that is currently unreachable, **New**, **Im
 
 ## Light or dark theme
 
-The three theme icons at the right of the toolbar switch the app between **System** (monitor icon — follows the
-Windows light/dark setting, the default), **Light** (sun icon) and **Dark** (moon icon); hover an icon for its name. The change applies immediately and is remembered for the next start.
+Choose **System** (follows the Windows light/dark setting, the default), **Light** or **Dark** in
+**Settings → Appearance**. The theme changes as soon as you pick it; **Save** keeps it (no restart needed) and
+**Cancel** goes back to the previous one. It is remembered for the next start.
 Harbor's own colours (the in-use dot, offline and error messages) switch with it, also when Windows changes between
 light and dark while **System** is chosen.

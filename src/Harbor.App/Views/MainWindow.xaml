@@ -2,11 +2,12 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:Harbor.App.ViewModels"
-        xmlns:views="clr-namespace:Harbor.App.Views"
-        xmlns:core="clr-namespace:Harbor.Core;assembly=Harbor.Core"
         Title="Remote Desktop Harbor" Width="1100" Height="700" MinWidth="720" MinHeight="420"
         Icon="/Assets/AppIcon.ico"
         WindowStartupLocation="CenterScreen">
+  <Window.Resources>
+    <ResourceDictionary Source="/Themes/Controls.xaml" />
+  </Window.Resources>
   <!-- Keyboard first (SPEC FR-47, ADR-0026): every action has a shortcut, shown next to it or in its tooltip. -->
   <Window.InputBindings>
     <KeyBinding Key="F" Modifiers="Ctrl" Command="{Binding FocusSearchCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
@@ -20,7 +21,7 @@
   </Window.InputBindings>
 
   <DockPanel>
-    <!-- Toolbar: search, icon buttons, theme, signed-in user and settings (SPEC FR-47). -->
+    <!-- Toolbar: search, icon buttons, signed-in user and settings (SPEC FR-47); the theme is in Settings (FR-08). -->
     <Grid DockPanel.Dock="Top" Margin="12,10,12,8">
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="*" MaxWidth="460" />
@@ -72,29 +73,6 @@
             <TextBlock Style="{StaticResource Harbor.Text.KeyHint}" Text="F5" />
           </StackPanel>
         </Button>
-        <!-- Theme selector: three icon toggles (system / light / dark), applied immediately,
-             remembered across restarts (SPEC FR-08). -->
-        <StackPanel Orientation="Horizontal" AutomationProperties.Name="Theme" Margin="4,0,0,0">
-          <StackPanel.Resources>
-            <views:EnumToBooleanConverter x:Key="EnumToBool" />
-            <Style x:Key="ThemeIcon" TargetType="RadioButton" BasedOn="{StaticResource {x:Type ToggleButton}}">
-              <Setter Property="GroupName" Value="Theme" />
-              <Setter Property="FontFamily" Value="{StaticResource Harbor.IconFont}" />
-              <Setter Property="FontSize" Value="14" />
-              <Setter Property="Padding" Value="8,6" />
-              <Setter Property="Margin" Value="0,0,2,0" />
-            </Style>
-          </StackPanel.Resources>
-          <RadioButton Style="{StaticResource ThemeIcon}" Content="&#xE7F4;"
-                       IsChecked="{Binding Theme, Converter={StaticResource EnumToBool}, ConverterParameter={x:Static core:AppTheme.System}}"
-                       ToolTip="Theme: follow Windows" AutomationProperties.Name="System theme" />
-          <RadioButton Style="{StaticResource ThemeIcon}" Content="&#xE706;"
-                       IsChecked="{Binding Theme, Converter={StaticResource EnumToBool}, ConverterParameter={x:Static core:AppTheme.Light}}"
-                       ToolTip="Theme: light" AutomationProperties.Name="Light theme" />
-          <RadioButton Style="{StaticResource ThemeIcon}" Content="&#xE708;"
-                       IsChecked="{Binding Theme, Converter={StaticResource EnumToBool}, ConverterParameter={x:Static core:AppTheme.Dark}}"
-                       ToolTip="Theme: dark" AutomationProperties.Name="Dark theme" />
-        </StackPanel>
       </StackPanel>
       <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
         <TextBlock Style="{StaticResource Harbor.Text.Icon}" Text="&#xE77B;" Margin="0,0,6,0" />

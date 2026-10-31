@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Input;
 using Harbor.App.ViewModels;
 
 namespace Harbor.App.Views;
@@ -27,6 +28,8 @@ public partial class SettingsWindow : Window
     }
 
     private void DbPasswordBox_PasswordChanged(object sender, RoutedEventArgs e) => _viewModel.DbPassword = DbPasswordBox.Password;
+
+    private void Save_Executed(object sender, ExecutedRoutedEventArgs e) => Save_Click(sender, e);
 
     private async void Save_Click(object sender, RoutedEventArgs e)
     {

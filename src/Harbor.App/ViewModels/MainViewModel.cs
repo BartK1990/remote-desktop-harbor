@@ -34,7 +34,6 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         Settings = settings;
         _dialogs = dialogs;
         _collapsed = new HashSet<string>(settings.CollapsedFolders, StringComparer.CurrentCultureIgnoreCase);
-        _theme = settings.Theme;
         _syncTimer.Tick += async (_, _) => await SyncAsync();
         _presenceTimer.Tick += async (_, _) => await RefreshPresenceAsync();
     }
@@ -47,9 +46,6 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     public TreeChildren Tree { get; } = [];
 
     [ObservableProperty] private string _searchText = "";
-
-    /// <summary>Colour theme; applied immediately and remembered across restarts (SPEC FR-08).</summary>
-    [ObservableProperty] private AppTheme _theme;
 
     /// <summary>The selected tree row (folder, entry or account); kept in sync with <see cref="Selected"/>.</summary>
     [ObservableProperty]
@@ -574,28 +570,18 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     private void OpenSettings()
     {
         var vm = new SettingsViewModel(Settings);
-        if (!_dialogs.EditSettings(vm)) return;
-        vm.Apply();
+        if (!_dialogs.EditSettings(vm))
+        {
+            vm.RevertTheme(); // SPEC FR-08: Cancel undoes the theme preview
+            return;
+        }
+
+        var restart = vm.Apply();
         SettingsStore.Save(Settings);
-        if (_dialogs.Confirm("Restart required", "Settings were saved. Restart Remote Desktop Harbor now to apply them?"))
+        if (restart && _dialogs.Confirm("Restart required", "Settings were saved. Restart Remote Desktop Harbor now to apply them?"))
         {
             System.Diagnostics.Process.Start(Environment.ProcessPath!);
             Application.Current.Shutdown();
-        }
-    }
-
-    partial void OnThemeChanged(AppTheme value)
-    {
-        ThemeService.Apply(value);
-        if (Settings.Theme == value) return;
-        Settings.Theme = value;
-        try
-        {
-            SettingsStore.Save(Settings);
-        }
-        catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException)
-        {
-            Log.Error("Theme could not be saved", ex);
         }
     }
 

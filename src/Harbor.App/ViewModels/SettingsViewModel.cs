@@ -35,7 +35,40 @@ public sealed partial class SettingsViewModel : ObservableObject
         _presenceTtlSeconds = settings.PresenceTtlSeconds;
         _presenceHeartbeatSeconds = settings.PresenceHeartbeatSeconds;
         _keepCredential = settings.KeepCredentialAfterLaunch;
+        _theme = settings.Theme;
+        _openedConnectionString = EffectiveConnectionString;
+        PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName is nameof(DbServer) or nameof(DbName) or nameof(DbAuthentication) or nameof(DbUserName) or nameof(DbPassword)
+                or nameof(DbEncrypt) or nameof(DbTrustServerCertificate) or nameof(RemoteProvider) or nameof(EditRawConnectionString))
+            {
+                OnPropertyChanged(nameof(ConnectionStringPreview));
+            }
+        };
     }
+
+    // What Test and Save would use as the dialog opened; Save keeps the stored string while it is unchanged.
+    private readonly string? _openedConnectionString;
+
+    /// <summary>
+    /// Colour theme (SPEC FR-08): previewed as soon as it is picked, saved with Save, undone by <see cref="RevertTheme"/>
+    /// on Cancel.
+    /// </summary>
+    [ObservableProperty] private AppTheme _theme;
+
+    partial void OnThemeChanged(AppTheme value) => ThemeService.Apply(value);
+
+    /// <summary>Undoes a theme preview when the dialog is cancelled.</summary>
+    public void RevertTheme() => ThemeService.Apply(_settings.Theme);
+
+    /// <summary>
+    /// The connection string the fields produce, with the password masked (SPEC FR-45, NFR-12); <c>null</c> while the
+    /// raw text is edited or the fields are incomplete.
+    /// </summary>
+    public string? ConnectionStringPreview => ShowFields ? ConnectionStringMask.Apply(BuildFromFields()) : null;
+
+    /// <summary>Outcome of the last Test connection: <c>true</c> OK, <c>false</c> failed, <c>null</c> not run or running.</summary>
+    [ObservableProperty] private bool? _testOk;
 
     public IEnumerable<string> Providers => DatabaseProviders.Names.Where(n => n != SqliteProvider.ProviderName);
 
@@ -231,6 +264,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     private async Task TestConnectionAsync()
     {
         TestResult = "Connecting…";
+        TestOk = null;
         try
         {
             var connectionString = EffectiveConnectionString ?? "";
@@ -240,10 +274,12 @@ public sealed partial class SettingsViewModel : ObservableObject
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
             await connection.OpenAsync(timeout.Token);
             TestResult = $"OK – {(created ? "created and " : "")}connected to {connection.DataSource} / {connection.Database}";
+            TestOk = true;
         }
         catch (Exception ex)
         {
             TestResult = $"Failed: {ex.Message}";
+            TestOk = false;
         }
     }
 
@@ -285,11 +321,19 @@ public sealed partial class SettingsViewModel : ObservableObject
         return Error is null;
     }
 
-    public void Apply()
+    /// <summary>
+    /// Writes the dialog into the settings. Returns whether anything besides the theme changed, i.e. whether the app
+    /// must restart to apply it; the theme applies live (SPEC FR-08).
+    /// </summary>
+    public bool Apply()
     {
+        var before = SnapshotWithoutTheme();
+        _settings.Theme = Theme;
         _settings.StorageMode = IsRemote ? StorageMode.Remote : StorageMode.Local;
         _settings.RemoteProvider = RemoteProvider;
-        if (IsRemote)
+        // Re-protecting an unchanged string gives new ciphertext; keep it so an unchanged dialog needs no restart.
+        if (IsRemote && (_settings.RemoteConnectionStringProtected is null
+                         || !string.Equals(EffectiveConnectionString, _openedConnectionString, StringComparison.Ordinal)))
         {
             // Stored DPAPI-protected only, never logged (it may hold a SQL login password). NFR-12
             SettingsStore.SetRemoteConnectionString(_settings, EffectiveConnectionString);
@@ -307,7 +351,26 @@ public sealed partial class SettingsViewModel : ObservableObject
         _settings.PresenceTtlSeconds = PresenceTtlSeconds;
         _settings.PresenceHeartbeatSeconds = PresenceHeartbeatSeconds;
         _settings.KeepCredentialAfterLaunch = KeepCredential;
+        return SnapshotWithoutTheme() != before;
     }
+
+    private string SnapshotWithoutTheme()
+    {
+        var theme = _settings.Theme;
+        _settings.Theme = default;
+        try
+        {
+            return SettingsStore.Serialize(_settings);
+        }
+        finally
+        {
+            _settings.Theme = theme;
+        }
+    }
+
+    [RelayCommand]
+    private static void OpenDataFolder() =>
+        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(AppPaths.DataDirectory) { UseShellExecute = true });
 
     private static string? SafeGetConnectionString(HarborSettings settings)
     {
