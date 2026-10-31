@@ -596,10 +596,16 @@
 </div></div>
 
 <!-- ============================================================ in-use confirmation -->
-<div class="shot" id="inuse"><div class="win" style="width:520px">
-  <div class="titlebar" style="background:#fff"><span class="t">Connection in use</span><slot-caps class="closeonly"></slot-caps></div>
-  <div class="msg"><div class="ic">?</div><div style="line-height:1.5">Jane Doe (CONTOSO\jane.doe) &lt;jane.doe@contoso.com&gt; on PC-42, since 10:31<br><br>Connect anyway? This may disconnect the other user.</div></div>
-  <div class="msgfoot"><span class="btn accent">Yes</span><span class="btn">No</span></div>
+<div class="shot" id="inuse"><div class="win" style="width:480px">
+  <div class="titlebar"><img src="appicon.png"><span class="t">Connection in use</span><span style="flex:1"></span><slot-caps class="closeonly"></slot-caps></div>
+  <div style="display:flex;gap:14px;padding:8px 20px 0">
+    <div style="width:32px;height:32px;border-radius:50%;background:var(--inuse-bg);color:var(--inuse-text);display:flex;align-items:center;justify-content:center;font-weight:700;flex:none">!</div>
+    <div><div style="font-size:16px;font-weight:600">Connection in use</div>
+      <div style="margin-top:6px;line-height:1.5">Jane Doe (CONTOSO\jane.doe) &lt;jane.doe@contoso.com&gt; as CONTOSO\svc-admin on PC-42, since 10:31<br><br>APP02 – Reporting is a production (PROD) entry.<br><br>Connect anyway? This may disconnect the other user.</div></div>
+  </div>
+  <div style="margin-top:20px;padding:14px 20px;border-top:1px solid var(--stroke);display:flex;justify-content:flex-end;gap:8px">
+    <span class="btn" style="min-width:110px">Connect anyway</span><span class="btn accent" style="min-width:110px;outline:2px solid #1a1a1a;outline-offset:1px">Cancel</span>
+  </div>
 </div></div>
 
 <script>

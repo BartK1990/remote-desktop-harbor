@@ -1,0 +1,80 @@
+name: Screenshots
+
+# Captures the documentation screenshots from the real app (ADR-0031): the app runs on a Windows runner against a
+# demo shared database on SQL Server LocalDB, tools/Harbor.Screenshots drives it with the keyboard and saves PNGs.
+# Pull requests that touch the app get them as an artifact; run it by hand with "commit" to update the docs.
+
+on:
+  pull_request:
+    paths: ["src/Harbor.App/**", "tools/Harbor.Screenshots/**", ".github/workflows/screenshots.yml"]
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: "Commit the screenshots to website/src/assets/screenshots on this branch"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: screenshots-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  capture:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Start SQL Server LocalDB
+        shell: pwsh
+        run: |
+          function Find-LocalDb { Get-ChildItem "$env:ProgramFiles\Microsoft SQL Server\*\Tools\Binn\SqlLocalDB.exe" -ErrorAction SilentlyContinue |
+            Sort-Object FullName -Descending | Select-Object -First 1 }
+          $exe = Find-LocalDb
+          if (-not $exe) { choco install sqllocaldb -y --no-progress; $exe = Find-LocalDb }
+          if (-not $exe) { throw "SQL Server LocalDB is not available on this runner." }
+          & $exe.FullName create MSSQLLocalDB -s
+          & $exe.FullName start MSSQLLocalDB
+          & $exe.FullName info MSSQLLocalDB
+
+      - name: Build the app and the capture tool
+        run: dotnet build tools/Harbor.Screenshots/Harbor.Screenshots.csproj -c Release -o out/shots
+
+      - name: Capture
+        run: out/shots/Harbor.Screenshots.exe website/src/assets/screenshots
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: |
+            website/src/assets/screenshots/*.png
+            out/shots/data/logs/*.log
+          if-no-files-found: warn
+
+      - name: Commit screenshots
+        if: github.event_name == 'workflow_dispatch' && inputs.commit
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add website/src/assets/screenshots/*.png
+          git diff --cached --quiet
+          if ($LASTEXITCODE -ne 0) {
+            git commit -m "Docs: screenshots captured from the app (screenshots workflow)"
+            git push
+          } else {
+            Write-Host "Screenshots unchanged."
+          }

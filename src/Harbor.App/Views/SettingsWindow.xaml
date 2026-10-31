@@ -55,7 +55,7 @@
     </Grid>
 
     <!-- SPEC FR-45, ADR-0023, ADR-0027: settings split into tabs, drawn as a side navigation. -->
-    <TabControl Style="{StaticResource Harbor.NavTabControl}">
+    <TabControl x:Name="Tabs" Style="{StaticResource Harbor.NavTabControl}">
       <TabItem Header="Storage">
         <ScrollViewer Style="{StaticResource TabScroller}">
           <StackPanel Style="{StaticResource TabPage}">

@@ -30,8 +30,10 @@ entries first; with nothing typed, the palette shows your pinned and recent entr
 
 Connecting to an entry tagged **PROD** (a folder named *Production*, *Prod*, *PRD* or *Live*, see
 [environment tags](../managing-entries/#the-folder-tree)) asks first, naming the entry, its folder and the account,
-so a slip of <kbd>Enter</kbd> never opens a production server. If the connection would also take over someone's
-session, that question mentions production instead — you are asked once. Turn it off under
+so a slip of <kbd>Enter</kbd> never opens a production server: in this question (and in the one about taking over
+a session, or deleting an entry) **Cancel** is the default, so <kbd>Enter</kbd> and <kbd>Esc</kbd> cancel — click
+**Connect** or press <kbd>Tab</kbd> to it. If the connection would also take over someone's session, that question
+mentions production instead — you are asked once. Turn it off under
 **Settings → Remote Desktop → Ask before connecting to a production (PROD) entry**.
 
 ## What happens under the hood

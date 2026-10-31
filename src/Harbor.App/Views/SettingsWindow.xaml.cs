@@ -15,6 +15,8 @@ public partial class SettingsWindow : Window
         DataContext = _viewModel = viewModel;
         DbPasswordBox.Password = viewModel.DbPassword ?? "";
         viewModel.PropertyChanged += ViewModel_PropertyChanged;
+        // Start in the section list, so arrows and Ctrl+Tab move between sections at once (SPEC FR-45).
+        Loaded += (_, _) => (Tabs.ItemContainerGenerator.ContainerFromItem(Tabs.SelectedItem) as UIElement ?? Tabs).Focus();
         Closed += (_, _) => viewModel.PropertyChanged -= ViewModel_PropertyChanged;
     }
 

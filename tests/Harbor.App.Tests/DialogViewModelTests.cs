@@ -15,6 +15,7 @@ public class DialogViewModelTests
         public bool EditEntry(EntryEditorViewModel editor) => false;
         public bool EditSettings(SettingsViewModel settings) => false;
         public bool Confirm(string title, string message) => false;
+        public bool ConfirmRisky(string title, string message, string confirmText) => false;
         public void ShowError(string title, string message) { }
         public string? PickRdpFile() => null;
     }

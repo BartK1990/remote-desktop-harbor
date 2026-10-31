@@ -68,6 +68,7 @@
     <KeyBinding Key="D" Modifiers="Ctrl" Command="{Binding TogglePinCommand}" />
     <KeyBinding Key="N" Modifiers="Ctrl" Command="{Binding AddCommand}" />
     <KeyBinding Key="F5" Command="{Binding RefreshCommand}" />
+    <KeyBinding Key="OemComma" Modifiers="Ctrl" Command="{Binding OpenSettingsCommand}" />
     <KeyBinding Key="F2" Command="{Binding EditCommand}" />
     <KeyBinding Key="C" Modifiers="Ctrl+Shift" Command="{Binding CopyPasswordCommand}" />
     <KeyBinding Key="U" Modifiers="Ctrl+Shift" Command="{Binding CopyUserNameCommand}" />
@@ -155,7 +156,7 @@
         </Button>
       </StackPanel>
       <Button Grid.Column="3" Style="{StaticResource Harbor.SubtleButton}" Command="{Binding OpenSettingsCommand}" Margin="8,0,0,0" Padding="8,5"
-              ToolTip="Settings" AutomationProperties.Name="Settings">
+              ToolTip="Settings (Ctrl+,)" AutomationProperties.Name="Settings">
         <TextBlock Style="{StaticResource Harbor.Text.Icon}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" FontSize="15" Text="&#xE713;" />
       </Button>
     </Grid>

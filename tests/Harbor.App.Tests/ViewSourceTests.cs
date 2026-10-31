@@ -71,6 +71,7 @@ public class ViewSourceTests
     [InlineData("SettingsWindow.xaml")]
     [InlineData("PassphraseWindow.xaml")]
     [InlineData("TitleBar.xaml")]
+    [InlineData("MessageWindow.xaml")]
     public void Views_do_not_hard_code_colours(string view)
     {
         var colourProperties = new[] { "Foreground", "Background", "BorderBrush", "Fill", "Stroke" };
@@ -114,7 +115,7 @@ public class ViewSourceTests
                  {
                      ["Ctrl+F"] = "FocusSearchCommand", ["Ctrl+K"] = "OpenQuickConnectCommand", ["Ctrl+D"] = "TogglePinCommand", ["Ctrl+N"] = "AddCommand", ["F5"] = "RefreshCommand",
                      ["F2"] = "EditCommand", ["Ctrl+Shift+C"] = "CopyPasswordCommand", ["Ctrl+Shift+U"] = "CopyUserNameCommand",
-                     ["Ctrl+Shift+H"] = "CopyHostCommand",
+                     ["Ctrl+Shift+H"] = "CopyHostCommand", ["Ctrl+OemComma"] = "OpenSettingsCommand",
                  })
         {
             Assert.True(bound.TryGetValue(gesture, out var binding), gesture);
@@ -156,6 +157,7 @@ public class ViewSourceTests
     [InlineData("EntryEditorWindow.xaml", false)]
     [InlineData("SettingsWindow.xaml", false)]
     [InlineData("PassphraseWindow.xaml", false)]
+    [InlineData("MessageWindow.xaml", false)]
     public void Windows_use_the_app_title_bar(string view, bool minimizeMaximize)
     {
         XNamespace views = "clr-namespace:Harbor.App.Views";
@@ -165,6 +167,15 @@ public class ViewSourceTests
         Assert.Equal("False", (string?)chrome.Attribute("UseAeroCaptionButtons"));
         var bar = Assert.Single(doc.Descendants(views + "TitleBar"));
         Assert.Equal(minimizeMaximize ? null : "False", (string?)bar.Attribute("ShowMinimizeMaximize"));
+    }
+
+    // SPEC FR-53, ADR-0030: confirmations and errors use the app's message box, not the system one.
+    [Fact]
+    public void Main_window_uses_the_app_message_box()
+    {
+        var code = File.ReadAllText(Source("MainWindow.xaml.cs"));
+        Assert.DoesNotContain("MessageBox.Show(", code, StringComparison.Ordinal);
+        Assert.Contains("MessageWindow.Show(", code, StringComparison.Ordinal);
     }
 
     // Closing the main window: Close() inside the Closing event throws

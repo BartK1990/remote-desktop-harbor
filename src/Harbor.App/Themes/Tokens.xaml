@@ -203,7 +203,14 @@
             <Trigger Property="IsMouseOver" Value="True">
               <Setter TargetName="Fill" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
             </Trigger>
+            <!-- Maximize reports itself as HTMAXBUTTON for snap layouts; TitleBar sets Tag from non-client messages. -->
+            <Trigger Property="Tag" Value="Hover">
+              <Setter TargetName="Fill" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+            </Trigger>
             <Trigger Property="IsPressed" Value="True">
+              <Setter TargetName="Fill" Property="Background" Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
+            </Trigger>
+            <Trigger Property="Tag" Value="Pressed">
               <Setter TargetName="Fill" Property="Background" Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
             </Trigger>
           </ControlTemplate.Triggers>

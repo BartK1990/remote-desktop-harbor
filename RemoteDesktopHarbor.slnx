@@ -10,4 +10,7 @@
     <Project Path="tests/Harbor.Core.Tests/Harbor.Core.Tests.csproj" />
     <Project Path="tests/Harbor.Data.Tests/Harbor.Data.Tests.csproj" />
   </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/Harbor.Screenshots/Harbor.Screenshots.csproj" />
+  </Folder>
 </Solution>

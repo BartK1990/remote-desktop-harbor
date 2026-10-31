@@ -544,14 +544,16 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         // SPEC FR-51: one question at most – the takeover warning mentions production too.
         var production = vm.Environment == EnvironmentKind.Production;
         var prodNote = production ? $"{Environment.NewLine}{Environment.NewLine}{entry.Name} is a production (PROD) entry." : "";
-        if (conflicts.Count > 0 && !_dialogs.Confirm("Connection in use",
-                $"{EntryViewModel.Describe(conflicts)}{prodNote}{Environment.NewLine}{Environment.NewLine}Connect anyway? This may disconnect the other user."))
+        if (conflicts.Count > 0 && !_dialogs.ConfirmRisky("Connection in use",
+                $"{EntryViewModel.Describe(conflicts)}{prodNote}{Environment.NewLine}{Environment.NewLine}Connect anyway? This may disconnect the other user.",
+                "Connect anyway"))
         {
             return;
         }
 
-        if (conflicts.Count == 0 && production && Settings.ConfirmProductionConnect && !_dialogs.Confirm("Production entry",
-                $"{entry.Name} is in {vm.GroupName} (PROD).{Environment.NewLine}{Environment.NewLine}Connect{(accountName is null ? "" : $" as {accountName}")}?"))
+        if (conflicts.Count == 0 && production && Settings.ConfirmProductionConnect && !_dialogs.ConfirmRisky("Production entry",
+                $"{entry.Name} is in {vm.GroupName} (PROD).{Environment.NewLine}{Environment.NewLine}Connect{(accountName is null ? "" : $" as {accountName}")}?",
+                "Connect"))
         {
             return;
         }
@@ -653,7 +655,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     private async Task DeleteAsync()
     {
         if (_host is null || Selected is not { } vm) return;
-        if (!_dialogs.Confirm("Delete entry", $"Delete '{vm.Name}'?{(_host.Workspace.IsRemote ? " It will be removed for everyone using the shared database." : "")}"))
+        if (!_dialogs.ConfirmRisky("Delete entry", $"Delete '{vm.Name}'?{(_host.Workspace.IsRemote ? " It will be removed for everyone using the shared database." : "")}", "Delete"))
         {
             return;
         }

@@ -41,9 +41,10 @@ Expired records older than a day are purged automatically.
 Connecting with an account that someone is already using asks for confirmation — your connection would take over
 their session. Connecting with a **different account** of the same entry does not ask: hosts such as Windows Server
 run several sessions side by side. Sessions published by older app versions do not record the account, so they
-always ask; so does connecting without a user name.
+always ask; so does connecting without a user name. In that question **Cancel** is the default: <kbd>Enter</kbd> and
+<kbd>Esc</kbd> cancel, so a second <kbd>Enter</kbd> never takes a session over by accident.
 
-![Confirmation dialog "Connection in use" with Yes and No buttons.](../../../assets/screenshots/inuse.png)
+![Confirmation dialog "Connection in use" naming Jane Doe's session, with Connect anyway and the default Cancel button.](../../../assets/screenshots/inuse.png)
 
 ## Settings
 

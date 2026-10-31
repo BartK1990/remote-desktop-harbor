@@ -39,7 +39,9 @@ Option 3.
 ## Consequences
 
 * The toolbar now fits at the 720 px minimum width.
-* Windows 11 snap layouts (the flyout on hovering Maximize) are not shown: that needs `WM_NCHITTEST` handling that
-  reports the button as `HTMAXBUTTON` and draws its hover state from non-client messages. Snapping by dragging and
-  Win+arrows still works. Can be added later.
-* System message boxes (confirmations, errors) keep the system title bar.
+* Windows 11 snap layouts: Windows shows the layout flyout only over a part that hit tests as `HTMAXBUTTON`. The
+  title bar hooks the window procedure: `WM_NCHITTEST` over the Maximize button returns `HTMAXBUTTON`; the button's
+  hover and pressed look then come from `WM_NCHITTEST` / `WM_NCMOUSELEAVE` (tracked with `TrackMouseEvent`) and its
+  click from `WM_NCLBUTTONUP` (`WM_NCLBUTTONDOWN` is swallowed so Windows draws no classic button). Win32 bits live
+  in `Harbor.Windows.Interop.WindowInterop`.
+* Message boxes got the same title bar later (ADR-0030).
