@@ -29,6 +29,14 @@ public partial class MainWindow : Window
     private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName != nameof(MainViewModel.IsQuickConnectOpen)) return;
+        // Focus the query at once, so keys typed right after Ctrl+K land in it (they reached the tree search box when
+        // focus moved only on a later dispatcher pass); the posted call below covers a box not laid out yet.
+        if (_viewModel.IsQuickConnectOpen)
+        {
+            QuickConnectOverlay.UpdateLayout();
+            QuickBox.Focus();
+        }
+
         Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input, () =>
         {
             if (_viewModel.IsQuickConnectOpen)

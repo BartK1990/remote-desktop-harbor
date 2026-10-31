@@ -70,8 +70,6 @@ public partial class TitleBar : UserControl
         // Added after WindowChrome's hook, so it runs first (HwndSource calls the newest hook first).
         _source = PresentationSource.FromVisual(window) as HwndSource;
         _source?.AddHook(WndProc);
-        // Windows would otherwise draw its own caption buttons under ours (seen in the captured screenshots).
-        if (_source is not null) WindowInterop.HideSystemCaption(_source.Handle);
     }
 
     /// <summary>

@@ -165,6 +165,9 @@ public class ViewSourceTests
         var chrome = Assert.Single(doc.Root!.Element(Wpf + "WindowChrome.WindowChrome")!.Elements(Wpf + "WindowChrome"));
         Assert.Equal("32", (string?)chrome.Attribute("CaptionHeight"));
         Assert.Equal("False", (string?)chrome.Attribute("UseAeroCaptionButtons"));
+        // -1 (frame extended over the whole window) lets Windows draw its own caption buttons under ours.
+        Assert.Equal("0,0,0,1", (string?)chrome.Attribute("GlassFrameThickness"));
+        Assert.Equal("{DynamicResource Harbor.WindowBackgroundBrush}", (string?)doc.Root.Attribute("Background"));
         var bar = Assert.Single(doc.Descendants(views + "TitleBar"));
         Assert.Equal(minimizeMaximize ? null : "False", (string?)bar.Attribute("ShowMinimizeMaximize"));
     }

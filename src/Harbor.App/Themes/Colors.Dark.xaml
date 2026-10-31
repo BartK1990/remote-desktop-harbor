@@ -8,6 +8,8 @@
   <SolidColorBrush x:Key="Harbor.OnlineBrush" Color="#6CCB5F" />
   <SolidColorBrush x:Key="Harbor.OfflineTextBrush" Color="#FFA66B" />
   <SolidColorBrush x:Key="Harbor.ErrorTextBrush" Color="#FF99A4" />
+  <!-- Window background (SPEC FR-52): the windows paint it themselves, as their frame is not extended into them. -->
+  <SolidColorBrush x:Key="Harbor.WindowBackgroundBrush" Color="#202020" />
   <!-- Close button of the title bar (SPEC FR-52), the system's red with white glyph in both themes. -->
   <SolidColorBrush x:Key="Harbor.CaptionCloseHoverBrush" Color="#C42B1C" />
   <SolidColorBrush x:Key="Harbor.CaptionClosePressedBrush" Color="#A6261A" />

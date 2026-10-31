@@ -23,8 +23,9 @@ redesign asked for a guard against opening a production server by accident.
 
 Option 3.
 
-* Each window sets `WindowChrome` (`CaptionHeight=32`, `ResizeBorderThickness=6`, `GlassFrameThickness=-1` to keep
-  the system shadow, rounded corners and any Fluent backdrop, `UseAeroCaptionButtons=False`) and puts
+* Each window sets `WindowChrome` (`CaptionHeight=32`, `ResizeBorderThickness=6`, `GlassFrameThickness=0,0,0,1`
+  — a 1 px frame extension keeps the system shadow and rounded corners —, `UseAeroCaptionButtons=False`), paints
+  its own background (`Harbor.WindowBackgroundBrush`, the Fluent window colour of each theme) and puts
   `Views/TitleBar` in its top row.
 * `TitleBar`: icon, the window title (dimmed while inactive), a centre and a right slot that stay clickable
   (`WindowChrome.IsHitTestVisibleInChrome`), and Minimize / Maximize-Restore / Close buttons (46 × 32, Segoe Fluent
@@ -45,8 +46,7 @@ Option 3.
   click from `WM_NCLBUTTONUP` (`WM_NCLBUTTONDOWN` is swallowed so Windows draws no classic button). Win32 bits live
   in `Harbor.Windows.Interop.WindowInterop`.
 * Message boxes got the same title bar later (ADR-0030).
-* With the frame extended into the whole window (`GlassFrameThickness=-1`) Windows still draws its own caption,
-  icon and caption buttons under the app's title bar (`UseAeroCaptionButtons=False` only stops them reacting); the
-  first real screenshots (ADR-0031) showed doubled buttons. `WindowInterop.HideSystemCaption` turns that drawing off
-  with `SetWindowThemeAttribute(WTA_NONCLIENT, NODRAWCAPTION | NODRAWICON | NOSYSMENU)`; Alt+Space, snapping and
-  resizing keep working.
+* The frame is not extended over the whole window (`GlassFrameThickness=-1` was tried first): Windows then draws
+  its own caption buttons under the app's title bar (`UseAeroCaptionButtons=False` only stops them reacting, and
+  `SetWindowThemeAttribute` did not hide them) — the first real screenshots (ADR-0031) showed doubled buttons. The
+  price is no Mica backdrop behind the windows; they use the solid Fluent window colour.
