@@ -84,6 +84,13 @@ internal static class Program
 
         if (Failures.Count > 0)
         {
+            var log = Path.Combine(DiagnosticsFolder, "harbor.log");
+            if (File.Exists(log))
+            {
+                Step("Last lines of the app log:");
+                foreach (var line in File.ReadLines(log).TakeLast(60)) Console.WriteLine($"    {line}");
+            }
+
             Step($"Failed: {string.Join(", ", Failures)} (screen captures in {DiagnosticsFolder})");
             return 1;
         }
@@ -110,6 +117,7 @@ internal static class Program
             Failures.Add(name);
             var foreground = GetForegroundWindow();
             Step($"FAILED {name}: {ex.Message} Foreground window: '{WindowTitle(foreground)}'.");
+            if (MessageText(foreground) is { } message) Step($"  Its message: {message}");
             Directory.CreateDirectory(DiagnosticsFolder);
             await CaptureRectAsync(new Rect { Right = GetSystemMetrics(0), Bottom = GetSystemMetrics(1) }, DiagnosticsFolder, $"failed-{name}");
             for (var i = 0; i < 3; i++)
@@ -209,6 +217,21 @@ internal static class Program
             await QuickSelectAsync("SQL01");
             await CaptureAsync(main, output, "offline");
         });
+    }
+
+    /// <summary>The text of an app message box (its "Message" box), if <paramref name="window"/> is one.</summary>
+    private static string? MessageText(nint window)
+    {
+        try
+        {
+            var box = AutomationElement.FromHandle(window).FindFirst(TreeScope.Descendants,
+                new PropertyCondition(AutomationElement.NameProperty, "Message"));
+            return box?.GetCurrentPattern(ValuePattern.Pattern) is ValuePattern value ? value.Current.Value : null;
+        }
+        catch (Exception ex) when (ex is ElementNotAvailableException or InvalidOperationException or ArgumentException)
+        {
+            return null;
+        }
     }
 
     /// <summary>Clicks the button named <paramref name="name"/> (its AutomationProperties.Name) in the window.</summary>

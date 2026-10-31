@@ -106,7 +106,11 @@ public partial class TitleBar : UserControl
 
     private bool IsOverMaximize(nint lParam)
     {
-        if (MaximizeButton.Visibility != Visibility.Visible || !MaximizeButton.IsLoaded) return false;
+        // While the window is being torn down the button has no PresentationSource and PointFromScreen would throw.
+        if (MaximizeButton.Visibility != Visibility.Visible || !MaximizeButton.IsLoaded || PresentationSource.FromVisual(MaximizeButton) is null)
+        {
+            return false;
+        }
         var (x, y) = WindowInterop.ScreenPoint(lParam);
         var p = MaximizeButton.PointFromScreen(new Point(x, y));
         return p.X >= 0 && p.Y >= 0 && p.X < MaximizeButton.ActualWidth && p.Y < MaximizeButton.ActualHeight;
