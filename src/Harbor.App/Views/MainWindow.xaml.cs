@@ -65,6 +65,14 @@ public partial class MainWindow : Window
 
     private void EntryTree_KeyDown(object sender, KeyEventArgs e)
     {
+        // Del deletes the selected entry, after confirmation (SPEC FR-47).
+        if (e.Key == Key.Delete && Keyboard.Modifiers == ModifierKeys.None && _viewModel.DeleteCommand.CanExecute(null))
+        {
+            _viewModel.DeleteCommand.Execute(null);
+            e.Handled = true;
+            return;
+        }
+
         if (e.Key != Key.Enter) return;
         if (_viewModel.SelectedNode is FolderViewModel folder)
         {
@@ -86,6 +94,34 @@ public partial class MainWindow : Window
             row.Focus();
             row.IsSelected = true;
         }
+    }
+
+    // The arrow next to Connect lists the entry's accounts; picking one connects with it (SPEC FR-09, FR-47).
+    private void AccountsButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_viewModel.Selected is not { } entry) return;
+        var menu = new ContextMenu { PlacementTarget = AccountsButton, Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom };
+        foreach (var account in entry.Children.OfType<AccountViewModel>())
+        {
+            menu.Items.Add(new MenuItem
+            {
+                Header = $"Connect as {account.Name}",
+                Command = _viewModel.ConnectAsCommand,
+                CommandParameter = account,
+                IsChecked = ReferenceEquals(account, _viewModel.SelectedAccount),
+            });
+        }
+
+        menu.IsOpen = true;
+    }
+
+    private void MoreButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (MoreButton.ContextMenu is not { } menu) return;
+        menu.PlacementTarget = MoreButton;
+        menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+        menu.DataContext = DataContext;
+        menu.IsOpen = true;
     }
 
     private void SearchBox_PreviewKeyDown(object sender, KeyEventArgs e)

@@ -31,3 +31,4 @@ Process: see [spec/README.md](../spec/README.md).
 | [0023](0023-tabbed-settings-dialog.md) | Settings dialog on tabs with compact, paired fields | Accepted |
 | [0024](0024-tabbed-entry-editor.md) | Entry editor on tabs with compact, paired fields | Accepted |
 | [0025](0025-theme-tokens.md) | Harbor colour and type tokens on top of the built-in Fluent theme | Accepted |
+| [0026](0026-main-window-layout.md) | Main window laid out for keyboard-driven engineers | Accepted |

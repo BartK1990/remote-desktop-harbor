@@ -29,10 +29,11 @@ shows who is currently connected to which machine.
 | FR-03 | Each entry is one of two kinds: **RDP connection** — a full Remote Desktop profile (host + `.rdp` settings) with optional credentials; **Credentials only** — just user name/password and an optional host; launching uses default RDP settings. |
 | FR-04 | Passwords are encrypted by the app before they are written to any database and are decrypted only at the moment of use (launch, copy). |
 | FR-05 | Existing `.rdp` files can be imported. Host, port, domain and user become fields; other settings are kept; any saved password in the file is discarded. |
-| FR-06 | Users can copy the user name and the password to the clipboard. A copied password is cleared from the clipboard after 30 s if unchanged. |
+| FR-06 | Users can copy the user name, the password and the host (`host`, or `host:port` for a non-default port) to the clipboard. A copied password is cleared from the clipboard after 30 s if unchanged. |
 | FR-07 | The app shows its release version (e.g. `0.1.0`) in the main window title and in Settings → About, together with the build commit when known. The version comes from the release build (`-p:Version`), so the app and its GitHub release always match. |
 | FR-08 | The user can choose the colour theme — **System** (follow the Windows light/dark setting, default), **Light** or **Dark** — from a group of three icon toggles in the main toolbar. The choice applies immediately, without a restart, and is remembered across restarts. The colours the app adds to the theme (in use, online, offline, errors) have a light and a dark variant that follow the theme, including a Windows light/dark switch while **System** is chosen; views use no fixed colours. Host, port and user names are shown in a monospace font. See [ADR-0025](../adr/0025-theme-tokens.md). |
 | FR-09 | An entry can have **several accounts**, for hosts that allow several sessions at once (e.g. Windows Server): the entry's own domain/user name/password is its default account, followed by any number of additional accounts (user name, optional domain — empty uses the entry's — and password). In the tree an entry with additional accounts can be expanded to one row per account (default first). Connecting and copying the user name or password use the selected account row, or the default account when the entry row is selected. Each account's password is encrypted on its own and bound to that account (FR-04, NFR-11). Search also matches account user names. See [ADR-0019](../adr/0019-multiple-accounts-per-entry.md). |
+| FR-47 | The main window is built for keyboard use. **Toolbar:** search box with a placeholder and its shortcut, icon buttons for New, Import .rdp… and Refresh, the theme toggles (FR-08), the signed-in user and a Settings button. **Details pane** of the selected entry: folder and kind, name, host; **Connect as &lt;account&gt;** naming the account it uses, with a menu of the entry's accounts (FR-09); Copy password, Copy user, Edit and a More menu (Copy host, Delete); an active-sessions table (user, account, machine, since) that says whether connecting with the selected account takes a session over (FR-33); cards for the connection (host, port, user, password, each with a copy button), a summary of the RDP settings (RDP connections) and the notes; the last change and the entry version. **Status bar:** last status, number of entries in use, storage state with an online/offline dot. **Shortcuts**, shown next to their actions or in their tooltips: Ctrl+K / Ctrl+F search, Ctrl+N new, F2 edit, Del (in the tree) delete, Ctrl+Shift+C / U / H copy password / user / host, F5 refresh. See [ADR-0026](../adr/0026-main-window-layout.md). |
 
 ### 3.2 Launching Remote Desktop
 
@@ -160,7 +161,7 @@ for the full list.
 
 | Requirement | Implementation | Tests |
 |---|---|---|
-| FR-01..06 | `Core/Model/ConnectionEntry`, `App/ViewModels/*` | `SqlHarborStoreTests` |
+| FR-01..06 | `Core/Model/ConnectionEntry`, `App/ViewModels/*` | `SqlHarborStoreTests`, `AppearanceTests` (host text) |
 | FR-09 | `Core/Model/ConnectionAccount`, `Core/Model/ConnectionEntry`, `Core/Services/HarborWorkspace`, `Data/SqlHarborStore`, `Data/Providers/*` (migration 2), `Windows/Rdp/MstscLauncher`, `App/ViewModels/EntryViewModel`, `EntryEditorViewModel`, `MainViewModel`, `MainWindow`, `EntryEditorWindow` | `ConnectionAccountTests`, `AccountTests`, `AccountViewModelTests` (Windows) |
 | FR-02 (tree) | `Core/Model/FolderTree`, `Core/Model/ConnectionEntry` (`Address`), `App/ViewModels/MainViewModel`, `TreeNodeViewModel`, `EntryViewModel`, `MainWindow` | `FolderTreeTests`, `AppearanceTests`; UI manual (Windows) |
 | FR-07 | `App/Infrastructure/AppInfo`, `MainWindow`, `SettingsWindow` | manual (Windows) |
@@ -173,6 +174,7 @@ for the full list.
 | FR-28 | `Core/Security/SignInKeyProtector`, `Core/Services/HarborWorkspace`, `App/ViewModels/SettingsViewModel` | `SignInKeyProtectorTests`, `WorkspaceTests`, `SettingsViewModelTests` (Windows) |
 | FR-26 | `App/ViewModels/SettingsViewModel`, `App/Views/SettingsWindow` | `SettingsViewModelTests`, `ViewSourceTests` (Windows) |
 | FR-27 | `Data/Providers/IServerDatabaseProvider`, `Data/Providers/SqlServerProvider`, `App/ViewModels/SettingsViewModel` | `SqlServerConnectionFormTests`, `SettingsViewModelTests` (Windows) |
+| FR-47 | `Core/Rdp/RdpSummary`, `Core/Model/ActiveSession` (`TakenOverBy`), `App/Themes/Tokens`, `App/ViewModels/MainViewModel`, `EntryViewModel`, `MainWindow` | `DetailsPaneTests`, `ViewSourceTests` (Windows); manual (Windows) |
 | FR-34 (closing the app) | `App/Views/MainWindow` | `ViewSourceTests` (Windows), manual |
 | FR-30..36 | `Core/Services/SessionPresenceService`, `Data/SqlHarborStore` | `PresenceTests`, `AccountTests` (account in use) |
 | FR-40..43 | `Windows/Identity/*`, `App/Infrastructure/AppHost` | manual (Windows) |

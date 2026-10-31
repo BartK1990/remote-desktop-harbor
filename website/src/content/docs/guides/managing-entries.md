@@ -38,7 +38,20 @@ The editor has five tabs: **General** for the fields below, **Accounts** for
 | **Display**, **Local resources**, **Connection** tabs | RDP connections only. The common Remote Desktop settings as form fields — see [RDP settings](#rdp-settings). |
 | **Other .rdp settings** | RDP connections only, on the **Connection** tab under *advanced*. Any other `.rdp` lines in `key:type:value` format, e.g. `gatewayhostname:s:gw.contoso.com`. |
 
-The details pane also shows who changed the entry last and when.
+## The details pane
+
+Selecting an entry shows, from top to bottom:
+
+- its folder and kind, the name and the host (with the port when it is not 3389);
+- **Connect as &lt;account&gt;** — the account Connect uses. For an entry with several accounts, the arrow next to it
+  lists them: pick one to connect with it. Then **Copy password**, **Copy user**, **Edit**, and **⋯** for
+  **Copy host** and **Delete…**. Each button shows its [shortcut](../keyboard-shortcuts/);
+- the **active sessions** on the entry, with a note whether connecting would take one over
+  ([Session presence](../../team/session-presence/));
+- **Connection** — host, port, user and password, each with a copy button;
+- **RDP profile** — how the connection opens: display, redirected devices, server authentication, admin session
+  and how many other `.rdp` settings it has (RDP connections only);
+- **Notes**, and who changed the entry last, when, and its version.
 
 ## Several accounts per entry
 
@@ -56,7 +69,8 @@ copying an entry for each account, add the accounts to one entry:
 
 In the tree, an entry with additional accounts gets an arrow: expand it to see one row per account, the default
 account first. Select an **account row** and **Connect**, **Copy user** or **Copy password** use that account;
-with the **entry row** selected they use the default account. Double-click or <kbd>Enter</kbd> on an account row
+with the **entry row** selected they use the default account. The arrow next to **Connect as …** in the details pane
+connects with any account without expanding the entry. Double-click or <kbd>Enter</kbd> on an account row
 connects as that account.
 
 Every account's password is encrypted on its own, exactly like the default one. In a shared database the accounts
@@ -101,7 +115,7 @@ selected entry.
 
 ## Edit
 
-Select an entry and click **Edit**. If saving fails because of a validation or database error, the editor reopens
+Select an entry and click **Edit** (<kbd>F2</kbd>). If saving fails because of a validation or database error, the editor reopens
 with your input and the error message.
 
 :::note[Concurrent edits]
@@ -112,20 +126,24 @@ re-apply your edit.
 
 ## Delete
 
-Select an entry and click **Delete**, then confirm. In a shared database the entry is removed for everyone.
+Select an entry and choose **⋯ → Delete…** in the details pane (or press <kbd>Del</kbd> in the tree), then
+confirm. In a shared database the entry is removed for everyone.
 
 ## Search
 
-Type in the search box (<kbd>Ctrl</kbd>+<kbd>F</kbd>). The tree is filtered as you type, by **name, host, user
+Type in the search box (<kbd>Ctrl</kbd>+<kbd>K</kbd> or <kbd>Ctrl</kbd>+<kbd>F</kbd>). The tree is filtered as you type, by **name, host, user
 (any account), folder and notes**, and every folder with matches is expanded; the status bar shows how many entries match.
 <kbd>Esc</kbd> clears the search, <kbd>↓</kbd> moves into the tree. Filtering happens in memory, so it stays
 instant with thousands of entries.
 
-## Copy user name and password
+## Copy user name, password and host
 
-Both act on the selected account row, or on the entry's default account when the entry row is selected.
+User name and password act on the selected account row, or on the entry's default account when the entry row is
+selected. The **Connection** card in the details pane has a copy button next to each value.
 
-- **Copy user** copies the qualified user name (`DOMAIN\user`).
+- **Copy user** (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>U</kbd>) copies the qualified user name (`DOMAIN\user`).
+- **Copy host** (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd>) copies the host, as `host:port` when the port is not
+  3389.
 - **Copy password** (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd>) decrypts the password and puts it on the
   clipboard. After **30 seconds** the clipboard is cleared — but only if it still contains that password, so
   anything you copied in between is left alone.

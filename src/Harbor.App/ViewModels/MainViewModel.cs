@@ -53,15 +53,16 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
 
     /// <summary>The selected tree row (folder, entry or account); kept in sync with <see cref="Selected"/>.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(SelectedAccount))]
+    [NotifyPropertyChangedFor(nameof(SelectedAccount), nameof(ConnectText), nameof(TakeoverWarning))]
     private TreeNodeViewModel? _selectedNode;
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(ConnectCommand), nameof(EditCommand), nameof(DeleteCommand), nameof(CopyPasswordCommand), nameof(CopyUserNameCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ConnectCommand), nameof(EditCommand), nameof(DeleteCommand), nameof(CopyPasswordCommand), nameof(CopyUserNameCommand),
+        nameof(CopyHostCommand), nameof(ConnectAsCommand))]
     private EntryViewModel? _selected;
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(AddCommand), nameof(EditCommand), nameof(DeleteCommand), nameof(ImportRdpCommand), nameof(ConnectCommand))]
+    [NotifyCanExecuteChangedFor(nameof(AddCommand), nameof(EditCommand), nameof(DeleteCommand), nameof(ImportRdpCommand), nameof(ConnectCommand), nameof(ConnectAsCommand))]
     private bool _isReady;
 
     [ObservableProperty]
@@ -71,7 +72,31 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     [ObservableProperty] private string _userText = "Signing in…";
     [ObservableProperty] private string _storeText = "";
     [ObservableProperty] private bool _isOffline;
+    [ObservableProperty] private bool _isRemote;
     [ObservableProperty] private string _statusText = "Starting…";
+
+    /// <summary>"Connect as svc-admin": the account Connect uses, so nobody connects with the wrong one. SPEC FR-47</summary>
+    public string ConnectText => SelectedAccount?.QualifiedUserName is { } user ? $"Connect as {user[(user.LastIndexOf('\\') + 1)..]}" : "Connect";
+
+    /// <summary>
+    /// Shown above the active-sessions table: whether connecting with the selected account would take a session over.
+    /// SPEC FR-33, FR-47
+    /// </summary>
+    public string? TakeoverWarning
+    {
+        get
+        {
+            if (Selected is not { IsInUse: true } vm || SelectedAccount is not { } account) return null;
+            var name = account.QualifiedUserName;
+            var takenOver = vm.ActiveSessions.TakenOverBy(name);
+            if (takenOver.Count == 0) return $"Connecting as {name} runs side by side with these sessions.";
+            var who = takenOver.Count == 1 ? "this session" : $"{takenOver.Count} of these sessions";
+            return name is null ? $"Connecting without a user name takes over {who}." : $"Connecting as {name} takes over {who}.";
+        }
+    }
+
+    /// <summary>"2 in use" for the status bar; empty when nothing is in use. SPEC FR-47</summary>
+    public string InUseText => Entries.Count(e => e.IsInUse) is var n and > 0 ? $"{n} in use" : "";
 
     private bool IsSearching => !string.IsNullOrWhiteSpace(SearchText);
 
@@ -165,6 +190,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         }
 
         CanWrite = ws.CanWrite;
+        IsRemote = ws.IsRemote;
         IsOffline = ws.IsRemote && !ws.IsOnline;
         StoreText = !ws.IsRemote
             ? "Local vault"
@@ -200,6 +226,9 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         }
 
         OnPropertyChanged(nameof(SelectedAccount));
+        OnPropertyChanged(nameof(ConnectText));
+        OnPropertyChanged(nameof(TakeoverWarning));
+        OnPropertyChanged(nameof(InUseText));
         UpdateCountText();
     }
 
@@ -343,6 +372,9 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         {
             e.ActiveSessions = byConnection[e.Model.Id].ToList();
         }
+
+        OnPropertyChanged(nameof(TakeoverWarning));
+        OnPropertyChanged(nameof(InUseText));
     }
 
     // ------------------------------------------------------------------ commands
@@ -362,7 +394,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
 
         // SPEC FR-33: hosts that allow several sessions (e.g. Windows Server) let other accounts connect side by side;
         // only someone using the same account (or an unknown one) would be disconnected.
-        var conflicts = vm.ActiveSessions.Where(s => accountName is null || s.UsesAccount(accountName)).ToList();
+        var conflicts = vm.ActiveSessions.TakenOverBy(accountName);
         if (conflicts.Count > 0 && !_dialogs.Confirm("Connection in use",
                 $"{EntryViewModel.Describe(conflicts)}{Environment.NewLine}{Environment.NewLine}Connect anyway? This may disconnect the other user."))
         {
@@ -400,6 +432,16 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
             await lease.DisposeAsync();
             await RefreshPresenceAsync();
         }
+    }
+
+    /// <summary>Connects with <paramref name="account"/> of the selected entry (the Connect button's account menu). SPEC FR-47</summary>
+    [RelayCommand(CanExecute = nameof(CanConnectSelection))]
+    private async Task ConnectAsAsync(AccountViewModel? account)
+    {
+        if (account is null || account.Entry != Selected) return;
+        account.Entry.IsExpanded = true; // show the account row that is now selected
+        SelectedNode = account;
+        await ConnectAsync();
     }
 
     [RelayCommand(CanExecute = nameof(CanEdit))]
@@ -507,6 +549,16 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         {
             Clipboard.SetDataObject(user, copy: false);
             StatusText = "User name copied.";
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(HasSelection))]
+    private void CopyHost()
+    {
+        if (Selected?.Model.Address is { } address)
+        {
+            Clipboard.SetDataObject(address, copy: false);
+            StatusText = "Host copied.";
         }
     }
 

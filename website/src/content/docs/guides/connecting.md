@@ -3,9 +3,10 @@ title: Connecting
 description: What happens when you launch an entry, and how credentials reach Remote Desktop safely.
 ---
 
-Activate an entry with **Connect**, a double-click, or <kbd>Enter</kbd> in the list. For an entry with
-[several accounts](../managing-entries/#several-accounts-per-entry), activate an account row to connect as that
-account; the entry row connects with the default account. The standard Windows Remote
+Activate an entry with **Connect as &lt;account&gt;**, a double-click, or <kbd>Enter</kbd> in the list. The button
+names the account it connects with. For an entry with
+[several accounts](../managing-entries/#several-accounts-per-entry), activate an account row — or pick the account
+from the arrow next to the button — to connect as that account; the entry row connects with the default account. The standard Windows Remote
 Desktop client (`mstsc.exe`) opens as **its own normal window** — it is not embedded in Harbor, so you can move,
 full-screen or close it like any other Remote Desktop session.
 

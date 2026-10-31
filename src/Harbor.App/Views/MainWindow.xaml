@@ -7,42 +7,79 @@
         Title="Remote Desktop Harbor" Width="1100" Height="700" MinWidth="720" MinHeight="420"
         Icon="/Assets/AppIcon.ico"
         WindowStartupLocation="CenterScreen">
+  <!-- Keyboard first (SPEC FR-47, ADR-0026): every action has a shortcut, shown next to it or in its tooltip. -->
   <Window.InputBindings>
     <KeyBinding Key="F" Modifiers="Ctrl" Command="{Binding FocusSearchCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+    <KeyBinding Key="K" Modifiers="Ctrl" Command="{Binding FocusSearchCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
     <KeyBinding Key="N" Modifiers="Ctrl" Command="{Binding AddCommand}" />
     <KeyBinding Key="F5" Command="{Binding RefreshCommand}" />
+    <KeyBinding Key="F2" Command="{Binding EditCommand}" />
     <KeyBinding Key="C" Modifiers="Ctrl+Shift" Command="{Binding CopyPasswordCommand}" />
+    <KeyBinding Key="U" Modifiers="Ctrl+Shift" Command="{Binding CopyUserNameCommand}" />
+    <KeyBinding Key="H" Modifiers="Ctrl+Shift" Command="{Binding CopyHostCommand}" />
   </Window.InputBindings>
 
   <DockPanel>
-    <!-- Toolbar -->
-    <Grid DockPanel.Dock="Top" Margin="12,12,12,6">
+    <!-- Toolbar: search, icon buttons, theme, signed-in user and settings (SPEC FR-47). -->
+    <Grid DockPanel.Dock="Top" Margin="12,10,12,8">
       <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="*" MaxWidth="420" />
+        <ColumnDefinition Width="*" MaxWidth="460" />
         <ColumnDefinition Width="Auto" />
         <ColumnDefinition Width="*" />
         <ColumnDefinition Width="Auto" />
       </Grid.ColumnDefinitions>
-      <TextBox x:Name="SearchBox" Grid.Column="0" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-               ToolTip="Filter by name, host, user, folder or notes (Ctrl+F, Esc clears, Down moves to the list)" VerticalContentAlignment="Center"
-               PreviewKeyDown="SearchBox_PreviewKeyDown">
-        <TextBox.InputBindings>
-          <KeyBinding Key="Escape" Command="{Binding ClearSearchCommand}" />
-        </TextBox.InputBindings>
-      </TextBox>
+      <Grid Grid.Column="0">
+        <TextBox x:Name="SearchBox" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Padding="32,0,56,0"
+                 ToolTip="Filter by name, host, user, folder or notes (Ctrl+K or Ctrl+F, Esc clears, Down moves to the list)"
+                 VerticalContentAlignment="Center" AutomationProperties.Name="Search connections"
+                 PreviewKeyDown="SearchBox_PreviewKeyDown">
+          <TextBox.InputBindings>
+            <KeyBinding Key="Escape" Command="{Binding ClearSearchCommand}" />
+          </TextBox.InputBindings>
+        </TextBox>
+        <TextBlock Style="{StaticResource Harbor.Text.Icon}" Text="&#xE721;" Margin="11,0,0,0" HorizontalAlignment="Left" IsHitTestVisible="False" />
+        <TextBlock Text="Search name, host, user…" Margin="33,0,56,0" TextTrimming="CharacterEllipsis">
+          <TextBlock.Style>
+            <Style TargetType="TextBlock" BasedOn="{StaticResource Harbor.Text.Placeholder}">
+              <Setter Property="Visibility" Value="Collapsed" />
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding Text, ElementName=SearchBox}" Value="">
+                  <Setter Property="Visibility" Value="Visible" />
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </TextBlock.Style>
+        </TextBlock>
+        <TextBlock Style="{StaticResource Harbor.Text.KeyHint}" Text="Ctrl+K" HorizontalAlignment="Right" Margin="0,0,10,0" IsHitTestVisible="False" />
+      </Grid>
       <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="8,0,0,0">
-        <Button Content="New" Command="{Binding AddCommand}" Margin="0,0,6,0" ToolTip="New entry (Ctrl+N)" />
-        <Button Content="Import .rdp…" Command="{Binding ImportRdpCommand}" Margin="0,0,6,0" />
-        <Button Content="Refresh" Command="{Binding RefreshCommand}" Margin="0,0,6,0" ToolTip="Sync and refresh (F5)" />
-        <Button Content="Settings" Command="{Binding OpenSettingsCommand}" Margin="0,0,6,0" />
+        <Button Style="{StaticResource Harbor.Button}" Command="{Binding AddCommand}" ToolTip="New entry (Ctrl+N)">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Style="{StaticResource Harbor.Text.Icon}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Text="&#xE710;" Margin="0,0,6,0" />
+            <TextBlock Text="New" />
+          </StackPanel>
+        </Button>
+        <Button Style="{StaticResource Harbor.Button}" Command="{Binding ImportRdpCommand}" ToolTip="Create an entry from an .rdp file">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Style="{StaticResource Harbor.Text.Icon}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Text="&#xE8B5;" Margin="0,0,6,0" />
+            <TextBlock Text="Import .rdp…" />
+          </StackPanel>
+        </Button>
+        <Button Style="{StaticResource Harbor.Button}" Command="{Binding RefreshCommand}" ToolTip="Sync and refresh presence (F5)">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Style="{StaticResource Harbor.Text.Icon}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Text="&#xE72C;" Margin="0,0,6,0" />
+            <TextBlock Text="Refresh" />
+            <TextBlock Style="{StaticResource Harbor.Text.KeyHint}" Text="F5" />
+          </StackPanel>
+        </Button>
         <!-- Theme selector: three icon toggles (system / light / dark), applied immediately,
              remembered across restarts (SPEC FR-08). -->
-        <StackPanel Orientation="Horizontal" AutomationProperties.Name="Theme">
+        <StackPanel Orientation="Horizontal" AutomationProperties.Name="Theme" Margin="4,0,0,0">
           <StackPanel.Resources>
             <views:EnumToBooleanConverter x:Key="EnumToBool" />
             <Style x:Key="ThemeIcon" TargetType="RadioButton" BasedOn="{StaticResource {x:Type ToggleButton}}">
               <Setter Property="GroupName" Value="Theme" />
-              <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets" />
+              <Setter Property="FontFamily" Value="{StaticResource Harbor.IconFont}" />
               <Setter Property="FontSize" Value="14" />
               <Setter Property="Padding" Value="8,6" />
               <Setter Property="Margin" Value="0,0,2,0" />
@@ -59,29 +96,52 @@
                        ToolTip="Theme: dark" AutomationProperties.Name="Dark theme" />
         </StackPanel>
       </StackPanel>
-      <TextBlock Grid.Column="3" Text="{Binding UserText}" VerticalAlignment="Center" Opacity="0.8" />
+      <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+        <TextBlock Style="{StaticResource Harbor.Text.Icon}" Text="&#xE77B;" Margin="0,0,6,0" />
+        <TextBlock Text="{Binding UserText}" ToolTip="{Binding UserText}" MaxWidth="300" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" AutomationProperties.Name="Signed in as" />
+        <Button Style="{StaticResource Harbor.SubtleButton}" Command="{Binding OpenSettingsCommand}" Margin="8,0,0,0" Padding="8,5"
+                ToolTip="Settings" AutomationProperties.Name="Settings">
+          <TextBlock Style="{StaticResource Harbor.Text.Icon}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" FontSize="15" Text="&#xE713;" />
+        </Button>
+      </StackPanel>
     </Grid>
 
-    <!-- Status bar -->
-    <Border DockPanel.Dock="Bottom" Padding="12,6" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}">
-      <DockPanel>
-        <TextBlock DockPanel.Dock="Right" Text="{Binding StoreText}">
-          <TextBlock.Style>
-            <Style TargetType="TextBlock">
-              <Style.Triggers>
-                <DataTrigger Binding="{Binding IsOffline}" Value="True">
-                  <Setter Property="Foreground" Value="{DynamicResource Harbor.OfflineTextBrush}" />
-                  <Setter Property="FontWeight" Value="SemiBold" />
-                </DataTrigger>
-              </Style.Triggers>
-            </Style>
-          </TextBlock.Style>
-        </TextBlock>
-        <TextBlock Text="{Binding StatusText}" TextTrimming="CharacterEllipsis" />
+    <!-- Status bar: what happened last, how many entries are in use, and where the data lives (SPEC FR-47). -->
+    <Border DockPanel.Dock="Bottom" Padding="12,5" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}">
+      <DockPanel TextBlock.FontSize="12">
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+          <Ellipse Margin="0,0,6,0" Visibility="{Binding IsRemote, Converter={StaticResource BoolToVisibility}}">
+            <Ellipse.Style>
+              <Style TargetType="Ellipse" BasedOn="{StaticResource Harbor.StatusDot}">
+                <Setter Property="Fill" Value="{DynamicResource Harbor.OnlineBrush}" />
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding IsOffline}" Value="True">
+                    <Setter Property="Fill" Value="{DynamicResource Harbor.OfflineTextBrush}" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </Ellipse.Style>
+          </Ellipse>
+          <TextBlock Text="{Binding StoreText}">
+            <TextBlock.Style>
+              <Style TargetType="TextBlock">
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding IsOffline}" Value="True">
+                    <Setter Property="Foreground" Value="{DynamicResource Harbor.OfflineTextBrush}" />
+                    <Setter Property="FontWeight" Value="SemiBold" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </TextBlock.Style>
+          </TextBlock>
+        </StackPanel>
+        <TextBlock DockPanel.Dock="Right" Text="{Binding InUseText}" Margin="0,0,16,0" Foreground="{DynamicResource Harbor.InUseTextBrush}" />
+        <TextBlock Text="{Binding StatusText}" TextTrimming="CharacterEllipsis" Margin="0,0,16,0" />
       </DockPanel>
     </Border>
 
-    <Grid Margin="12,6,12,12">
+    <Grid Margin="12,4,12,12">
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="2*" MinWidth="280" />
         <ColumnDefinition Width="Auto" />
@@ -283,12 +343,12 @@
 
       <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="Transparent" />
 
-      <!-- Details -->
-      <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto" Padding="12,0,0,0">
+      <!-- Details (SPEC FR-47, ADR-0026): header, actions with their shortcuts, active sessions, then cards. -->
+      <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto" Padding="16,0,8,0">
         <Grid>
-          <TextBlock Text="Select an entry, or create one with New / Import .rdp." Opacity="0.6" Margin="0,8">
-            <TextBlock.Style>
-              <Style TargetType="TextBlock">
+          <StackPanel Margin="0,8">
+            <StackPanel.Style>
+              <Style TargetType="StackPanel">
                 <Setter Property="Visibility" Value="Collapsed" />
                 <Style.Triggers>
                   <DataTrigger Binding="{Binding Selected}" Value="{x:Null}">
@@ -296,8 +356,14 @@
                   </DataTrigger>
                 </Style.Triggers>
               </Style>
-            </TextBlock.Style>
-          </TextBlock>
+            </StackPanel.Style>
+            <TextBlock Text="No entry selected" FontSize="16" FontWeight="SemiBold" />
+            <TextBlock Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" Margin="0,6,0,0" LineHeight="20">
+              <Run Text="Type in the search box (" /><Run Text="Ctrl+K" FontFamily="{StaticResource Harbor.MonoFont}" /><Run Text="), press " /><Run Text="↓" FontFamily="{StaticResource Harbor.MonoFont}" /><Run Text=" and " /><Run Text="Enter" FontFamily="{StaticResource Harbor.MonoFont}" /><Run Text=" to connect." />
+              <LineBreak />
+              <Run Text="Create an entry with New (" /><Run Text="Ctrl+N" FontFamily="{StaticResource Harbor.MonoFont}" /><Run Text=") or Import .rdp…" />
+            </TextBlock>
+          </StackPanel>
 
           <StackPanel DataContext="{Binding Selected}">
             <StackPanel.Style>
@@ -310,62 +376,211 @@
               </Style>
             </StackPanel.Style>
 
-            <TextBlock Text="{Binding Name}" FontSize="22" FontWeight="SemiBold" TextWrapping="Wrap" />
-            <TextBlock Text="{Binding KindLabel}" Opacity="0.7" Margin="0,2,0,0" />
+            <TextBlock FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}">
+              <Run Text="{Binding GroupName, Mode=OneWay}" /><Run Text="  ·  " /><Run Text="{Binding KindLabel, Mode=OneWay}" />
+            </TextBlock>
+            <TextBlock Text="{Binding Name}" FontSize="22" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,2,0,0" />
+            <TextBox Text="{Binding Address, Mode=OneWay}" IsReadOnly="True" BorderThickness="0" Background="Transparent" Padding="0"
+                     FontFamily="{StaticResource Harbor.MonoFont}" FontSize="13" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"
+                     AutomationProperties.Name="Host" Margin="0,2,0,0">
+              <TextBox.Style>
+                <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding Address}" Value="{x:Null}">
+                      <Setter Property="Visibility" Value="Collapsed" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </TextBox.Style>
+            </TextBox>
 
-            <Border Margin="0,12,0,0" Padding="10" CornerRadius="6" Background="{DynamicResource Harbor.InUseBackgroundBrush}"
+            <WrapPanel Margin="0,14,0,0" DataContext="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Window}}">
+              <!-- Connect names the account it uses; the arrow picks another account of the entry (SPEC FR-09). -->
+              <StackPanel Orientation="Horizontal" Margin="0,0,6,6">
+                <Button Content="{Binding ConnectText}" Command="{Binding ConnectCommand}" Style="{DynamicResource AccentButtonStyle}"
+                        Padding="16,6" ToolTip="Open in Remote Desktop (Enter / double-click)" />
+                <Button x:Name="AccountsButton" Click="AccountsButton_Click" Padding="8,6" Margin="2,0,0,0" Style="{DynamicResource AccentButtonStyle}"
+                        ToolTip="Connect with another account" AutomationProperties.Name="Choose account"
+                        Visibility="{Binding Selected.HasAccounts, Converter={StaticResource BoolToVisibility}}">
+                  <TextBlock FontFamily="{StaticResource Harbor.IconFont}" FontSize="10" Text="&#xE70D;" VerticalAlignment="Center" />
+                </Button>
+              </StackPanel>
+              <!-- Long shortcuts go in the tooltip so the row fits the default window width. -->
+              <Button Style="{StaticResource Harbor.Button}" Command="{Binding CopyPasswordCommand}" Margin="0,0,6,6"
+                      ToolTip="Copy password (Ctrl+Shift+C); cleared from the clipboard after 30 s">
+                <StackPanel Orientation="Horizontal">
+                  <TextBlock Style="{StaticResource Harbor.Text.Icon}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Text="&#xE8C8;" Margin="0,0,6,0" />
+                  <TextBlock Text="Copy password" />
+                </StackPanel>
+              </Button>
+              <Button Style="{StaticResource Harbor.Button}" Command="{Binding CopyUserNameCommand}" Margin="0,0,6,6" ToolTip="Copy user (Ctrl+Shift+U)">
+                <StackPanel Orientation="Horizontal">
+                  <TextBlock Style="{StaticResource Harbor.Text.Icon}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Text="&#xE8C8;" Margin="0,0,6,0" />
+                  <TextBlock Text="Copy user" />
+                </StackPanel>
+              </Button>
+              <Button Style="{StaticResource Harbor.Button}" Command="{Binding EditCommand}" Margin="0,0,6,6" ToolTip="Edit (F2)">
+                <StackPanel Orientation="Horizontal"><TextBlock Text="Edit" /><TextBlock Style="{StaticResource Harbor.Text.KeyHint}" Text="F2" /></StackPanel>
+              </Button>
+              <Button x:Name="MoreButton" Style="{StaticResource Harbor.SubtleButton}" Click="MoreButton_Click" Margin="0,0,6,6" Padding="9,5"
+                      ToolTip="More actions" AutomationProperties.Name="More actions">
+                <TextBlock Style="{StaticResource Harbor.Text.Icon}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Text="&#xE712;" />
+                <Button.ContextMenu>
+                  <ContextMenu>
+                    <MenuItem Header="Copy host" Command="{Binding CopyHostCommand}" InputGestureText="Ctrl+Shift+H" />
+                    <Separator />
+                    <MenuItem Header="Delete…" Command="{Binding DeleteCommand}" InputGestureText="Del" />
+                  </ContextMenu>
+                </Button.ContextMenu>
+              </Button>
+            </WrapPanel>
+
+            <!-- Active sessions: one row each, and whether connecting would take one over (SPEC FR-33). -->
+            <Border Margin="0,10,0,0" Padding="12,8,12,10" CornerRadius="6" Background="{DynamicResource Harbor.InUseBackgroundBrush}"
                     Visibility="{Binding IsInUse, Converter={StaticResource BoolToVisibility}}">
-              <StackPanel>
-                <TextBlock Text="Active sessions" FontWeight="SemiBold" />
-                <TextBlock Text="{Binding PresenceDetails}" TextWrapping="Wrap" Margin="0,4,0,0" />
+              <StackPanel Grid.IsSharedSizeScope="True">
+                <StackPanel Orientation="Horizontal">
+                  <Ellipse Style="{StaticResource Harbor.StatusDot}" Margin="0,0,8,0" />
+                  <TextBlock Text="{Binding SessionsHeader}" FontWeight="SemiBold" />
+                </StackPanel>
+                <TextBlock Text="{Binding DataContext.TakeoverWarning, RelativeSource={RelativeSource AncestorType=Window}}" TextWrapping="Wrap"
+                           Margin="15,2,0,6" FontSize="12" />
+                <Grid Margin="15,0,0,2" TextBlock.FontSize="11" TextBlock.Foreground="{DynamicResource TextFillColorSecondaryBrush}">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" SharedSizeGroup="Who" />
+                    <ColumnDefinition Width="Auto" SharedSizeGroup="Account" />
+                    <ColumnDefinition Width="Auto" SharedSizeGroup="Machine" />
+                    <ColumnDefinition Width="Auto" />
+                  </Grid.ColumnDefinitions>
+                  <TextBlock Text="User" Margin="0,0,18,0" />
+                  <TextBlock Grid.Column="1" Text="Account" Margin="0,0,18,0" />
+                  <TextBlock Grid.Column="2" Text="Machine" Margin="0,0,18,0" />
+                  <TextBlock Grid.Column="3" Text="Since" />
+                </Grid>
+                <ItemsControl ItemsSource="{Binding Sessions}" Margin="15,0,0,0">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type vm:SessionRow}">
+                      <Grid Margin="0,3,0,0" ToolTip="{Binding Email}">
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="Auto" SharedSizeGroup="Who" />
+                          <ColumnDefinition Width="Auto" SharedSizeGroup="Account" />
+                          <ColumnDefinition Width="Auto" SharedSizeGroup="Machine" />
+                          <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{Binding Who}" Margin="0,0,18,0" />
+                        <TextBlock Grid.Column="1" Text="{Binding Account}" Style="{StaticResource Harbor.Text.Mono}" Margin="0,0,18,0" VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="2" Text="{Binding Machine}" Style="{StaticResource Harbor.Text.Mono}" Margin="0,0,18,0" VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="3" Text="{Binding Since}" />
+                      </Grid>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
               </StackPanel>
             </Border>
 
-            <StackPanel Orientation="Horizontal" Margin="0,16,0,0"
-                        DataContext="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Window}}">
-              <Button Content="Connect" Command="{Binding ConnectCommand}" Style="{DynamicResource AccentButtonStyle}"
-                      Padding="20,6" Margin="0,0,8,0" ToolTip="Open in Remote Desktop (Enter / double-click)" />
-              <Button Content="Copy password" Command="{Binding CopyPasswordCommand}" Margin="0,0,8,0" ToolTip="Ctrl+Shift+C" />
-              <Button Content="Copy user" Command="{Binding CopyUserNameCommand}" Margin="0,0,8,0" />
-              <Button Content="Edit" Command="{Binding EditCommand}" Margin="0,0,8,0" />
-              <Button Content="Delete" Command="{Binding DeleteCommand}" />
-            </StackPanel>
+            <!-- Connection: host, port and the account Connect and Copy use (SPEC FR-09), each with a copy button. -->
+            <Border Style="{StaticResource Harbor.Card}">
+              <StackPanel>
+                <TextBlock Text="CONNECTION" Style="{StaticResource Harbor.Text.Caption}" />
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="{StaticResource Harbor.KeyColumnWidth}" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                  </Grid.ColumnDefinitions>
+                  <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                  </Grid.RowDefinitions>
+                  <TextBlock Text="Host" Style="{StaticResource Harbor.Text.Key}" />
+                  <TextBox Grid.Column="1" Text="{Binding Model.Host, Mode=OneWay, TargetNullValue='—'}" IsReadOnly="True" BorderThickness="0"
+                           Background="Transparent" Padding="0" VerticalAlignment="Center" FontFamily="{StaticResource Harbor.MonoFont}" FontSize="13"
+                           AutomationProperties.Name="Host" />
+                  <Button Grid.Column="2" Style="{StaticResource Harbor.CopyButton}" ToolTip="Copy host (Ctrl+Shift+H)" AutomationProperties.Name="Copy host"
+                          Command="{Binding DataContext.CopyHostCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
 
-            <TextBlock Text="Host" Style="{StaticResource FieldLabel}" />
-            <TextBlock Text="{Binding Model.Host, TargetNullValue='—'}" Style="{StaticResource Harbor.Text.Mono}" FontSize="13" />
-            <TextBlock Text="Port" Style="{StaticResource FieldLabel}" />
-            <TextBlock Text="{Binding Model.Port}" Style="{StaticResource Harbor.Text.Mono}" FontSize="13" />
-            <!-- The account Connect and Copy use: the selected account row, else the default account (SPEC FR-09). -->
-            <StackPanel DataContext="{Binding DataContext.SelectedAccount, RelativeSource={RelativeSource AncestorType=Window}}">
-              <TextBlock Text="User" Style="{StaticResource FieldLabel}" />
-              <TextBox Text="{Binding QualifiedUserName, Mode=OneWay, TargetNullValue='—'}" IsReadOnly="True" BorderThickness="0" Background="Transparent" Padding="0"
-                       FontFamily="{StaticResource Harbor.MonoFont}" FontSize="13" />
-              <TextBlock Text="Password" Style="{StaticResource FieldLabel}" />
-              <TextBlock>
-                <TextBlock.Style>
-                  <Style TargetType="TextBlock">
-                    <Setter Property="Text" Value="Not stored" />
-                    <Style.Triggers>
-                      <DataTrigger Binding="{Binding HasPassword}" Value="True">
-                        <Setter Property="Text" Value="•••••••• (encrypted)" />
-                      </DataTrigger>
-                    </Style.Triggers>
-                  </Style>
-                </TextBlock.Style>
-              </TextBlock>
-            </StackPanel>
-            <TextBlock Text="This entry has several accounts. Expand it in the list and select an account to connect or copy with it."
-                       FontSize="11" Opacity="0.6" TextWrapping="Wrap" Margin="0,4,0,0"
-                       Visibility="{Binding HasAccounts, Converter={StaticResource BoolToVisibility}}" />
-            <TextBlock Text="Folder" Style="{StaticResource FieldLabel}" />
-            <TextBlock Text="{Binding GroupName}" />
-            <TextBlock Text="Notes" Style="{StaticResource FieldLabel}" />
-            <TextBox Text="{Binding Model.Notes, Mode=OneWay, TargetNullValue='—'}" IsReadOnly="True" TextWrapping="Wrap" BorderThickness="0" Background="Transparent" Padding="0" />
-            <TextBlock Style="{StaticResource FieldLabel}" FontSize="11">
-              <Run Text="Last changed by" />
-              <Run Text="{Binding Model.UpdatedBy, Mode=OneWay, TargetNullValue='—'}" />
+                  <TextBlock Grid.Row="1" Text="Port" Style="{StaticResource Harbor.Text.Key}" />
+                  <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Model.Port}" Style="{StaticResource Harbor.Text.Mono}" FontSize="13" VerticalAlignment="Center" />
+
+                  <TextBlock Grid.Row="2" Text="User" Style="{StaticResource Harbor.Text.Key}" />
+                  <TextBox Grid.Row="2" Grid.Column="1" DataContext="{Binding DataContext.SelectedAccount, RelativeSource={RelativeSource AncestorType=Window}}"
+                           Text="{Binding QualifiedUserName, Mode=OneWay, TargetNullValue='—'}" IsReadOnly="True" BorderThickness="0" Background="Transparent"
+                           Padding="0" VerticalAlignment="Center" FontFamily="{StaticResource Harbor.MonoFont}" FontSize="13" AutomationProperties.Name="User" />
+                  <Button Grid.Row="2" Grid.Column="2" Style="{StaticResource Harbor.CopyButton}" ToolTip="Copy user (Ctrl+Shift+U)" AutomationProperties.Name="Copy user"
+                          Command="{Binding DataContext.CopyUserNameCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+
+                  <TextBlock Grid.Row="3" Text="Password" Style="{StaticResource Harbor.Text.Key}" />
+                  <TextBlock Grid.Row="3" Grid.Column="1" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                             DataContext="{Binding DataContext.SelectedAccount, RelativeSource={RelativeSource AncestorType=Window}}">
+                    <TextBlock.Style>
+                      <Style TargetType="TextBlock">
+                        <Setter Property="Text" Value="Not stored" />
+                        <Style.Triggers>
+                          <DataTrigger Binding="{Binding HasPassword}" Value="True">
+                            <Setter Property="Text" Value="•••••••• encrypted" />
+                          </DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </TextBlock.Style>
+                  </TextBlock>
+                  <Button Grid.Row="3" Grid.Column="2" Style="{StaticResource Harbor.CopyButton}" ToolTip="Copy password (Ctrl+Shift+C); cleared after 30 s"
+                          AutomationProperties.Name="Copy password"
+                          Command="{Binding DataContext.CopyPasswordCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+                </Grid>
+                <TextBlock Text="Several accounts: expand the entry in the list, or use the arrow next to Connect, to connect or copy with another one."
+                           FontSize="{StaticResource Harbor.FontSize.Caption}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"
+                           Margin="0,6,0,0" Visibility="{Binding HasAccounts, Converter={StaticResource BoolToVisibility}}" />
+              </StackPanel>
+            </Border>
+
+            <!-- RDP profile: how the connection opens, without opening the editor (SPEC FR-47). -->
+            <Border>
+              <Border.Style>
+                <Style TargetType="Border" BasedOn="{StaticResource Harbor.Card}">
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsCredentialOnly}" Value="True">
+                      <Setter Property="Visibility" Value="Collapsed" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </Border.Style>
+              <StackPanel>
+                <TextBlock Text="RDP PROFILE" Style="{StaticResource Harbor.Text.Caption}" />
+                <ItemsControl ItemsSource="{Binding RdpSummary}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <Grid>
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="{StaticResource Harbor.KeyColumnWidth}" />
+                          <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{Binding Label}" Style="{StaticResource Harbor.Text.Key}" />
+                        <TextBlock Grid.Column="1" Text="{Binding Value}" Style="{StaticResource Harbor.Text.Mono}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                      </Grid>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Harbor.Card}" Visibility="{Binding HasNotes, Converter={StaticResource BoolToVisibility}}">
+              <StackPanel>
+                <TextBlock Text="NOTES" Style="{StaticResource Harbor.Text.Caption}" />
+                <TextBox Text="{Binding Model.Notes, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" BorderThickness="0" Background="Transparent"
+                         Padding="0" AutomationProperties.Name="Notes" />
+              </StackPanel>
+            </Border>
+
+            <TextBlock FontSize="{StaticResource Harbor.FontSize.Caption}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,12,0,8"
+                       TextWrapping="Wrap">
+              <Run Text="Changed by" />
+              <Run Text="{Binding Model.UpdatedBy, Mode=OneWay, TargetNullValue='—'}" FontFamily="{StaticResource Harbor.MonoFont}" />
               <Run Text="·" />
               <Run Text="{Binding Model.UpdatedUtc.LocalDateTime, Mode=OneWay, StringFormat='g'}" />
+              <Run Text="· version" />
+              <Run Text="{Binding Model.Version, Mode=OneWay}" />
             </TextBlock>
           </StackPanel>
         </Grid>

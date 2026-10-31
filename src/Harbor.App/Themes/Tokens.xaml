@@ -50,4 +50,60 @@
     <Setter Property="Margin" Value="5,0,0,0" />
     <Setter Property="TextTrimming" Value="CharacterEllipsis" />
   </Style>
+
+  <!-- Main window (SPEC FR-47, ADR-0026). -->
+  <GridLength x:Key="Harbor.KeyColumnWidth">96</GridLength>
+
+  <!-- A card groups related facts in the details pane. -->
+  <Style x:Key="Harbor.Card" TargetType="Border">
+    <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Padding" Value="14,8,8,10" />
+    <Setter Property="Margin" Value="0,12,0,0" />
+  </Style>
+  <!-- Small caps caption on top of a card ("CONNECTION"). -->
+  <Style x:Key="Harbor.Text.Caption" TargetType="TextBlock">
+    <Setter Property="FontSize" Value="{StaticResource Harbor.FontSize.Caption}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+    <Setter Property="Margin" Value="0,2,0,4" />
+  </Style>
+  <!-- Left column of a key/value row in a card. -->
+  <Style x:Key="Harbor.Text.Key" TargetType="TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Margin" Value="0,5" />
+  </Style>
+  <!-- A keyboard shortcut shown next to the action it triggers ("F2"). -->
+  <Style x:Key="Harbor.Text.KeyHint" TargetType="TextBlock" BasedOn="{StaticResource Harbor.Text.Mono}">
+    <Setter Property="FontSize" Value="{StaticResource Harbor.FontSize.Caption}" />
+    <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Margin" Value="8,0,0,0" />
+  </Style>
+  <Style x:Key="Harbor.Text.Placeholder" TargetType="TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="IsHitTestVisible" Value="False" />
+  </Style>
+  <!-- Toolbar and action buttons: icon + label (+ shortcut). -->
+  <Style x:Key="Harbor.Button" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+    <Setter Property="Padding" Value="10,5" />
+    <Setter Property="Margin" Value="0,0,6,0" />
+  </Style>
+  <!-- Quiet button without a fill until hovered: icon-only actions and copy buttons. -->
+  <Style x:Key="Harbor.SubtleButton" TargetType="Button" BasedOn="{StaticResource Harbor.Button}">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+  <Style x:Key="Harbor.CopyButton" TargetType="Button" BasedOn="{StaticResource Harbor.SubtleButton}">
+    <Setter Property="Padding" Value="6,3" />
+    <Setter Property="Margin" Value="6,0,0,0" />
+    <Setter Property="FontFamily" Value="{StaticResource Harbor.IconFont}" />
+    <Setter Property="FontSize" Value="{StaticResource Harbor.FontSize.Mono}" />
+    <Setter Property="Content" Value="&#xE8C8;" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
 </ResourceDictionary>

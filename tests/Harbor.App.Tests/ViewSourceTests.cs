@@ -100,6 +100,32 @@ public class ViewSourceTests
         Assert.Empty(used.Except(defined));
     }
 
+    // SPEC FR-47, ADR-0026: the main window binds its shortcuts, and every shortcut shown on a button is bound.
+    [Fact]
+    public void Main_window_binds_the_shortcuts_it_shows()
+    {
+        var doc = XDocument.Load(Source("MainWindow.xaml"));
+        var bound = doc.Root!.Element(Wpf + "Window.InputBindings")!.Elements(Wpf + "KeyBinding").ToDictionary(
+            k => string.Join("+", new[] { (string?)k.Attribute("Modifiers"), (string)k.Attribute("Key")! }.Where(p => !string.IsNullOrEmpty(p))),
+            k => (string)k.Attribute("Command")!);
+
+        foreach (var (gesture, command) in new Dictionary<string, string>
+                 {
+                     ["Ctrl+F"] = "FocusSearchCommand", ["Ctrl+K"] = "FocusSearchCommand", ["Ctrl+N"] = "AddCommand", ["F5"] = "RefreshCommand",
+                     ["F2"] = "EditCommand", ["Ctrl+Shift+C"] = "CopyPasswordCommand", ["Ctrl+Shift+U"] = "CopyUserNameCommand",
+                     ["Ctrl+Shift+H"] = "CopyHostCommand",
+                 })
+        {
+            Assert.True(bound.TryGetValue(gesture, out var binding), gesture);
+            Assert.Contains(command, binding, StringComparison.Ordinal);
+        }
+
+        var shown = doc.Descendants(Wpf + "TextBlock")
+            .Where(t => (string?)t.Attribute("Style") == "{StaticResource Harbor.Text.KeyHint}")
+            .Select(t => (string)t.Attribute("Text")!);
+        Assert.All(shown, hint => Assert.Contains(hint, bound.Keys));
+    }
+
     // Closing the main window: Close() inside the Closing event throws
     // "Cannot ... Close ... while a Window is closing"; the second close must be posted to the dispatcher.
     [Fact]

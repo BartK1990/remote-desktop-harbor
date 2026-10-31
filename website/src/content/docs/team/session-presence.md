@@ -8,8 +8,9 @@ With a shared database, Harbor shows which entries are currently in use and by w
 > **In use by Jane Doe &lt;jane@contoso.com&gt; on PC-42 since 10:31**
 
 In the list an entry in use shows a dot and the name of who is connected (or “2 users”) in place of its host; hover
-it for the full text. The details pane lists every active session for the selected entry, with the account each one
-is connected as. For an entry with
+it for the full text. The details pane lists every active session for the selected entry in a table — user, account,
+machine and since when — and says whether connecting with the selected account would take one over or run side by
+side. For an entry with
 [several accounts](../../guides/managing-entries/#several-accounts-per-entry), each account row shows its own marker.
 
 ![Main window showing in-use dots for Jane Doe and Sam Patel in the list, and an "Active sessions" box in the details of the selected entry.](../../../assets/screenshots/main.png)
