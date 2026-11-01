@@ -22,7 +22,3 @@ Rules:
 - Schema changes = append a migration to *every* provider's `Migrations` list; never edit an applied migration.
 - Never log, persist or pass on a command line any plaintext password.
 - Package versions live in `Directory.Packages.props`.
-
-Skills: `.claude/skills/windows-portable-desktop-app/` distils this repo's general decisions (portable no-install
-WPF exe, data paths, secrets, theming, title bar, CI/release) for reuse in other Windows desktop apps. When an ADR
-changes one of those general decisions, update the skill too.
