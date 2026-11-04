@@ -82,6 +82,8 @@ public sealed partial class SettingsViewModel : ObservableObject
     ];
 
     public string AboutText => $"{AppInfo.ProductName} · {AppInfo.Description}";
+    public string RepositoryUrl => AppInfo.RepositoryUrl;
+    public string DocumentationUrl => AppInfo.DocumentationUrl;
     public string DataDirectory => AppPaths.DataDirectory + (AppPaths.IsPortable ? "  (portable mode)" : "");
 
     [ObservableProperty]
@@ -369,6 +371,14 @@ public sealed partial class SettingsViewModel : ObservableObject
         {
             _settings.Theme = theme;
         }
+    }
+
+    // Opens one of the AppInfo links in the default browser. SPEC FR-45
+    [RelayCommand]
+    private static void OpenLink(string? url)
+    {
+        if (url is AppInfo.RepositoryUrl or AppInfo.DocumentationUrl)
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true });
     }
 
     [RelayCommand]
