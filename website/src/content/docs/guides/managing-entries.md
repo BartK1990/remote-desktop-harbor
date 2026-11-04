@@ -121,6 +121,8 @@ and host. Entries with
   <kbd>Ctrl</kbd>+<kbd>Minus</kbd>, or <kbd>Ctrl</kbd>+mouse wheel over the tree) make the rows smaller or larger,
   from 80 % to 160 %. The size is shown between the buttons; click it, or press <kbd>Ctrl</kbd>+<kbd>0</kbd>, to go
   back to 100 %. The size is remembered the next time you start the app.
+- **List width.** Drag the divider between the list and the details pane to make the list wider or narrower. The
+  width is remembered the next time you start the app; double-click the divider to go back to the default width.
 
 ## Create
 

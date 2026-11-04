@@ -81,6 +81,19 @@ public class ViewSourceTests
         Assert.Contains("DataContext.TreeZoom", (string?)scaled[0].Attribute("ScaleY") ?? "", StringComparison.Ordinal);
     }
 
+    // SPEC FR-56: the list and details columns are named so the window can restore the remembered split, and a
+    // double-click on the splitter goes back to the default width.
+    [Fact]
+    public void List_pane_width_is_restored_and_can_be_reset()
+    {
+        var doc = XDocument.Load(Source("MainWindow.xaml"));
+        var columns = doc.Descendants(Wpf + "ColumnDefinition").Select(c => (string?)c.Attribute(Xaml + "Name")).ToList();
+        Assert.Contains("ListColumn", columns);
+        Assert.Contains("DetailsColumn", columns);
+        var splitter = Assert.Single(doc.Descendants(Wpf + "GridSplitter"));
+        Assert.Equal("PaneSplitter_MouseDoubleClick", (string?)splitter.Attribute("MouseDoubleClick"));
+    }
+
     // SPEC FR-48: the Quick connect results keep a right gutter too, so the scroll bar does not cover the in-use marker.
     [Fact]
     public void Quick_connect_results_keep_a_gutter_for_the_scroll_bar()

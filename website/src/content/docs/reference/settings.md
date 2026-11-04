@@ -80,6 +80,7 @@ Explorer.
 |---|---|---|---|
 | Folder arrows in the entry tree | `CollapsedFolders` | `[]` | Folders collapsed in the entry tree, restored at start. Written when the app closes. |
 | − / + above the entry tree (<kbd>Ctrl</kbd>+<kbd>Plus</kbd> / <kbd>Minus</kbd> / <kbd>0</kbd>) | `TreeZoom` | `1.0` | Size of the entry tree rows, `0.8` to `1.6`; values outside the range are read as the nearest valid size. |
+| Divider between the list and the details pane (double-click resets) | `ListPaneWidth` | `0.4` | Width of the entry list as a share of the list and details panes, `0.1` to `0.9`. Written when the app closes. |
 | Pin (star, <kbd>Ctrl</kbd>+<kbd>D</kbd>) | `PinnedEntryIds` | `[]` | Ids of the entries you pinned. Personal: never written to the shared database. |
 | (connecting) | `RecentEntryIds` | `[]` | Ids of the last 10 entries you connected to, most recent first. Personal. |
 
@@ -118,6 +119,7 @@ The dialog refuses to save when:
   "Theme": "System",
   "CollapsedFolders": [ "Lab" ],
   "TreeZoom": 1.0,
+  "ListPaneWidth": 0.4,
   "PinnedEntryIds": [ "5b0c3f0e-2f63-4a5e-9a4f-1f0c2a8e7d11" ],
   "RecentEntryIds": [ "5b0c3f0e-2f63-4a5e-9a4f-1f0c2a8e7d11", "c2a1f1d4-8e0b-4f7e-b7a1-3b6d2c9e4a20" ]
 }

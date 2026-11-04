@@ -212,9 +212,10 @@
 
     <Grid Margin="12,4,12,12">
       <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="2*" MinWidth="280" />
+        <!-- The split is set from the remembered list pane width at start (SPEC FR-56); 2* : 3* is the default. -->
+        <ColumnDefinition x:Name="ListColumn" Width="2*" MinWidth="280" />
         <ColumnDefinition Width="Auto" />
-        <ColumnDefinition Width="3*" MinWidth="300" />
+        <ColumnDefinition x:Name="DetailsColumn" Width="3*" MinWidth="300" />
       </Grid.ColumnDefinitions>
 
       <!-- Entry tree: compact rows, collapsible folders, filtered by the search box (SPEC FR-02).
@@ -457,7 +458,10 @@
       </DockPanel>
       </Border>
 
-      <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="Transparent" />
+      <!-- Drag to resize the list; the width is remembered, and a double-click restores the default (SPEC FR-56). -->
+      <GridSplitter x:Name="PaneSplitter" Grid.Column="1" Width="6" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="Transparent"
+                    MouseDoubleClick="PaneSplitter_MouseDoubleClick"
+                    ToolTip="Drag to resize the list; double-click for the default width" />
 
       <!-- Details (SPEC FR-47, ADR-0026): header, actions with their shortcuts, active sessions, then cards. -->
       <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto" Padding="16,0,8,0">
