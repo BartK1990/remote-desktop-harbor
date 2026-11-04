@@ -117,6 +117,10 @@ and host. Entries with
 - Right-click the tree for **Expand all** and **Collapse all** (and the actions for the selected entry).
 - Folders are matched regardless of case; entries without a folder are listed at the root, after the folders.
 - Collapsed folders are remembered the next time you start the app.
+- **Row size.** The **−** and **+** buttons above the tree (or <kbd>Ctrl</kbd>+<kbd>Plus</kbd> /
+  <kbd>Ctrl</kbd>+<kbd>Minus</kbd>, or <kbd>Ctrl</kbd>+mouse wheel over the tree) make the rows smaller or larger,
+  from 80 % to 160 %. The size is shown between the buttons; click it, or press <kbd>Ctrl</kbd>+<kbd>0</kbd>, to go
+  back to 100 %. The size is remembered the next time you start the app.
 
 ## Create
 

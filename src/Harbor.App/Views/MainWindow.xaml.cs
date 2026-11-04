@@ -141,6 +141,15 @@ public partial class MainWindow : Window
         }
     }
 
+    // Ctrl+wheel over the tree changes the entry list size (SPEC FR-55, ADR-0034); a plain wheel still scrolls.
+    private void EntryTree_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        if (Keyboard.Modifiers != ModifierKeys.Control) return;
+        var command = e.Delta > 0 ? _viewModel.ZoomTreeInCommand : _viewModel.ZoomTreeOutCommand;
+        if (command.CanExecute(null)) command.Execute(null);
+        e.Handled = true;
+    }
+
     private void EntryTree_KeyDown(object sender, KeyEventArgs e)
     {
         // Del deletes the selected entry, after confirmation (SPEC FR-47).
