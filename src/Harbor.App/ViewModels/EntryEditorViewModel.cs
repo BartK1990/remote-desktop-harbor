@@ -20,7 +20,7 @@ public sealed partial class EntryEditorViewModel : ObservableValidator
         Folders = folders.ToList();
         _name = original.Name;
         _folder = original.Folder;
-        _isCredentialOnly = original.Kind == EntryKind.CredentialOnly;
+        _kind = original.Kind;
         _host = original.Host;
         _port = original.Port;
         _domain = original.Domain;
@@ -39,9 +39,10 @@ public sealed partial class EntryEditorViewModel : ObservableValidator
     [ObservableProperty] private string _name;
     [ObservableProperty] private string? _folder;
 
+    /// <summary>RDP connection, credentials only or other (SPEC FR-03); the editor shows it as a three-way switch.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsRdpConnection))]
-    private bool _isCredentialOnly;
+    [NotifyPropertyChangedFor(nameof(IsRdpConnection), nameof(IsCredentialOnly), nameof(IsOther))]
+    private EntryKind _kind;
 
     [ObservableProperty] private string? _host;
     [ObservableProperty] private int _port;
@@ -100,10 +101,23 @@ public sealed partial class EntryEditorViewModel : ObservableValidator
         if (account is not null) Accounts.Remove(account);
     }
 
+    // One bool per switch segment. Unchecking a segment does nothing: checking another one sets the kind.
     public bool IsRdpConnection
     {
-        get => !IsCredentialOnly;
-        set => IsCredentialOnly = !value;
+        get => Kind == EntryKind.RdpConnection;
+        set { if (value) Kind = EntryKind.RdpConnection; }
+    }
+
+    public bool IsCredentialOnly
+    {
+        get => Kind == EntryKind.CredentialOnly;
+        set { if (value) Kind = EntryKind.CredentialOnly; }
+    }
+
+    public bool IsOther
+    {
+        get => Kind == EntryKind.Other;
+        set { if (value) Kind = EntryKind.Other; }
     }
 
     [RelayCommand]
@@ -117,7 +131,7 @@ public sealed partial class EntryEditorViewModel : ObservableValidator
         Domain = imported.Domain ?? Domain;
         UserName = imported.UserName ?? UserName;
         RdpSettings.Load(imported.RdpSettings);
-        IsCredentialOnly = false;
+        Kind = EntryKind.RdpConnection;
         if (string.IsNullOrWhiteSpace(Name) || Name == "New connection")
         {
             Name = System.IO.Path.GetFileNameWithoutExtension(path);
@@ -180,12 +194,12 @@ public sealed partial class EntryEditorViewModel : ObservableValidator
     {
         Name = Name.Trim(),
         Folder = string.IsNullOrWhiteSpace(Folder) ? null : Folder.Trim(),
-        Kind = IsCredentialOnly ? EntryKind.CredentialOnly : EntryKind.RdpConnection,
+        Kind = Kind,
         Host = string.IsNullOrWhiteSpace(Host) ? null : Host.Trim(),
         Port = Port,
         Domain = string.IsNullOrWhiteSpace(Domain) ? null : Domain.Trim(),
         UserName = string.IsNullOrWhiteSpace(UserName) ? null : UserName.Trim(),
-        RdpSettings = IsCredentialOnly ? null : RdpSettings.Build() is { Length: > 0 } rdp ? rdp : null,
+        RdpSettings = !IsRdpConnection ? null : RdpSettings.Build() is { Length: > 0 } rdp ? rdp : null,
         Notes = string.IsNullOrWhiteSpace(Notes) ? null : Notes,
         Accounts = Accounts.Select(a => a.Build()).ToList(),
     };

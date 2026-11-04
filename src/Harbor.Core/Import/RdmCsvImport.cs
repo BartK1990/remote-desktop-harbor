@@ -4,25 +4,25 @@ using Harbor.Core.Model;
 
 namespace Harbor.Core.Import;
 
-/// <summary>An entry read from an import file, with the plaintext password to encrypt when it is saved.</summary>
-/// <remarks>The password only lives in memory until <c>HarborWorkspace.SaveAsync</c> encrypts it. Never log it. NFR-12</remarks>
-public sealed record ImportedEntry(ConnectionEntry Entry, string? Password)
+/// <summary>
+/// An entry read from an import file, with the plaintext passwords to encrypt when it is saved: <paramref name="Password"/>
+/// for the default account, <paramref name="AccountPasswords"/> for additional accounts by id.
+/// </summary>
+/// <remarks>Passwords only live in memory until <c>HarborWorkspace.SaveAsync</c> encrypts them. Never log them. NFR-12</remarks>
+public sealed record ImportedEntry(ConnectionEntry Entry, string? Password, IReadOnlyDictionary<Guid, string>? AccountPasswords = null)
 {
     public override string ToString() => $"{Entry.Name} ({Entry.Kind})"; // keeps the password out of any accidental log
 }
 
-/// <summary>What an import file holds: the entries Harbor can store and, per connection type, how many rows it skipped.</summary>
-public sealed record ImportResult(IReadOnlyList<ImportedEntry> Entries, IReadOnlyDictionary<string, int> Skipped)
-{
-    public int SkippedCount => Skipped.Values.Sum();
-}
+/// <summary>What an import file holds: the entries to store and how many folder rows were skipped.</summary>
+public sealed record ImportResult(IReadOnlyList<ImportedEntry> Entries, int SkippedFolders);
 
 /// <summary>
 /// Reads the CSV export of Devolutions Remote Desktop Manager (File → Export → Export entries (CSV)).
-/// RDP sessions become RDP connections, "Username and password" entries become credentials-only entries; folders
-/// come from the <c>Group</c> column, so folder rows themselves and every other connection type (VNC, web, VPN…)
-/// are skipped. Columns are found by name, so their order and any extra columns do not matter.
-/// SPEC FR-54, ADR-0032
+/// RDP sessions become RDP connections, "Username and password" entries credentials-only entries and every other
+/// connection type (VNC, TeamViewer, web, VPN…) an <see cref="EntryKind.Other"/> entry that names the RDM type in its
+/// notes. Folders come from the <c>Group</c> column, so folder rows themselves are skipped. Columns are found by name,
+/// so their order and any extra columns do not matter. SPEC FR-54, ADR-0032, ADR-0033
 /// </summary>
 public static class RdmCsvImport
 {
@@ -50,7 +50,7 @@ public static class RdmCsvImport
         }
 
         var entries = new List<ImportedEntry>();
-        var skipped = new SortedDictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var skippedFolders = 0;
         foreach (var row in rows.Skip(1))
         {
             string Col(string name) => index.TryGetValue(name, out var i) && i < row.Count ? row[i].Trim() : "";
@@ -58,20 +58,20 @@ public static class RdmCsvImport
             var type = Col("ConnectionType");
             if (row.All(string.IsNullOrWhiteSpace)) continue;
 
-            EntryKind kind;
-            if (type.Equals(RdpType, StringComparison.OrdinalIgnoreCase)) kind = EntryKind.RdpConnection;
-            else if (type.Equals(CredentialType, StringComparison.OrdinalIgnoreCase)) kind = EntryKind.CredentialOnly;
-            else
+            // Folders are rebuilt from each entry's Group; an RDM folder row has nothing else Harbor keeps.
+            if (type.Equals(FolderType, StringComparison.OrdinalIgnoreCase))
             {
-                var key = type.Length == 0 ? "(no type)" : type;
-                skipped[key] = skipped.GetValueOrDefault(key) + 1;
+                skippedFolders++;
                 continue;
             }
 
+            var kind = type.Equals(RdpType, StringComparison.OrdinalIgnoreCase) ? EntryKind.RdpConnection
+                : type.Equals(CredentialType, StringComparison.OrdinalIgnoreCase) ? EntryKind.CredentialOnly
+                : EntryKind.Other;
             entries.Add(ToEntry(kind, Col));
         }
 
-        return new ImportResult(entries, skipped);
+        return new ImportResult(entries, skippedFolders);
     }
 
     private static ImportedEntry ToEntry(EntryKind kind, Func<string, string> col)
@@ -97,8 +97,31 @@ public static class RdmCsvImport
             (domain, user) = EntryInput.SplitDomainUser(user);
         }
 
+        var password = Empty(col("CredentialPassword"));
+
+        // Web credentials (RDM website entries): the default account when the entry has none, otherwise an extra account.
+        var webDomain = Empty(col("DataEntry.WebDomain"));
+        var webUser = Empty(col("DataEntry.WebUserName"));
+        var webPassword = Empty(col("DataEntry.WebPassword"));
+        var accounts = new List<ConnectionAccount>();
+        Dictionary<Guid, string>? accountPasswords = null;
+        if (webUser is not null && user is null && password is null)
+        {
+            (domain, user, password) = (webDomain, webUser, webPassword);
+        }
+        else if (webUser is not null && !(string.Equals(webUser, user, StringComparison.OrdinalIgnoreCase) && webPassword == password))
+        {
+            var account = ConnectionAccount.CreateNew(webUser, webDomain);
+            accounts.Add(account);
+            if (webPassword is not null) accountPasswords = new() { [account.Id] = webPassword };
+        }
+
         var name = Empty(col("Name")) ?? host ?? user ?? "Imported entry";
         var rdpSettings = kind == EntryKind.RdpConnection && IsYes(col("OpenInConsole")) ? "administrative session:i:1" : null;
+
+        // Other entries say what they are, so the user knows how to open them (ADR-0033).
+        var typeLine = kind == EntryKind.Other ? $"Type: {TypeLabel(col("ConnectionType"), col("ConnectionSubType"))}" : "";
+        var url = Empty(col("URL"));
 
         var entry = ConnectionEntry.CreateNew(name, kind) with
         {
@@ -108,21 +131,24 @@ public static class RdmCsvImport
             Domain = domain,
             UserName = user,
             RdpSettings = rdpSettings,
-            Notes = Notes(col("Description"), col("Keywords")),
+            Notes = Notes(typeLine, url is null ? "" : $"URL: {url}", col("Description"),
+                col("Keywords") is { Length: > 0 } keywords ? $"Keywords: {keywords}" : ""),
+            Accounts = accounts,
         };
 
-        return new ImportedEntry(entry, Empty(col("CredentialPassword")));
+        return new ImportedEntry(entry, password, accountPasswords);
     }
 
-    private static string? Notes(string description, string keywords)
-    {
-        var notes = description.ReplaceLineEndings("\r\n").Trim();
-        if (keywords.Length > 0)
-        {
-            notes = notes.Length == 0 ? $"Keywords: {keywords}" : $"{notes}\r\n\r\nKeywords: {keywords}";
-        }
+    private static string TypeLabel(string type, string subType) =>
+        type.Length == 0 ? "unknown" : subType.Length == 0 || subType.Equals("Default", StringComparison.OrdinalIgnoreCase) ? type : $"{type} ({subType})";
 
-        return Empty(notes.ReplaceLineEndings("\r\n"));
+    // Header lines (type, URL) first, then the description, then the keywords; blank lines between the parts.
+    private static string? Notes(string typeLine, string urlLine, string description, string keywordsLine)
+    {
+        var head = string.Join("\r\n", new[] { typeLine, urlLine }.Where(s => s.Length > 0));
+        var parts = new[] { head, description.ReplaceLineEndings("\r\n").Trim(), keywordsLine.ReplaceLineEndings("\r\n") }
+            .Where(s => s.Length > 0);
+        return Empty(string.Join("\r\n\r\n", parts));
     }
 
     /// <summary>

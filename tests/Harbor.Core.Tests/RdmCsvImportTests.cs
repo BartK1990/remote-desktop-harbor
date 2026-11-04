@@ -54,21 +54,56 @@ public class RdmCsvImportTests
     }
 
     [Fact]
-    public void Folders_and_other_connection_types_are_skipped_and_counted()
+    public void Folder_rows_and_blank_rows_are_skipped()
     {
         var result = Parse(
-            "Folder,,0,Web,Production\\Web,,,,,,,admin,,pw,,,,,,",
-            "VNC,TightVNC,0,vnc,,,,,,10.0.0.9,5900,,,pw,,,,,,",
-            "VNC,UltraVNC,0,vnc2,,,,,,10.0.0.9,5900,,,,,,,,,",
+            "Folder,,0,Web,Production\\Web,,,,,,,,,,,,,,,",
             "RDP (Microsoft Remote Desktop),,0,srv,,,,,,srv:3391,,,,,No,,,,,",
             ",,,,,,,,,,,,,,,,,,,");
 
         var e = Assert.Single(result.Entries).Entry;
         Assert.Equal(("srv", 3391), (e.Host, e.Port));
         Assert.Null(e.RdpSettings);
-        Assert.Equal(3, result.SkippedCount);
-        Assert.Equal(1, result.Skipped["Folder"]);
-        Assert.Equal(2, result.Skipped["VNC"]);
+        Assert.Equal(1, result.SkippedFolders);
+    }
+
+    // ADR-0033: VNC, TeamViewer, web, VPN… keep their credentials as Other entries, never launched.
+    [Fact]
+    public void Other_connection_types_become_other_entries_that_name_their_type()
+    {
+        var result = Parse(
+            "VNC,TightVNC,0,vnc,Lab,\"desc\",,,,10.0.0.9,5900,admin,,pw,,,,,,",
+            "Website,Default,0,portal,,,,,,,,,,,,https://portal.contoso.com,,,,");
+
+        var vnc = result.Entries[0];
+        Assert.Equal(EntryKind.Other, vnc.Entry.Kind);
+        Assert.Equal(("10.0.0.9", 5900), (vnc.Entry.Host, vnc.Entry.Port));
+        Assert.Equal("Type: VNC (TightVNC)\r\n\r\ndesc", vnc.Entry.Notes);
+        Assert.Equal("pw", vnc.Password);
+        Assert.False(vnc.Entry.CanLaunch);
+
+        var web = result.Entries[1].Entry;
+        Assert.Equal(EntryKind.Other, web.Kind);
+        Assert.Equal("Type: Website\r\nURL: https://portal.contoso.com", web.Notes);
+    }
+
+    [Fact]
+    public void Web_credentials_fill_an_empty_entry_or_become_an_additional_account()
+    {
+        var result = Parse(
+            "Website (legacy),,0,a,,,,,,h,,,,,,,webuser,WEB,webpw,",
+            "Website (legacy),,0,b,,,,,,h,,admin,,pw,,,webuser,,webpw,");
+
+        var a = result.Entries[0];
+        Assert.Equal(("WEB", "webuser", "webpw"), (a.Entry.Domain, a.Entry.UserName, a.Password));
+        Assert.Empty(a.Entry.Accounts);
+
+        var b = result.Entries[1];
+        Assert.Equal(("admin", "pw"), (b.Entry.UserName, b.Password));
+        var account = Assert.Single(b.Entry.Accounts);
+        Assert.Equal("webuser", account.UserName);
+        Assert.Equal("webpw", b.AccountPasswords![account.Id]);
+        Assert.DoesNotContain("webpw", b.ToString(), StringComparison.Ordinal);
     }
 
     [Fact]

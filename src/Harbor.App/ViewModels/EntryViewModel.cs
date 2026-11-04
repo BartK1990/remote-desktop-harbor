@@ -17,7 +17,7 @@ public sealed partial class EntryViewModel : TreeNodeViewModel
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(Name), nameof(GroupName), nameof(Subtitle), nameof(KindLabel), nameof(HasPassword), nameof(CanLaunch),
-        nameof(HasAccounts), nameof(Address), nameof(IsCredentialOnly), nameof(RdpSummary), nameof(HasNotes),
+        nameof(HasAccounts), nameof(Address), nameof(IsCredentialOnly), nameof(IsOther), nameof(IsRdpConnection), nameof(RdpSummary), nameof(HasNotes),
         nameof(Environment), nameof(EnvironmentLabel))]
     private ConnectionEntry _model;
 
@@ -41,7 +41,11 @@ public sealed partial class EntryViewModel : TreeNodeViewModel
     public string GroupName => string.IsNullOrWhiteSpace(Model.Folder) ? NoFolder : Model.Folder;
     public bool HasPassword => Model.HasPassword;
     public bool CanLaunch => Model.CanLaunch;
+    public bool IsRdpConnection => Model.Kind == EntryKind.RdpConnection;
     public bool IsCredentialOnly => Model.Kind == EntryKind.CredentialOnly;
+
+    /// <summary>Credentials of a non-RDP system: never launched (SPEC FR-03, ADR-0033).</summary>
+    public bool IsOther => Model.Kind == EntryKind.Other;
 
     /// <summary>Host (and non-default port) shown in the tree row. SPEC FR-02</summary>
     public string? Address => Model.Address;
@@ -57,7 +61,7 @@ public sealed partial class EntryViewModel : TreeNodeViewModel
     public bool HasNotes => !string.IsNullOrWhiteSpace(Model.Notes);
 
     /// <summary>How the connection opens, for the details pane; empty for credentials only. SPEC FR-47</summary>
-    public IReadOnlyList<RdpSummaryLine> RdpSummary => IsCredentialOnly ? [] : Core.Rdp.RdpSummary.Describe(Model.RdpSettings);
+    public IReadOnlyList<RdpSummaryLine> RdpSummary => !IsRdpConnection ? [] : Core.Rdp.RdpSummary.Describe(Model.RdpSettings);
 
     /// <summary>Rows of the active-sessions table in the details pane. SPEC FR-33, FR-47</summary>
     public IReadOnlyList<SessionRow> Sessions => ActiveSessions.Select(s => new SessionRow(
@@ -66,7 +70,12 @@ public sealed partial class EntryViewModel : TreeNodeViewModel
 
     public string SessionsHeader => ActiveSessions.Count == 1 ? "1 active session" : $"{ActiveSessions.Count} active sessions";
 
-    public string KindLabel => Model.Kind == EntryKind.RdpConnection ? "RDP connection" : "Credentials only";
+    public string KindLabel => Model.Kind switch
+    {
+        EntryKind.RdpConnection => "RDP connection",
+        EntryKind.Other => "Other",
+        _ => "Credentials only",
+    };
 
     public string Subtitle
     {

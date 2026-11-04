@@ -14,6 +14,7 @@ and the details of the selected entry on the right.
 |---|---|---|
 | **RDP connection** | Host, port, credentials **and** additional `.rdp` settings | Default settings + the entry's own `.rdp` settings |
 | **Credentials only** | User name and password, optional host | Default settings only |
+| **Other** | User name and password, optional host and port of a system you don't reach with Remote Desktop (VNC, web portal, VPN…) | Never launched — copy the host, user name and password instead |
 
 Pick the kind with the switch at the top of the editor's **General** section. You can switch it later; the RDP
 settings sections (**Display**, **Local resources**, **Connection**) are only shown for RDP connections.

@@ -38,3 +38,4 @@ Process: see [spec/README.md](../spec/README.md).
 | [0030](0030-app-message-box.md) | The app's own message box; risky confirmations default to Cancel | Accepted |
 | [0031](0031-screenshots-from-ci.md) | Documentation screenshots captured from the real app in CI | Accepted |
 | [0032](0032-import-remote-desktop-manager-csv.md) | Import from a Remote Desktop Manager CSV export | Accepted |
+| [0033](0033-other-entry-kind.md) | A third entry kind, Other, for credentials of non-RDP systems | Accepted |

@@ -646,7 +646,8 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
             foreach (var item in toImport)
             {
                 await _host.Workspace.SaveAsync(item.Entry,
-                    item.Password is { Length: > 0 } pw ? SecretUpdate.Set(pw) : SecretUpdate.Keep);
+                    item.Password is { Length: > 0 } pw ? SecretUpdate.Set(pw) : SecretUpdate.Keep,
+                    item.AccountPasswords?.ToDictionary(p => p.Key, p => SecretUpdate.Set(p.Value)));
                 imported++;
             }
         }
@@ -667,16 +668,16 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     private string ImportSummary(ImportResult parsed, IReadOnlyList<ImportedEntry> toImport)
     {
         var sb = new System.Text.StringBuilder();
-        var rdp = toImport.Count(i => i.Entry.Kind == EntryKind.RdpConnection);
-        sb.Append(CultureInfo.CurrentCulture, $"{toImport.Count} entries will be added: {rdp} RDP connections and {toImport.Count - rdp} credentials.");
+        int Count(EntryKind kind) => toImport.Count(i => i.Entry.Kind == kind);
+        sb.Append(CultureInfo.CurrentCulture,
+            $"{toImport.Count} entries will be added: {Count(EntryKind.RdpConnection)} RDP connections, {Count(EntryKind.CredentialOnly)} credentials only and {Count(EntryKind.Other)} other (VNC, web, VPN… — kept for their credentials, not opened with Remote Desktop).");
         if (_host?.Workspace.IsRemote == true) sb.Append(" They will be shared with everyone using the shared database.");
 
         var existing = parsed.Entries.Count - toImport.Count;
         if (existing > 0) sb.Append(CultureInfo.CurrentCulture, $"\n\n{existing} entries are already in the catalog and are left out.");
-        if (parsed.SkippedCount > 0)
+        if (parsed.SkippedFolders > 0)
         {
-            sb.Append(CultureInfo.CurrentCulture, $"\n\nNot imported ({parsed.SkippedCount}): ")
-                .AppendJoin(", ", parsed.Skipped.Select(s => $"{s.Key} × {s.Value}")).Append('.');
+            sb.Append(CultureInfo.CurrentCulture, $"\n\n{parsed.SkippedFolders} folder rows are skipped: folders are rebuilt from each entry's group.");
         }
 
         sb.Append("\n\nThe CSV file holds passwords in plain text: delete it once the import is done.");

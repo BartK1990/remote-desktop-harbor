@@ -15,8 +15,8 @@ credentials if you want the passwords to come along.
 
 1. Click **Import RDM…** in the toolbar.
 2. Pick the `.csv` file.
-3. Harbor shows how many entries it will add, how many are already in your catalog, and which entry types it skips.
-   Click **Import** to add them.
+3. Harbor shows how many entries of each kind it will add, how many are already in your catalog, and how many folder
+   rows it skips. Click **Import** to add them.
 
 Imported entries keep their RDM folders. In a shared database they are visible to everyone right away.
 
@@ -26,8 +26,8 @@ Imported entries keep their RDM folders. In a shared database they are visible t
 |---|---|
 | **RDP (Microsoft Remote Desktop)** | RDP connection |
 | **Username and password** | Credentials only |
+| anything else (VNC, TeamViewer, Website, Citrix, VPN, KeePass, iLO…) | [**Other**](../managing-entries/#entry-kinds) — keeps host, port and credentials; never opened with Remote Desktop. Its notes start with the RDM type, e.g. `Type: VNC (TightVNC)`, and the URL. |
 | **Folder** | Not imported as an entry — folders are rebuilt from each entry's group. |
-| anything else (VNC, TeamViewer, Website, Citrix, VPN, KeePass…) | Skipped and listed in the confirmation |
 
 | CSV column | Becomes |
 |---|---|
@@ -37,8 +37,10 @@ Imported entries keep their RDM folders. In a shared database they are visible t
 | `CredentialDomain`, `CredentialUserName` | **Domain** and **User name** (`DOMAIN\user` is split when there is no domain) |
 | `CredentialPassword` | **Password**, encrypted before it is saved |
 | `Description`, `Keywords` | **Notes** |
+| `URL` | Start of the **Notes** (after the type line of Other entries) |
 | `OpenInConsole` = `Yes` | **Administrative session** turned on |
-| `WebUrl`, `URL`, `Expiration`, web credentials | Ignored |
+| `DataEntry.WebUserName`, `WebDomain`, `WebPassword` | The entry's credentials when it has none, otherwise an [additional account](../managing-entries/#several-accounts-per-entry) |
+| `WebUrl` (`rdm://` link), `Expiration` | Ignored |
 
 Entries that already exist — same type, name, folder, host, port and user — are left out, so running the same import
 twice adds nothing.
