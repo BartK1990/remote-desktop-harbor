@@ -13,4 +13,7 @@ public interface IDialogService
     bool ConfirmRisky(string title, string message, string confirmText);
     void ShowError(string title, string message);
     string? PickRdpFile();
+
+    /// <summary>Picks a Remote Desktop Manager CSV export to import (SPEC FR-54).</summary>
+    string? PickRdmCsvFile();
 }

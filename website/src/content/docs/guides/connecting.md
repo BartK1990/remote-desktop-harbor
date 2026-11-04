@@ -95,8 +95,12 @@ Connecting with another account of the entry does not ask — Windows Server run
 
 ## When Remote Desktop still asks for a password
 
-Some environments block saved credentials for Remote Desktop (Credential Guard, or the *Allow delegating saved
-credentials* group policy). Remote Desktop then prompts as usual — use **Copy password**
-(<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd>) and paste.
+Windows Defender Credential Guard does not stop the app from signing you in. Some environments still block saved
+credentials for Remote Desktop through the *Allow delegating saved credentials* group policy; Remote Desktop then
+prompts as usual — use **Copy password** (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd>) and paste.
+
+Remote Desktop may also show a *“Caution: Unknown remote connection”* warning before connecting, because the
+connection file is not signed. Choose the local resources to share and select **Connect**; this warning is not a
+password prompt.
 
 More in [Troubleshooting](../../reference/troubleshooting/).

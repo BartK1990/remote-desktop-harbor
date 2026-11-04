@@ -92,6 +92,15 @@ public sealed class HarborSettings
     /// <summary>Canonical paths of the folders collapsed in the entry tree (SPEC FR-02); restored at start.</summary>
     public List<string> CollapsedFolders { get; set; } = [];
 
+    /// <summary>Zoom level of the entry tree rows, 0.8 to 1.6 (SPEC FR-55); see <see cref="Model.TreeZoom"/>.</summary>
+    public double TreeZoom { get; set; } = Model.TreeZoom.Default;
+
+    /// <summary>
+    /// Width of the entry list pane as a share of the list and details panes, 0.1 to 0.9 (SPEC FR-56);
+    /// see <see cref="Model.ListPaneWidth"/>.
+    /// </summary>
+    public double ListPaneWidth { get; set; } = Model.ListPaneWidth.Default;
+
     /// <summary>Entries this user pinned (SPEC FR-50); personal, never written to a shared database.</summary>
     public List<Guid> PinnedEntryIds { get; set; } = [];
 

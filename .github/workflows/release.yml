@@ -11,7 +11,7 @@ on:
 
 permissions:
   contents: write
-  # SignPath reads the job details and downloads the unsigned artifact with the job token (ADR-0032).
+  # SignPath reads the job details and downloads the unsigned artifact with the job token (ADR-0036).
   actions: read
 
 env:
@@ -54,7 +54,7 @@ jobs:
         shell: pwsh
         run: Get-ChildItem out -Recurse -Filter *.pdb | Remove-Item
 
-      # Code signing via SignPath Foundation (SPEC NFR-06, ADR-0032). Runs only once the repository variable
+      # Code signing via SignPath Foundation (SPEC NFR-06, ADR-0036). Runs only once the repository variable
       # SIGNPATH_ORGANIZATION_ID is set; until then the release is published unsigned, as before.
       # The artifact contains sc/RemoteDesktopHarbor.exe and fdd/RemoteDesktopHarbor.exe; its layout must match
       # the artifact configuration in .signpath/artifact-configuration.xml.

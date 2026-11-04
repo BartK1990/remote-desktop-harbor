@@ -7,6 +7,12 @@ public static class AppInfo
 {
     public const string ProductName = "Remote Desktop Harbor";
 
+    /// <summary>Source code, issues and releases. See SPEC FR-45.</summary>
+    public const string RepositoryUrl = "https://github.com/BartK1990/remote-desktop-harbor";
+
+    /// <summary>User documentation site (GitHub Pages, ADR-0013).</summary>
+    public const string DocumentationUrl = "https://bartk1990.github.io/remote-desktop-harbor/";
+
     private static readonly string Informational =
         typeof(AppInfo).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "0.0.0";
 

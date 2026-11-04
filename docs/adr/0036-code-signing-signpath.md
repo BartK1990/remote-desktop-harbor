@@ -1,4 +1,4 @@
-# ADR-0032: Release exes code-signed through SignPath Foundation
+# ADR-0036: Release exes code-signed through SignPath Foundation
 
 * Status: Accepted
 * Date: 2026-11-04

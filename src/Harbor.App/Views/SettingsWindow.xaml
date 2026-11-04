@@ -312,6 +312,14 @@
           <StackPanel Style="{StaticResource TabPage}">
             <TextBox Text="{Binding AboutText, Mode=OneWay}" IsReadOnly="True" BorderThickness="0" Background="Transparent" Padding="0" TextWrapping="Wrap"
                      AutomationProperties.Name="Version" />
+            <TextBlock Text="Links" Style="{StaticResource FieldLabel}" Margin="0,16,0,4" />
+            <TextBlock>
+              <Hyperlink Command="{Binding OpenLinkCommand}" CommandParameter="{Binding RepositoryUrl}" ToolTip="{Binding RepositoryUrl}"
+                         AutomationProperties.Name="GitHub repository">GitHub repository</Hyperlink>
+              <Run Text="  ·  " />
+              <Hyperlink Command="{Binding OpenLinkCommand}" CommandParameter="{Binding DocumentationUrl}" ToolTip="{Binding DocumentationUrl}"
+                         AutomationProperties.Name="Documentation">Documentation</Hyperlink>
+            </TextBlock>
             <TextBlock Text="Data folder" Style="{StaticResource FieldLabel}" Margin="0,16,0,4" />
             <DockPanel>
               <Button DockPanel.Dock="Right" Content="Open" Command="{Binding OpenDataFolderCommand}" Style="{StaticResource Harbor.Button}" Margin="8,0,0,0"

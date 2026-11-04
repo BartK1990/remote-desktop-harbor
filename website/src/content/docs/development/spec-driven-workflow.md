@@ -32,7 +32,7 @@ Decision Records (ADRs) record *why* it is built the way it is.
 
 | IDs | Area | Documentation |
 |---|---|---|
-| FR-01..06 | Catalog | [Managing entries](../../guides/managing-entries/), [Importing .rdp files](../../guides/importing-rdp-files/) |
+| FR-01..06 | Catalog | [Managing entries](../../guides/managing-entries/), [Importing .rdp files](../../guides/importing-rdp-files/), [Importing from Remote Desktop Manager](../../guides/importing-from-rdm/) (FR-54) |
 | FR-10..12 | Launching Remote Desktop | [Connecting](../../guides/connecting/) |
 | FR-20..25 | Storage | [Shared database](../../team/shared-database/), [Offline mode](../../team/offline-mode/) |
 | FR-30..36 | Session presence | [Session presence](../../team/session-presence/) |

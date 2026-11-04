@@ -75,4 +75,13 @@ public class RdpFileTests
         Assert.Equal(host, r.Host);
         Assert.Equal(port, r.Port);
     }
+
+    // SPEC FR-03, ADR-0033: an Other entry is never opened with Remote Desktop, even with a host.
+    [Fact]
+    public void Other_entries_cannot_be_launched()
+    {
+        var entry = ConnectionEntry.CreateNew("vnc", EntryKind.Other) with { Host = "10.0.0.9", Port = 5900 };
+        Assert.False(entry.CanLaunch);
+        Assert.Throws<InvalidOperationException>(() => RdpFile.Build(entry));
+    }
 }

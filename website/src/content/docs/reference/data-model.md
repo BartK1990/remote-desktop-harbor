@@ -15,7 +15,7 @@ The same schema is used in every store — local vault, local cache and shared d
 | `Id` | GUID text | Primary key |
 | `Name` | text | Required |
 | `Folder` | text, nullable | Grouping |
-| `Kind` | int | `0` RDP connection, `1` credentials only |
+| `Kind` | int | `0` RDP connection, `1` credentials only, `2` other (never launched) |
 | `Host`, `Port` | text, int | Port defaults to 3389 |
 | `Domain`, `UserName` | text, nullable | |
 | `RdpSettings` | text, nullable | Extra `.rdp` lines (only settings that differ from the defaults; edited as a form, FR-13) |

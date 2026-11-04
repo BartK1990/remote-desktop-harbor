@@ -14,6 +14,7 @@ and the details of the selected entry on the right.
 |---|---|---|
 | **RDP connection** | Host, port, credentials **and** additional `.rdp` settings | Default settings + the entry's own `.rdp` settings |
 | **Credentials only** | User name and password, optional host | Default settings only |
+| **Other** | User name and password, optional host and port of a system you don't reach with Remote Desktop (VNC, web portal, VPN…) | Never launched — copy the host, user name and password instead |
 
 Pick the kind with the switch at the top of the editor's **General** section. You can switch it later; the RDP
 settings sections (**Display**, **Local resources**, **Connection**) are only shown for RDP connections.
@@ -116,6 +117,12 @@ and host. Entries with
 - Right-click the tree for **Expand all** and **Collapse all** (and the actions for the selected entry).
 - Folders are matched regardless of case; entries without a folder are listed at the root, after the folders.
 - Collapsed folders are remembered the next time you start the app.
+- **Row size.** The **−** and **+** buttons above the tree (or <kbd>Ctrl</kbd>+<kbd>Plus</kbd> /
+  <kbd>Ctrl</kbd>+<kbd>Minus</kbd>, or <kbd>Ctrl</kbd>+mouse wheel over the tree) make the rows smaller or larger,
+  from 80 % to 160 %. The size is shown between the buttons; click it, or press <kbd>Ctrl</kbd>+<kbd>0</kbd>, to go
+  back to 100 %. The size is remembered the next time you start the app.
+- **List width.** Drag the divider between the list and the details pane to make the list wider or narrower. The
+  width is remembered the next time you start the app; double-click the divider to go back to the default width.
 
 ## Create
 
@@ -161,7 +168,7 @@ Copying works offline too, and is the fallback when a policy prevents Remote Des
 
 ## Read-only while offline
 
-When the app uses a shared database that is currently unreachable, **New**, **Import .rdp…**, **Edit** and
+When the app uses a shared database that is currently unreachable, **New**, **Import .rdp…**, **Import RDM…**, **Edit** and
 **Delete** are disabled. See [Offline mode](../../team/offline-mode/).
 
 ## Light or dark theme

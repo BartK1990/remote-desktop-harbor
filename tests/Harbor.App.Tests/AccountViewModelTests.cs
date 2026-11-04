@@ -15,6 +15,7 @@ public class AccountViewModelTests
         public bool ConfirmRisky(string title, string message, string confirmText) => false;
         public void ShowError(string title, string message) { }
         public string? PickRdpFile() => null;
+        public string? PickRdmCsvFile() => null;
     }
 
     private static ConnectionEntry Entry(params ConnectionAccount[] accounts) => ConnectionEntry.CreateNew("srv") with

@@ -27,6 +27,7 @@ internal static unsafe partial class NativeMethods
 
     // ---------------------------------------------------------------- Credential Manager (advapi32.dll)
 
+    internal const uint CRED_TYPE_GENERIC = 1;
     internal const uint CRED_TYPE_DOMAIN_PASSWORD = 2;
     internal const uint CRED_PERSIST_SESSION = 1;
     internal const uint CRED_PERSIST_LOCAL_MACHINE = 2;

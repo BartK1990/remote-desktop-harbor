@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Threading;
@@ -5,9 +6,12 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Harbor.App.Infrastructure;
 using Harbor.Core;
+using Harbor.Core.Import;
 using Harbor.Core.Model;
 using Harbor.Core.Services;
 using Harbor.Core.Storage;
+using Zoom = Harbor.Core.Model.TreeZoom;
+using PaneWidth = Harbor.Core.Model.ListPaneWidth;
 
 namespace Harbor.App.ViewModels;
 
@@ -28,6 +32,8 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     private readonly HashSet<string> _collapsed;
     private readonly HashSet<string> _collapsedWhileSearching = new(StringComparer.CurrentCultureIgnoreCase);
     private bool _rebuildingTree;
+    private double _savedTreeZoom;
+    private double _savedListPaneWidth;
 
     // Pinned entries of this user (SPEC FR-50), kept in the settings.
     private readonly HashSet<Guid> _pinned;
@@ -38,6 +44,8 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         _dialogs = dialogs;
         _collapsed = new HashSet<string>(settings.CollapsedFolders, StringComparer.CurrentCultureIgnoreCase);
         _pinned = [.. settings.PinnedEntryIds];
+        _treeZoom = _savedTreeZoom = Zoom.Normalize(settings.TreeZoom);
+        _listPaneWidth = _savedListPaneWidth = PaneWidth.Normalize(settings.ListPaneWidth);
         _syncTimer.Tick += async (_, _) => await SyncAsync();
         _presenceTimer.Tick += async (_, _) => await RefreshPresenceAsync();
     }
@@ -67,6 +75,46 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         TreeFilter.Recent => Settings.RecentEntryIds.Contains(e.Model.Id),
         _ => true,
     };
+
+    // ------------------------------------------------------------------ tree zoom (SPEC FR-55, ADR-0034)
+
+    /// <summary>Scale of the entry tree rows (1 = 100 %); remembered in the settings.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(TreeZoomText), nameof(TreeZoomToolTip))]
+    [NotifyCanExecuteChangedFor(nameof(ZoomTreeInCommand), nameof(ZoomTreeOutCommand), nameof(ResetTreeZoomCommand))]
+    private double _treeZoom;
+
+    public string TreeZoomText => Zoom.Label(TreeZoom);
+
+    public string TreeZoomToolTip => Zoom.IsDefault(TreeZoom)
+        ? "Entry list size: 100% (default)"
+        : $"Entry list size: {TreeZoomText}. Click to reset to 100% (Ctrl+0)";
+
+    partial void OnTreeZoomChanged(double value) => Settings.TreeZoom = value;
+
+    private bool CanZoomTreeIn() => TreeZoom < Zoom.Max;
+    private bool CanZoomTreeOut() => TreeZoom > Zoom.Min;
+    private bool CanResetTreeZoom() => !Zoom.IsDefault(TreeZoom);
+
+    [RelayCommand(CanExecute = nameof(CanZoomTreeIn))]
+    private void ZoomTreeIn() => TreeZoom = Zoom.In(TreeZoom);
+
+    [RelayCommand(CanExecute = nameof(CanZoomTreeOut))]
+    private void ZoomTreeOut() => TreeZoom = Zoom.Out(TreeZoom);
+
+    [RelayCommand(CanExecute = nameof(CanResetTreeZoom))]
+    private void ResetTreeZoom() => TreeZoom = Zoom.Default;
+
+    // ------------------------------------------------------------------ list pane width (SPEC FR-56)
+
+    private double _listPaneWidth;
+
+    /// <summary>Share of the entry list pane in the main window; set by the window when the splitter is moved.</summary>
+    public double ListPaneWidth
+    {
+        get => _listPaneWidth;
+        set => _listPaneWidth = PaneWidth.Normalize(value);
+    }
 
     public string PinText => Selected?.IsPinned == true ? "Unpin" : "Pin";
 
@@ -206,11 +254,11 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     private EntryViewModel? _selected;
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(AddCommand), nameof(EditCommand), nameof(DeleteCommand), nameof(ImportRdpCommand), nameof(ConnectCommand), nameof(ConnectAsCommand))]
+    [NotifyCanExecuteChangedFor(nameof(AddCommand), nameof(EditCommand), nameof(DeleteCommand), nameof(ImportRdpCommand), nameof(ImportRdmCommand), nameof(ConnectCommand), nameof(ConnectAsCommand))]
     private bool _isReady;
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(AddCommand), nameof(EditCommand), nameof(DeleteCommand), nameof(ImportRdpCommand))]
+    [NotifyCanExecuteChangedFor(nameof(AddCommand), nameof(EditCommand), nameof(DeleteCommand), nameof(ImportRdpCommand), nameof(ImportRdmCommand))]
     private bool _canWrite;
 
     [ObservableProperty] private string _userText = "Signing in…";
@@ -608,6 +656,80 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     [RelayCommand(CanExecute = nameof(CanEdit))]
     private Task ImportRdpAsync() => EditNewAsync(ConnectionEntry.CreateNew("New connection"), importFirst: true);
 
+    /// <summary>
+    /// Imports a Remote Desktop Manager CSV export after one confirmation that says what will be added and skipped.
+    /// Passwords from the file are only held in memory until each entry is saved encrypted. SPEC FR-54, ADR-0032
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanEdit))]
+    private async Task ImportRdmAsync()
+    {
+        if (_host is null || _dialogs.PickRdmCsvFile() is not { } path) return;
+
+        ImportResult parsed;
+        try
+        {
+            parsed = RdmCsvImport.Parse(await System.IO.File.ReadAllTextAsync(path));
+        }
+        catch (Exception ex) when (ex is FormatException or System.IO.IOException or UnauthorizedAccessException)
+        {
+            _dialogs.ShowError("Cannot import", ex.Message);
+            return;
+        }
+
+        var toImport = RdmCsvImport.WithoutExisting(parsed.Entries, Entries.Select(e => e.Model));
+        var message = ImportSummary(parsed, toImport);
+        if (toImport.Count == 0)
+        {
+            _dialogs.ShowError("Nothing to import", message);
+            return;
+        }
+
+        if (!_dialogs.ConfirmRisky("Import from Remote Desktop Manager", message, "Import")) return; // SPEC FR-53: bulk write, Cancel is the default
+
+        var imported = 0;
+        try
+        {
+            foreach (var item in toImport)
+            {
+                await _host.Workspace.SaveAsync(item.Entry,
+                    item.Password is { Length: > 0 } pw ? SecretUpdate.Set(pw) : SecretUpdate.Keep,
+                    item.AccountPasswords?.ToDictionary(p => p.Key, p => SecretUpdate.Set(p.Value)));
+                imported++;
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"RDM import stopped after {imported} of {toImport.Count} entries", ex);
+            _dialogs.ShowError("Import stopped", $"{imported} of {toImport.Count} entries were imported before an error: {ex.Message}");
+        }
+        finally
+        {
+            await ReloadAsync();
+        }
+
+        Log.Info($"Imported {imported} entries from Remote Desktop Manager");
+        StatusText = $"Imported {imported} {(imported == 1 ? "entry" : "entries")} from Remote Desktop Manager";
+    }
+
+    private string ImportSummary(ImportResult parsed, IReadOnlyList<ImportedEntry> toImport)
+    {
+        var sb = new System.Text.StringBuilder();
+        int Count(EntryKind kind) => toImport.Count(i => i.Entry.Kind == kind);
+        sb.Append(CultureInfo.CurrentCulture,
+            $"{toImport.Count} entries will be added: {Count(EntryKind.RdpConnection)} RDP connections, {Count(EntryKind.CredentialOnly)} credentials only and {Count(EntryKind.Other)} other (VNC, web, VPN… — kept for their credentials, not opened with Remote Desktop).");
+        if (_host?.Workspace.IsRemote == true) sb.Append(" They will be shared with everyone using the shared database.");
+
+        var existing = parsed.Entries.Count - toImport.Count;
+        if (existing > 0) sb.Append(CultureInfo.CurrentCulture, $"\n\n{existing} entries are already in the catalog and are left out.");
+        if (parsed.SkippedFolders > 0)
+        {
+            sb.Append(CultureInfo.CurrentCulture, $"\n\n{parsed.SkippedFolders} folder rows are skipped: folders are rebuilt from each entry's group.");
+        }
+
+        sb.Append("\n\nThe CSV file holds passwords in plain text: delete it once the import is done.");
+        return sb.ToString();
+    }
+
     private async Task EditNewAsync(ConnectionEntry template, bool importFirst)
     {
         var editor = new EntryEditorViewModel(template with { Folder = SelectedFolderPath }, isNew: true, _dialogs, Folders());
@@ -747,12 +869,15 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
-    /// <summary>Remembers which folders are collapsed for the next start.</summary>
+    /// <summary>Remembers which folders are collapsed, the tree zoom (SPEC FR-55) and the list pane width (FR-56) for the next start.</summary>
     private void SaveTreeState()
     {
         var collapsed = _collapsed.Order(StringComparer.CurrentCultureIgnoreCase).ToList();
-        if (collapsed.SequenceEqual(Settings.CollapsedFolders, StringComparer.CurrentCultureIgnoreCase)) return;
+        if (collapsed.SequenceEqual(Settings.CollapsedFolders, StringComparer.CurrentCultureIgnoreCase) && TreeZoom == _savedTreeZoom
+            && ListPaneWidth == _savedListPaneWidth) return;
         Settings.CollapsedFolders = collapsed;
+        Settings.TreeZoom = _savedTreeZoom = TreeZoom;
+        Settings.ListPaneWidth = _savedListPaneWidth = ListPaneWidth;
         try
         {
             SettingsStore.Save(Settings);

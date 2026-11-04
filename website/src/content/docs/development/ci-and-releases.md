@@ -36,7 +36,7 @@ git push origin v0.2.0
 
 ### Code signing
 
-Signing uses [SignPath Foundation](https://signpath.org/) (ADR-0032; policy: [Code signing policy](../../reference/code-signing/)).
+Signing uses [SignPath Foundation](https://signpath.org/) (ADR-0036; policy: [Code signing policy](../../reference/code-signing/)).
 The release job uploads `sc/RemoteDesktopHarbor.exe` and `fdd/RemoteDesktopHarbor.exe` as the *unsigned* artifact,
 submits it to SignPath, waits (up to 60 minutes) for the approved signing request, verifies the signatures and
 packages the signed exes. If the variable `SIGNPATH_ORGANIZATION_ID` is not set, these steps are skipped and the

@@ -39,6 +39,10 @@ public class SqlHarborStoreTests
         Assert.Equal("Prod DC 1", updated.Name);
         Assert.Equal(EntryKind.CredentialOnly, updated.Kind);
         Assert.Equal("bob", updated.UpdatedBy);
+
+        // SPEC FR-03, ADR-0033: the Other kind is stored in the same Kind column, no schema change.
+        var other = await db.Store.SaveAsync(updated with { Kind = EntryKind.Other }, "bob");
+        Assert.Equal(EntryKind.Other, (await db.Store.GetAsync(other.Id))!.Kind);
     }
 
     [Fact]

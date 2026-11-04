@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  SignPath artifact configuration for release signing (SPEC NFR-06, ADR-0032).
+  SignPath artifact configuration for release signing (SPEC NFR-06, ADR-0036).
   SignPath keeps the active copy in the project's settings: paste this file there when it changes.
   The layout mirrors the "unsigned" artifact uploaded by .github/workflows/release.yml.
 -->

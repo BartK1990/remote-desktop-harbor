@@ -21,6 +21,7 @@ public partial class MainWindow : Window
         DataContext = _viewModel = viewModel;
         Title = Infrastructure.AppInfo.Title;
         FocusSearchCommand = new RelayCommand(() => { SearchBox.Focus(); SearchBox.SelectAll(); });
+        ApplyListPaneWidth(viewModel.ListPaneWidth);
         Loaded += OnLoaded;
         viewModel.PropertyChanged += ViewModel_PropertyChanged;
     }
@@ -141,6 +142,36 @@ public partial class MainWindow : Window
         }
     }
 
+    // List pane width (SPEC FR-56): kept as the list's share of the two panes, so it fits any window size.
+    private void ApplyListPaneWidth(double share)
+    {
+        ListColumn.Width = new GridLength(share, GridUnitType.Star);
+        DetailsColumn.Width = new GridLength(1 - share, GridUnitType.Star);
+    }
+
+    // Read when the window closes, so moving the splitter with the mouse or the keyboard both count.
+    private void RememberListPaneWidth()
+    {
+        if (ListColumn.ActualWidth > 0 && DetailsColumn.ActualWidth > 0)
+            _viewModel.ListPaneWidth = Core.Model.ListPaneWidth.FromWidths(ListColumn.ActualWidth, DetailsColumn.ActualWidth);
+    }
+
+    private void PaneSplitter_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        _viewModel.ListPaneWidth = Core.Model.ListPaneWidth.Default;
+        ApplyListPaneWidth(_viewModel.ListPaneWidth);
+        e.Handled = true;
+    }
+
+    // Ctrl+wheel over the tree changes the entry list size (SPEC FR-55, ADR-0034); a plain wheel still scrolls.
+    private void EntryTree_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        if (Keyboard.Modifiers != ModifierKeys.Control) return;
+        var command = e.Delta > 0 ? _viewModel.ZoomTreeInCommand : _viewModel.ZoomTreeOutCommand;
+        if (command.CanExecute(null)) command.Execute(null);
+        e.Handled = true;
+    }
+
     private void EntryTree_KeyDown(object sender, KeyEventArgs e)
     {
         // Del deletes the selected entry, after confirmation (SPEC FR-47).
@@ -246,6 +277,7 @@ public partial class MainWindow : Window
         }
 
         e.Cancel = true;
+        RememberListPaneWidth();
         await _viewModel.DisposeAsync();
         _disposed = true;
         // DisposeAsync often completes synchronously, so we may still be inside this Closing event, where Close()
