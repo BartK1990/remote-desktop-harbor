@@ -50,6 +50,18 @@ public class ViewSourceTests
         AssertTabsKeepGutter(doc);
     }
 
+    // SPEC FR-02: the entry tree rows keep a right gutter, so the overlay scroll bar of the Fluent theme does not cover
+    // the host or the in-use marker on the right of a row.
+    [Fact]
+    public void Entry_tree_rows_keep_a_gutter_for_the_scroll_bar()
+    {
+        var doc = XDocument.Load(Source("MainWindow.xaml"));
+        var tree = doc.Descendants(Wpf + "TreeView").Single(t => (string?)t.Attribute(Xaml + "Name") == "EntryTree");
+        var header = tree.Descendants(Wpf + "ContentPresenter").Single(c => (string?)c.Attribute(Xaml + "Name") == "PART_Header");
+        var margin = (string)header.Attribute("Margin")!;
+        Assert.True(int.Parse(margin.Split(',')[2]) >= 16, margin);
+    }
+
     private static void AssertTabsKeepGutter(XDocument doc)
     {
         Assert.All(doc.Descendants(Wpf + "TabItem"), tab =>

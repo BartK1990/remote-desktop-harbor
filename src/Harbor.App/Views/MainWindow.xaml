@@ -369,7 +369,8 @@
                         </Grid.ColumnDefinitions>
                         <ToggleButton x:Name="Expander" Style="{StaticResource TreeChevron}" Foreground="{TemplateBinding Foreground}"
                                       IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}}" ClickMode="Press" />
-                        <ContentPresenter x:Name="PART_Header" Grid.Column="1" ContentSource="Header" Margin="2,0,6,0"
+                        <!-- SPEC FR-02: 16 px right gutter, so the Fluent overlay scroll bar does not cover the host or the in-use marker. -->
+                        <ContentPresenter x:Name="PART_Header" Grid.Column="1" ContentSource="Header" Margin="2,0,16,0"
                                           VerticalAlignment="Center" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" />
                       </Grid>
                     </Grid>
