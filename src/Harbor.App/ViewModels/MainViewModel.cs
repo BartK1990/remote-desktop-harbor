@@ -11,6 +11,7 @@ using Harbor.Core.Model;
 using Harbor.Core.Services;
 using Harbor.Core.Storage;
 using Zoom = Harbor.Core.Model.TreeZoom;
+using PaneWidth = Harbor.Core.Model.ListPaneWidth;
 
 namespace Harbor.App.ViewModels;
 
@@ -32,6 +33,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     private readonly HashSet<string> _collapsedWhileSearching = new(StringComparer.CurrentCultureIgnoreCase);
     private bool _rebuildingTree;
     private double _savedTreeZoom;
+    private double _savedListPaneWidth;
 
     // Pinned entries of this user (SPEC FR-50), kept in the settings.
     private readonly HashSet<Guid> _pinned;
@@ -43,6 +45,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         _collapsed = new HashSet<string>(settings.CollapsedFolders, StringComparer.CurrentCultureIgnoreCase);
         _pinned = [.. settings.PinnedEntryIds];
         _treeZoom = _savedTreeZoom = Zoom.Normalize(settings.TreeZoom);
+        _listPaneWidth = _savedListPaneWidth = PaneWidth.Normalize(settings.ListPaneWidth);
         _syncTimer.Tick += async (_, _) => await SyncAsync();
         _presenceTimer.Tick += async (_, _) => await RefreshPresenceAsync();
     }
@@ -101,6 +104,17 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
 
     [RelayCommand(CanExecute = nameof(CanResetTreeZoom))]
     private void ResetTreeZoom() => TreeZoom = Zoom.Default;
+
+    // ------------------------------------------------------------------ list pane width (SPEC FR-56)
+
+    private double _listPaneWidth;
+
+    /// <summary>Share of the entry list pane in the main window; set by the window when the splitter is moved.</summary>
+    public double ListPaneWidth
+    {
+        get => _listPaneWidth;
+        set => _listPaneWidth = PaneWidth.Normalize(value);
+    }
 
     public string PinText => Selected?.IsPinned == true ? "Unpin" : "Pin";
 
@@ -855,13 +869,15 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
-    /// <summary>Remembers which folders are collapsed, and the tree zoom (SPEC FR-55), for the next start.</summary>
+    /// <summary>Remembers which folders are collapsed, the tree zoom (SPEC FR-55) and the list pane width (FR-56) for the next start.</summary>
     private void SaveTreeState()
     {
         var collapsed = _collapsed.Order(StringComparer.CurrentCultureIgnoreCase).ToList();
-        if (collapsed.SequenceEqual(Settings.CollapsedFolders, StringComparer.CurrentCultureIgnoreCase) && TreeZoom == _savedTreeZoom) return;
+        if (collapsed.SequenceEqual(Settings.CollapsedFolders, StringComparer.CurrentCultureIgnoreCase) && TreeZoom == _savedTreeZoom
+            && ListPaneWidth == _savedListPaneWidth) return;
         Settings.CollapsedFolders = collapsed;
         Settings.TreeZoom = _savedTreeZoom = TreeZoom;
+        Settings.ListPaneWidth = _savedListPaneWidth = ListPaneWidth;
         try
         {
             SettingsStore.Save(Settings);
