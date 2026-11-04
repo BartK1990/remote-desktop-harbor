@@ -7,9 +7,11 @@ Start with the log: `logs\harbor.log` in the [data folder](../data-and-files/). 
 
 ## Remote Desktop asks for the password anyway
 
-- A policy may block saved credentials for Remote Desktop (Windows Defender Credential Guard, or the
-  *Allow delegating saved credentials* policy). Use **Copy password** (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd>)
-  and paste it into the prompt.
+- Windows Defender Credential Guard is handled: the app hands the password over in a form Remote Desktop accepts
+  even with Credential Guard on. If you still see *“Credential Guard does not allow using saved credentials”*, update
+  the app.
+- The *Allow delegating saved credentials* group policy may still block saved credentials for some servers. Use
+  **Copy password** (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd>) and paste it into the prompt.
 - Check that the entry has a **user name** — without one, no credential is handed over.
 - A reconnect started from the Remote Desktop window more than ~30 s after launch may prompt, because the
   credential has already been removed. Enable **Settings → Remote Desktop → Keep the password…** if you need this.

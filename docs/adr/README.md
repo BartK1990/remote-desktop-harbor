@@ -13,7 +13,7 @@ Process: see [spec/README.md](../spec/README.md).
 | [0005](0005-secret-encryption-envelope.md) | Secret encryption: AES-GCM envelope, DEK bound to user + machine with DPAPI | Accepted |
 | [0006](0006-shared-vault-key-protection.md) | Shared vault key: DPAPI-NG to an AD group, passphrase fallback | Accepted, amended by 0016 |
 | [0007](0007-remote-store-with-offline-cache.md) | Remote store as source of truth with local read-only offline cache | Accepted |
-| [0008](0008-launch-mstsc-with-credential-manager.md) | Launch mstsc.exe, hand credentials over via Credential Manager | Accepted |
+| [0008](0008-launch-mstsc-with-credential-manager.md) | Launch mstsc.exe, hand credentials over via Credential Manager | Accepted (amended by 0035) |
 | [0009](0009-identity-windows-and-entra-id.md) | Identity: Windows account by default, Entra ID via WAM broker | Accepted |
 | [0010](0010-session-presence-heartbeat-ttl.md) | Session presence: heartbeat records with server-clock TTL | Accepted |
 | [0011](0011-ci-release-pipeline.md) | CI and release on GitHub Actions, win-x64 | Accepted |
@@ -40,3 +40,4 @@ Process: see [spec/README.md](../spec/README.md).
 | [0032](0032-import-remote-desktop-manager-csv.md) | Import from a Remote Desktop Manager CSV export | Accepted |
 | [0033](0033-other-entry-kind.md) | A third entry kind, Other, for credentials of non-RDP systems | Accepted |
 | [0034](0034-entry-list-zoom.md) | Entry list size: zoom the tree rows, with a reset to 100 % | Accepted |
+| [0035](0035-generic-termsrv-credential.md) | Password handed to mstsc as a generic `TERMSRV/<host>` credential (works under Credential Guard) | Accepted |
