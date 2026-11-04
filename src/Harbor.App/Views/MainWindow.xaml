@@ -74,6 +74,13 @@
     <KeyBinding Key="C" Modifiers="Ctrl+Shift" Command="{Binding CopyPasswordCommand}" />
     <KeyBinding Key="U" Modifiers="Ctrl+Shift" Command="{Binding CopyUserNameCommand}" />
     <KeyBinding Key="H" Modifiers="Ctrl+Shift" Command="{Binding CopyHostCommand}" />
+    <!-- Entry list size (SPEC FR-55, ADR-0034): Ctrl+Plus / Ctrl+Minus zoom the rows, Ctrl+0 resets to 100 %. -->
+    <KeyBinding Key="OemPlus" Modifiers="Ctrl" Command="{Binding ZoomTreeInCommand}" />
+    <KeyBinding Key="Add" Modifiers="Ctrl" Command="{Binding ZoomTreeInCommand}" />
+    <KeyBinding Key="OemMinus" Modifiers="Ctrl" Command="{Binding ZoomTreeOutCommand}" />
+    <KeyBinding Key="Subtract" Modifiers="Ctrl" Command="{Binding ZoomTreeOutCommand}" />
+    <KeyBinding Key="D0" Modifiers="Ctrl" Command="{Binding ResetTreeZoomCommand}" />
+    <KeyBinding Key="NumPad0" Modifiers="Ctrl" Command="{Binding ResetTreeZoomCommand}" />
   </Window.InputBindings>
 
   <Grid>
@@ -217,8 +224,20 @@
               Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
               BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
       <DockPanel>
+      <DockPanel DockPanel.Dock="Top" Margin="6,6,6,4">
+      <!-- Entry list size (SPEC FR-55, ADR-0034): smaller, the current size (click to reset to 100 %), larger. -->
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" AutomationProperties.Name="Entry list size">
+        <Button Style="{StaticResource Harbor.TreeZoomButton}" Command="{Binding ZoomTreeOutCommand}" Content="&#xE738;"
+                ToolTip="Smaller rows (Ctrl+Minus)" AutomationProperties.Name="Smaller rows" />
+        <Button x:Name="ResetTreeZoomButton" Style="{StaticResource Harbor.TreeZoomButton}" Command="{Binding ResetTreeZoomCommand}"
+                FontFamily="{StaticResource Harbor.MonoFont}" FontSize="{StaticResource Harbor.FontSize.Caption}" MinWidth="40"
+                Content="{Binding TreeZoomText}" ToolTip="{Binding TreeZoomToolTip}" ToolTipService.ShowOnDisabled="True"
+                AutomationProperties.Name="Reset entry list size to 100%" />
+        <Button Style="{StaticResource Harbor.TreeZoomButton}" Command="{Binding ZoomTreeInCommand}" Content="&#xE710;"
+                ToolTip="Larger rows (Ctrl+Plus)" AutomationProperties.Name="Larger rows" />
+      </StackPanel>
       <!-- Show all entries, or only those in use, pinned or recently connected (SPEC FR-50). -->
-      <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="6,6,6,4" AutomationProperties.Name="Show">
+      <StackPanel Orientation="Horizontal" AutomationProperties.Name="Show">
         <RadioButton GroupName="TreeFilter" Style="{StaticResource Harbor.Chip}" Content="All"
                      IsChecked="{Binding TreeFilter, Converter={StaticResource EnumToBool}, ConverterParameter={x:Static vm:TreeFilter.All}}" />
         <RadioButton GroupName="TreeFilter" Style="{StaticResource Harbor.Chip}" Content="In use"
@@ -228,12 +247,13 @@
         <RadioButton GroupName="TreeFilter" Style="{StaticResource Harbor.Chip}" Content="Recent"
                      IsChecked="{Binding TreeFilter, Converter={StaticResource EnumToBool}, ConverterParameter={x:Static vm:TreeFilter.Recent}}" />
       </StackPanel>
+      </DockPanel>
       <TreeView x:Name="EntryTree" ItemsSource="{Binding Tree}" Background="Transparent" BorderThickness="0"
                 VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
                 VirtualizingPanel.ScrollUnit="Pixel" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                 Padding="2" SelectedItemChanged="EntryTree_SelectedItemChanged" TreeViewItem.Selected="EntryTree_ItemSelected"
                 PreviewMouseDoubleClick="EntryTree_PreviewMouseDoubleClick" KeyDown="EntryTree_KeyDown"
-                PreviewMouseRightButtonDown="EntryTree_PreviewMouseRightButtonDown">
+                PreviewMouseRightButtonDown="EntryTree_PreviewMouseRightButtonDown" PreviewMouseWheel="EntryTree_PreviewMouseWheel">
         <TreeView.Resources>
           <!-- Expand/collapse chevron. -->
           <Style x:Key="TreeChevron" TargetType="ToggleButton">
@@ -342,7 +362,8 @@
         </TreeView.Resources>
 
         <TreeView.ItemContainerStyle>
-          <!-- Compact rows: one line (Harbor.TreeRowHeight), 16 px indent per level. -->
+          <!-- Compact rows: one line (Harbor.TreeRowHeight), 16 px indent per level. The row and the indent are scaled
+               by the entry list size (SPEC FR-55, ADR-0034); the scroll bar is not. -->
           <Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
             <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
             <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
@@ -359,6 +380,10 @@
                       <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <Grid x:Name="Row" Background="Transparent" MinHeight="{StaticResource Harbor.TreeRowHeight}">
+                      <Grid.LayoutTransform>
+                        <ScaleTransform ScaleX="{Binding DataContext.TreeZoom, RelativeSource={RelativeSource AncestorType=TreeView}}"
+                                        ScaleY="{Binding DataContext.TreeZoom, RelativeSource={RelativeSource AncestorType=TreeView}}" />
+                      </Grid.LayoutTransform>
                       <Border x:Name="Fill" CornerRadius="3" Background="{TemplateBinding Foreground}" Opacity="0" />
                       <Border x:Name="Bar" Width="3" Height="12" CornerRadius="1.5" HorizontalAlignment="Left" Visibility="Collapsed"
                               Background="{DynamicResource {x:Static SystemColors.AccentColorBrushKey}}" />
@@ -374,7 +399,14 @@
                                           VerticalAlignment="Center" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" />
                       </Grid>
                     </Grid>
-                    <ItemsPresenter x:Name="ItemsHost" Grid.Row="1" Margin="16,0,0,0" />
+                    <DockPanel x:Name="ItemsHost" Grid.Row="1">
+                      <Border DockPanel.Dock="Left" Width="16">
+                        <Border.LayoutTransform>
+                          <ScaleTransform ScaleX="{Binding DataContext.TreeZoom, RelativeSource={RelativeSource AncestorType=TreeView}}" />
+                        </Border.LayoutTransform>
+                      </Border>
+                      <ItemsPresenter />
+                    </DockPanel>
                   </Grid>
                   <ControlTemplate.Triggers>
                     <Trigger Property="HasItems" Value="False">

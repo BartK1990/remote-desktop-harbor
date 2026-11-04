@@ -10,6 +10,7 @@ using Harbor.Core.Import;
 using Harbor.Core.Model;
 using Harbor.Core.Services;
 using Harbor.Core.Storage;
+using Zoom = Harbor.Core.Model.TreeZoom;
 
 namespace Harbor.App.ViewModels;
 
@@ -30,6 +31,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     private readonly HashSet<string> _collapsed;
     private readonly HashSet<string> _collapsedWhileSearching = new(StringComparer.CurrentCultureIgnoreCase);
     private bool _rebuildingTree;
+    private double _savedTreeZoom;
 
     // Pinned entries of this user (SPEC FR-50), kept in the settings.
     private readonly HashSet<Guid> _pinned;
@@ -40,6 +42,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         _dialogs = dialogs;
         _collapsed = new HashSet<string>(settings.CollapsedFolders, StringComparer.CurrentCultureIgnoreCase);
         _pinned = [.. settings.PinnedEntryIds];
+        _treeZoom = _savedTreeZoom = Zoom.Normalize(settings.TreeZoom);
         _syncTimer.Tick += async (_, _) => await SyncAsync();
         _presenceTimer.Tick += async (_, _) => await RefreshPresenceAsync();
     }
@@ -69,6 +72,35 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         TreeFilter.Recent => Settings.RecentEntryIds.Contains(e.Model.Id),
         _ => true,
     };
+
+    // ------------------------------------------------------------------ tree zoom (SPEC FR-55, ADR-0034)
+
+    /// <summary>Scale of the entry tree rows (1 = 100 %); remembered in the settings.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(TreeZoomText), nameof(TreeZoomToolTip))]
+    [NotifyCanExecuteChangedFor(nameof(ZoomTreeInCommand), nameof(ZoomTreeOutCommand), nameof(ResetTreeZoomCommand))]
+    private double _treeZoom;
+
+    public string TreeZoomText => Zoom.Label(TreeZoom);
+
+    public string TreeZoomToolTip => Zoom.IsDefault(TreeZoom)
+        ? "Entry list size: 100% (default)"
+        : $"Entry list size: {TreeZoomText}. Click to reset to 100% (Ctrl+0)";
+
+    partial void OnTreeZoomChanged(double value) => Settings.TreeZoom = value;
+
+    private bool CanZoomTreeIn() => TreeZoom < Zoom.Max;
+    private bool CanZoomTreeOut() => TreeZoom > Zoom.Min;
+    private bool CanResetTreeZoom() => !Zoom.IsDefault(TreeZoom);
+
+    [RelayCommand(CanExecute = nameof(CanZoomTreeIn))]
+    private void ZoomTreeIn() => TreeZoom = Zoom.In(TreeZoom);
+
+    [RelayCommand(CanExecute = nameof(CanZoomTreeOut))]
+    private void ZoomTreeOut() => TreeZoom = Zoom.Out(TreeZoom);
+
+    [RelayCommand(CanExecute = nameof(CanResetTreeZoom))]
+    private void ResetTreeZoom() => TreeZoom = Zoom.Default;
 
     public string PinText => Selected?.IsPinned == true ? "Unpin" : "Pin";
 
@@ -823,12 +855,13 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
-    /// <summary>Remembers which folders are collapsed for the next start.</summary>
+    /// <summary>Remembers which folders are collapsed, and the tree zoom (SPEC FR-55), for the next start.</summary>
     private void SaveTreeState()
     {
         var collapsed = _collapsed.Order(StringComparer.CurrentCultureIgnoreCase).ToList();
-        if (collapsed.SequenceEqual(Settings.CollapsedFolders, StringComparer.CurrentCultureIgnoreCase)) return;
+        if (collapsed.SequenceEqual(Settings.CollapsedFolders, StringComparer.CurrentCultureIgnoreCase) && TreeZoom == _savedTreeZoom) return;
         Settings.CollapsedFolders = collapsed;
+        Settings.TreeZoom = _savedTreeZoom = TreeZoom;
         try
         {
             SettingsStore.Save(Settings);

@@ -79,6 +79,7 @@ Explorer.
 | UI | JSON property | Default | Description |
 |---|---|---|---|
 | Folder arrows in the entry tree | `CollapsedFolders` | `[]` | Folders collapsed in the entry tree, restored at start. Written when the app closes. |
+| − / + above the entry tree (<kbd>Ctrl</kbd>+<kbd>Plus</kbd> / <kbd>Minus</kbd> / <kbd>0</kbd>) | `TreeZoom` | `1.0` | Size of the entry tree rows, `0.8` to `1.6`; values outside the range are read as the nearest valid size. |
 | Pin (star, <kbd>Ctrl</kbd>+<kbd>D</kbd>) | `PinnedEntryIds` | `[]` | Ids of the entries you pinned. Personal: never written to the shared database. |
 | (connecting) | `RecentEntryIds` | `[]` | Ids of the last 10 entries you connected to, most recent first. Personal. |
 
@@ -116,6 +117,7 @@ The dialog refuses to save when:
   "ConfirmProductionConnect": true,
   "Theme": "System",
   "CollapsedFolders": [ "Lab" ],
+  "TreeZoom": 1.0,
   "PinnedEntryIds": [ "5b0c3f0e-2f63-4a5e-9a4f-1f0c2a8e7d11" ],
   "RecentEntryIds": [ "5b0c3f0e-2f63-4a5e-9a4f-1f0c2a8e7d11", "c2a1f1d4-8e0b-4f7e-b7a1-3b6d2c9e4a20" ]
 }

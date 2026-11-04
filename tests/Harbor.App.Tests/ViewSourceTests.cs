@@ -62,6 +62,25 @@ public class ViewSourceTests
         Assert.True(int.Parse(margin.Split(',')[2]) >= 16, margin);
     }
 
+    // SPEC FR-55, ADR-0034: the entry list has smaller / reset / larger buttons, and the zoom scales each row and the
+    // indent of its children, not the tree (whose scroll bar keeps its size).
+    [Fact]
+    public void Entry_tree_rows_and_indent_follow_the_zoom_with_a_reset_button()
+    {
+        var doc = XDocument.Load(Source("MainWindow.xaml"));
+        var commands = doc.Descendants(Wpf + "Button").Select(b => (string?)b.Attribute("Command")).ToList();
+        Assert.Contains("{Binding ZoomTreeOutCommand}", commands);
+        Assert.Contains("{Binding ResetTreeZoomCommand}", commands);
+        Assert.Contains("{Binding ZoomTreeInCommand}", commands);
+
+        var tree = doc.Descendants(Wpf + "TreeView").Single(t => (string?)t.Attribute(Xaml + "Name") == "EntryTree");
+        Assert.Null(tree.Element(Wpf + "TreeView.LayoutTransform"));
+        var scaled = tree.Descendants(Wpf + "ScaleTransform").ToList();
+        Assert.Equal(2, scaled.Count);
+        Assert.All(scaled, t => Assert.Contains("DataContext.TreeZoom", (string)t.Attribute("ScaleX")!, StringComparison.Ordinal));
+        Assert.Contains("DataContext.TreeZoom", (string?)scaled[0].Attribute("ScaleY") ?? "", StringComparison.Ordinal);
+    }
+
     // SPEC FR-48: the Quick connect results keep a right gutter too, so the scroll bar does not cover the in-use marker.
     [Fact]
     public void Quick_connect_results_keep_a_gutter_for_the_scroll_bar()
@@ -124,7 +143,7 @@ public class ViewSourceTests
         Assert.Empty(used.Except(defined));
     }
 
-    // SPEC FR-47, FR-48, FR-50, ADR-0026, ADR-0028: the main window binds its shortcuts, and every shortcut shown on a button is bound.
+    // SPEC FR-47, FR-48, FR-50, FR-55, ADR-0026, ADR-0028: the main window binds its shortcuts, and every shortcut shown on a button is bound.
     [Fact]
     public void Main_window_binds_the_shortcuts_it_shows()
     {
@@ -138,6 +157,7 @@ public class ViewSourceTests
                      ["Ctrl+F"] = "FocusSearchCommand", ["Ctrl+K"] = "OpenQuickConnectCommand", ["Ctrl+D"] = "TogglePinCommand", ["Ctrl+N"] = "AddCommand", ["F5"] = "RefreshCommand",
                      ["F2"] = "EditCommand", ["Ctrl+Shift+C"] = "CopyPasswordCommand", ["Ctrl+Shift+U"] = "CopyUserNameCommand",
                      ["Ctrl+Shift+H"] = "CopyHostCommand", ["Ctrl+OemComma"] = "OpenSettingsCommand",
+                     ["Ctrl+OemPlus"] = "ZoomTreeInCommand", ["Ctrl+OemMinus"] = "ZoomTreeOutCommand", ["Ctrl+D0"] = "ResetTreeZoomCommand",
                  })
         {
             Assert.True(bound.TryGetValue(gesture, out var binding), gesture);

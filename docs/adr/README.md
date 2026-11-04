@@ -39,3 +39,4 @@ Process: see [spec/README.md](../spec/README.md).
 | [0031](0031-screenshots-from-ci.md) | Documentation screenshots captured from the real app in CI | Accepted |
 | [0032](0032-import-remote-desktop-manager-csv.md) | Import from a Remote Desktop Manager CSV export | Accepted |
 | [0033](0033-other-entry-kind.md) | A third entry kind, Other, for credentials of non-RDP systems | Accepted |
+| [0034](0034-entry-list-zoom.md) | Entry list size: zoom the tree rows, with a reset to 100 % | Accepted |
