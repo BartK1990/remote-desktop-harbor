@@ -70,7 +70,8 @@ Used with a shared database only; disabled while *Local vault* is chosen.
 
 ## About
 
-Read-only. The app version and, when known, the build commit, and the data folder — where the app stores its data,
+Read-only. The app version and, when known, the build commit; links to the
+[GitHub repository](https://github.com/BartK1990/remote-desktop-harbor) and this documentation; and the data folder — where the app stores its data,
 with “(portable mode)” when [portable mode](../../getting-started/portable-mode/) is active. **Open** shows it in
 Explorer.
 
