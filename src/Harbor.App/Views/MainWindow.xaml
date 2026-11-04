@@ -148,6 +148,13 @@
             <TextBlock Text="Import .rdp…" />
           </StackPanel>
         </Button>
+        <!-- SPEC FR-54, ADR-0032 -->
+        <Button Style="{StaticResource Harbor.Button}" Command="{Binding ImportRdmCommand}" ToolTip="Import entries from a Remote Desktop Manager CSV export">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Style="{StaticResource Harbor.Text.Icon}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Text="&#xE8B5;" Margin="0,0,6,0" />
+            <TextBlock Text="Import RDM…" />
+          </StackPanel>
+        </Button>
         <Button Style="{StaticResource Harbor.Button}" Command="{Binding RefreshCommand}" ToolTip="Sync and refresh presence (F5)">
           <StackPanel Orientation="Horizontal">
             <TextBlock Style="{StaticResource Harbor.Text.Icon}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Text="&#xE72C;" Margin="0,0,6,0" />

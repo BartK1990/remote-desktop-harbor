@@ -37,3 +37,4 @@ Process: see [spec/README.md](../spec/README.md).
 | [0029](0029-app-title-bar.md) | The app draws its own narrow title bar; production entries ask before connecting | Accepted |
 | [0030](0030-app-message-box.md) | The app's own message box; risky confirmations default to Cancel | Accepted |
 | [0031](0031-screenshots-from-ci.md) | Documentation screenshots captured from the real app in CI | Accepted |
+| [0032](0032-import-remote-desktop-manager-csv.md) | Import from a Remote Desktop Manager CSV export | Accepted |

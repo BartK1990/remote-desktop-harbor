@@ -36,6 +36,7 @@ export default defineConfig({
 					items: [
 						'guides/managing-entries',
 						'guides/importing-rdp-files',
+						'guides/importing-from-rdm',
 						'guides/connecting',
 						'guides/keyboard-shortcuts',
 					],

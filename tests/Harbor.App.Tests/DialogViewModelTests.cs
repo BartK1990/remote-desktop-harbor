@@ -18,6 +18,7 @@ public class DialogViewModelTests
         public bool ConfirmRisky(string title, string message, string confirmText) => false;
         public void ShowError(string title, string message) { }
         public string? PickRdpFile() => null;
+        public string? PickRdmCsvFile() => null;
     }
 
     private static EntryEditorViewModel Editor(ConnectionEntry entry, bool isNew = false) => new(entry, isNew, new NoDialogs(), []);

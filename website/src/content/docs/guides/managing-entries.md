@@ -161,7 +161,7 @@ Copying works offline too, and is the fallback when a policy prevents Remote Des
 
 ## Read-only while offline
 
-When the app uses a shared database that is currently unreachable, **New**, **Import .rdp…**, **Edit** and
+When the app uses a shared database that is currently unreachable, **New**, **Import .rdp…**, **Import RDM…**, **Edit** and
 **Delete** are disabled. See [Offline mode](../../team/offline-mode/).
 
 ## Light or dark theme

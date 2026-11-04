@@ -25,4 +25,14 @@ public sealed class DialogService : IDialogService
         var dialog = new OpenFileDialog { Filter = "Remote Desktop files (*.rdp)|*.rdp|All files (*.*)|*.*", Title = "Import .rdp file" };
         return dialog.ShowDialog(Owner) == true ? dialog.FileName : null;
     }
+
+    public string? PickRdmCsvFile()
+    {
+        var dialog = new OpenFileDialog
+        {
+            Filter = "Remote Desktop Manager export (*.csv)|*.csv|All files (*.*)|*.*",
+            Title = "Import from Remote Desktop Manager",
+        };
+        return dialog.ShowDialog(Owner) == true ? dialog.FileName : null;
+    }
 }
