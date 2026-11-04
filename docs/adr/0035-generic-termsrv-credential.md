@@ -1,4 +1,4 @@
-# ADR-0034: Hand the password over as a generic `TERMSRV/<host>` credential
+# ADR-0035: Hand the password over as a generic `TERMSRV/<host>` credential
 
 * Status: Accepted
 * Date: 2026-11-04

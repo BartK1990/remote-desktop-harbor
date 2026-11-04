@@ -22,6 +22,8 @@ description: Keyboard shortcuts in the main window.
 | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd> | Copy the selected entry's host (`host:port` for a non-default port) |
 | <kbd>Ctrl</kbd>+<kbd>,</kbd> | Open Settings |
 | <kbd>F5</kbd> | Sync with the shared database and refresh presence |
+| <kbd>Ctrl</kbd>+<kbd>Plus</kbd> / <kbd>Ctrl</kbd>+<kbd>Minus</kbd> (or <kbd>Ctrl</kbd>+wheel over the tree) | Larger / smaller rows in the entry list |
+| <kbd>Ctrl</kbd>+<kbd>0</kbd> | Entry list rows back to the default size (100 %) |
 
 The fastest way to connect is <kbd>Ctrl</kbd>+<kbd>K</kbd>, a few letters of the name, host or folder, and
 <kbd>Enter</kbd>. The search box has focus when the app starts: type part of a name, press <kbd>↓</kbd> to move to

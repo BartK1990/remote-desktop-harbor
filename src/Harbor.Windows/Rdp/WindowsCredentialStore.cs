@@ -7,7 +7,7 @@ namespace Harbor.Windows.Rdp;
 
 /// <summary>
 /// Writes the <c>TERMSRV/&lt;host&gt;</c> credential that mstsc.exe reads, so the password never appears on a
-/// command line or in an .rdp file. Per-user store; no admin rights needed. See ADR-0008, ADR-0034.
+/// command line or in an .rdp file. Per-user store; no admin rights needed. See ADR-0008, ADR-0035.
 /// </summary>
 [SupportedOSPlatform("windows")]
 public static class WindowsCredentialStore
@@ -15,7 +15,7 @@ public static class WindowsCredentialStore
     /// <summary>
     /// Stores the password as a <em>generic</em> credential. Windows Defender Credential Guard refuses saved
     /// domain-password credentials for Remote Desktop ("does not allow using saved credentials"), but mstsc
-    /// still accepts a generic <c>TERMSRV/&lt;host&gt;</c> one (SPEC FR-11, ADR-0034).
+    /// still accepts a generic <c>TERMSRV/&lt;host&gt;</c> one (SPEC FR-11, ADR-0035).
     /// </summary>
     public static unsafe void WritePassword(string target, string userName, string password, bool persistAcrossLogon)
     {

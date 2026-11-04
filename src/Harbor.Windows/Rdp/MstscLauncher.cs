@@ -9,7 +9,7 @@ namespace Harbor.Windows.Rdp;
 /// <summary>
 /// Launches the built-in Windows Remote Desktop client (mstsc.exe) as a separate, normal window.
 /// Flow: write a temporary .rdp file (no password) → put the password into Credential Manager as
-/// <c>TERMSRV/host</c> → start mstsc → clean up the file and (by default) the credential. See ADR-0008, ADR-0034.
+/// <c>TERMSRV/host</c> → start mstsc → clean up the file and (by default) the credential. See ADR-0008, ADR-0035.
 /// </summary>
 [SupportedOSPlatform("windows")]
 public sealed class MstscLauncher(string tempDirectory, bool keepCredential, Action<Exception>? onError = null) : IRdpLauncher

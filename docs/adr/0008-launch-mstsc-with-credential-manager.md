@@ -1,6 +1,6 @@
 # ADR-0008: Launch mstsc.exe, hand credentials over via Credential Manager
 
-* Status: Accepted (amended by ADR-0034)
+* Status: Accepted (amended by ADR-0035)
 * Date: 2026-10-29
 * Requirements: FR-10, FR-11, FR-12, NFR-12
 
@@ -30,7 +30,7 @@ Option 4:
 ## Consequences
 
 * Environments that block saved credentials for RDP (Credential Guard / "Allow delegating saved credentials"
-  policy) will still prompt; users can paste via "Copy password". *Amended by ADR-0034:* a generic credential
+  policy) will still prompt; users can paste via "Copy password". *Amended by ADR-0035:* a generic credential
   is used instead, which works under Credential Guard.
 * Reconnects after the credential is removed may prompt — users who need this enable "keep credential".
 * Process exit is used as "session ended"; closing the window (disconnect) counts as ended.
