@@ -747,7 +747,8 @@
               <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
                 <Setter Property="Focusable" Value="False" />
                 <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                <Setter Property="Padding" Value="10,6" />
+                <!-- SPEC FR-48: 20 px on the right, so the Fluent overlay scroll bar does not cover the in-use marker. -->
+                <Setter Property="Padding" Value="10,6,20,6" />
               </Style>
             </ListBox.ItemContainerStyle>
             <ListBox.ItemTemplate>

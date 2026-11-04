@@ -62,6 +62,16 @@ public class ViewSourceTests
         Assert.True(int.Parse(margin.Split(',')[2]) >= 16, margin);
     }
 
+    // SPEC FR-48: the Quick connect results keep a right gutter too, so the scroll bar does not cover the in-use marker.
+    [Fact]
+    public void Quick_connect_results_keep_a_gutter_for_the_scroll_bar()
+    {
+        var doc = XDocument.Load(Source("MainWindow.xaml"));
+        var list = doc.Descendants(Wpf + "ListBox").Single(l => (string?)l.Attribute(Xaml + "Name") == "QuickList");
+        var padding = (string)list.Descendants(Wpf + "Setter").Single(s => (string?)s.Attribute("Property") == "Padding").Attribute("Value")!;
+        Assert.True(int.Parse(padding.Split(',')[2]) >= 16, padding);
+    }
+
     private static void AssertTabsKeepGutter(XDocument doc)
     {
         Assert.All(doc.Descendants(Wpf + "TabItem"), tab =>
