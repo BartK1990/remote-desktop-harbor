@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SignPath artifact configuration for release signing (SPEC NFR-06, ADR-0036).
+  SignPath keeps the active copy in the project's settings: paste this file there when it changes.
+  The layout mirrors the "unsigned" artifact uploaded by .github/workflows/release.yml.
+-->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <zip-file>
+    <!-- Self-contained build. -->
+    <pe-file path="sc/RemoteDesktopHarbor.exe" product-name="Remote Desktop Harbor">
+      <authenticode-sign />
+    </pe-file>
+    <!-- Framework-dependent build (-requires-dotnet10). -->
+    <pe-file path="fdd/RemoteDesktopHarbor.exe" product-name="Remote Desktop Harbor">
+      <authenticode-sign />
+    </pe-file>
+  </zip-file>
+</artifact-configuration>

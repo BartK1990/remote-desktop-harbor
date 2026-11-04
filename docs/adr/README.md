@@ -16,7 +16,7 @@ Process: see [spec/README.md](../spec/README.md).
 | [0008](0008-launch-mstsc-with-credential-manager.md) | Launch mstsc.exe, hand credentials over via Credential Manager | Accepted (amended by 0035) |
 | [0009](0009-identity-windows-and-entra-id.md) | Identity: Windows account by default, Entra ID via WAM broker | Accepted |
 | [0010](0010-session-presence-heartbeat-ttl.md) | Session presence: heartbeat records with server-clock TTL | Accepted |
-| [0011](0011-ci-release-pipeline.md) | CI and release on GitHub Actions, win-x64 | Accepted |
+| [0011](0011-ci-release-pipeline.md) | CI and release on GitHub Actions, win-x64 | Accepted (signing added by 0036) |
 | [0012](0012-microsoft-store-readiness.md) | Microsoft Store readiness via MSIX packaging later | Accepted |
 | [0013](0013-documentation-site-starlight.md) | Documentation site: Astro Starlight on GitHub Pages | Accepted |
 | [0014](0014-database-connection-form.md) | Shared database configured by form fields via the provider; optional database creation | Accepted |
@@ -41,3 +41,4 @@ Process: see [spec/README.md](../spec/README.md).
 | [0033](0033-other-entry-kind.md) | A third entry kind, Other, for credentials of non-RDP systems | Accepted |
 | [0034](0034-entry-list-zoom.md) | Entry list size: zoom the tree rows, with a reset to 100 % | Accepted |
 | [0035](0035-generic-termsrv-credential.md) | Password handed to mstsc as a generic `TERMSRV/<host>` credential (works under Credential Guard) | Accepted |
+| [0036](0036-code-signing-signpath.md) | Release exes code-signed through SignPath Foundation | Accepted |
