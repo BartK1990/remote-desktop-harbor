@@ -47,10 +47,26 @@ Want to keep the data next to the exe, for example on a USB stick or a synced fo
 [portable mode](../portable-mode/).
 :::
 
-:::note[SmartScreen]
-The exe is not code-signed yet, so Windows SmartScreen may warn on first start. Choose **More info → Run anyway**
-after verifying the checksum.
-:::
+### Signature and SmartScreen
+
+Releases are code-signed through SignPath Foundation (see the [code signing policy](../../reference/code-signing/)).
+To check a download:
+
+```powershell
+Get-AuthenticodeSignature .\RemoteDesktopHarbor.exe
+```
+
+A signed exe shows **Valid**. Windows SmartScreen may still warn for the first downloads of a new release while
+reputation builds up; choose **More info → Run anyway** after verifying the checksum.
+
+Older releases are not signed. To stop Windows asking about them every time you update, unblock the zip **before**
+unzipping it (the extracted files then carry no "downloaded from the internet" mark):
+
+```powershell
+Unblock-File .\RemoteDesktopHarbor-0.1.0-win-x64.zip
+```
+
+Or in Explorer: right-click the zip → **Properties** → tick **Unblock** → **OK**.
 
 ## Update
 

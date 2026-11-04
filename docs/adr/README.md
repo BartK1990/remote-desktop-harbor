@@ -16,7 +16,7 @@ Process: see [spec/README.md](../spec/README.md).
 | [0008](0008-launch-mstsc-with-credential-manager.md) | Launch mstsc.exe, hand credentials over via Credential Manager | Accepted |
 | [0009](0009-identity-windows-and-entra-id.md) | Identity: Windows account by default, Entra ID via WAM broker | Accepted |
 | [0010](0010-session-presence-heartbeat-ttl.md) | Session presence: heartbeat records with server-clock TTL | Accepted |
-| [0011](0011-ci-release-pipeline.md) | CI and release on GitHub Actions, win-x64 | Accepted |
+| [0011](0011-ci-release-pipeline.md) | CI and release on GitHub Actions, win-x64 | Accepted (signing added by 0032) |
 | [0012](0012-microsoft-store-readiness.md) | Microsoft Store readiness via MSIX packaging later | Accepted |
 | [0013](0013-documentation-site-starlight.md) | Documentation site: Astro Starlight on GitHub Pages | Accepted |
 | [0014](0014-database-connection-form.md) | Shared database configured by form fields via the provider; optional database creation | Accepted |
@@ -37,3 +37,4 @@ Process: see [spec/README.md](../spec/README.md).
 | [0029](0029-app-title-bar.md) | The app draws its own narrow title bar; production entries ask before connecting | Accepted |
 | [0030](0030-app-message-box.md) | The app's own message box; risky confirmations default to Cancel | Accepted |
 | [0031](0031-screenshots-from-ci.md) | Documentation screenshots captured from the real app in CI | Accepted |
+| [0032](0032-code-signing-signpath.md) | Release exes code-signed through SignPath Foundation | Accepted |

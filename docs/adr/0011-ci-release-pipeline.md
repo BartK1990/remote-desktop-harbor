@@ -1,6 +1,6 @@
 # ADR-0011: CI and release on GitHub Actions, win-x64
 
-* Status: Accepted
+* Status: Accepted (code signing added by ADR-0032)
 * Date: 2026-10-29
 * Requirements: NFR-04, NFR-30
 

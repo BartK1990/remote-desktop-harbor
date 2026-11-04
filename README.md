@@ -78,6 +78,12 @@ Output: `artifacts/publish/win-x64/RemoteDesktopHarbor.exe`.
 | `tests/` | xUnit tests (run on Linux/macOS/Windows) |
 | `website/` | User documentation site (Astro Starlight, deployed to GitHub Pages) |
 
+## Code signing policy
+
+Free code signing provided by [SignPath.io](https://about.signpath.io/), certificate by
+[SignPath Foundation](https://signpath.org/). Team roles and the privacy policy:
+[Code signing policy](https://bartk1990.github.io/remote-desktop-harbor/reference/code-signing/).
+
 ## Contributing
 
 This repo is spec-driven: change `docs/spec/SPEC.md` first, add an ADR for significant decisions, then code + tests.
