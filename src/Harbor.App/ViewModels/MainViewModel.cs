@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Threading;
@@ -5,6 +6,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Harbor.App.Infrastructure;
 using Harbor.Core;
+using Harbor.Core.Import;
 using Harbor.Core.Model;
 using Harbor.Core.Services;
 using Harbor.Core.Storage;
@@ -206,11 +208,11 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     private EntryViewModel? _selected;
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(AddCommand), nameof(EditCommand), nameof(DeleteCommand), nameof(ImportRdpCommand), nameof(ConnectCommand), nameof(ConnectAsCommand))]
+    [NotifyCanExecuteChangedFor(nameof(AddCommand), nameof(EditCommand), nameof(DeleteCommand), nameof(ImportRdpCommand), nameof(ImportRdmCommand), nameof(ConnectCommand), nameof(ConnectAsCommand))]
     private bool _isReady;
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(AddCommand), nameof(EditCommand), nameof(DeleteCommand), nameof(ImportRdpCommand))]
+    [NotifyCanExecuteChangedFor(nameof(AddCommand), nameof(EditCommand), nameof(DeleteCommand), nameof(ImportRdpCommand), nameof(ImportRdmCommand))]
     private bool _canWrite;
 
     [ObservableProperty] private string _userText = "Signing in…";
@@ -607,6 +609,80 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
 
     [RelayCommand(CanExecute = nameof(CanEdit))]
     private Task ImportRdpAsync() => EditNewAsync(ConnectionEntry.CreateNew("New connection"), importFirst: true);
+
+    /// <summary>
+    /// Imports a Remote Desktop Manager CSV export after one confirmation that says what will be added and skipped.
+    /// Passwords from the file are only held in memory until each entry is saved encrypted. SPEC FR-54, ADR-0032
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanEdit))]
+    private async Task ImportRdmAsync()
+    {
+        if (_host is null || _dialogs.PickRdmCsvFile() is not { } path) return;
+
+        ImportResult parsed;
+        try
+        {
+            parsed = RdmCsvImport.Parse(await System.IO.File.ReadAllTextAsync(path));
+        }
+        catch (Exception ex) when (ex is FormatException or System.IO.IOException or UnauthorizedAccessException)
+        {
+            _dialogs.ShowError("Cannot import", ex.Message);
+            return;
+        }
+
+        var toImport = RdmCsvImport.WithoutExisting(parsed.Entries, Entries.Select(e => e.Model));
+        var message = ImportSummary(parsed, toImport);
+        if (toImport.Count == 0)
+        {
+            _dialogs.ShowError("Nothing to import", message);
+            return;
+        }
+
+        if (!_dialogs.ConfirmRisky("Import from Remote Desktop Manager", message, "Import")) return; // SPEC FR-53: bulk write, Cancel is the default
+
+        var imported = 0;
+        try
+        {
+            foreach (var item in toImport)
+            {
+                await _host.Workspace.SaveAsync(item.Entry,
+                    item.Password is { Length: > 0 } pw ? SecretUpdate.Set(pw) : SecretUpdate.Keep,
+                    item.AccountPasswords?.ToDictionary(p => p.Key, p => SecretUpdate.Set(p.Value)));
+                imported++;
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"RDM import stopped after {imported} of {toImport.Count} entries", ex);
+            _dialogs.ShowError("Import stopped", $"{imported} of {toImport.Count} entries were imported before an error: {ex.Message}");
+        }
+        finally
+        {
+            await ReloadAsync();
+        }
+
+        Log.Info($"Imported {imported} entries from Remote Desktop Manager");
+        StatusText = $"Imported {imported} {(imported == 1 ? "entry" : "entries")} from Remote Desktop Manager";
+    }
+
+    private string ImportSummary(ImportResult parsed, IReadOnlyList<ImportedEntry> toImport)
+    {
+        var sb = new System.Text.StringBuilder();
+        int Count(EntryKind kind) => toImport.Count(i => i.Entry.Kind == kind);
+        sb.Append(CultureInfo.CurrentCulture,
+            $"{toImport.Count} entries will be added: {Count(EntryKind.RdpConnection)} RDP connections, {Count(EntryKind.CredentialOnly)} credentials only and {Count(EntryKind.Other)} other (VNC, web, VPN… — kept for their credentials, not opened with Remote Desktop).");
+        if (_host?.Workspace.IsRemote == true) sb.Append(" They will be shared with everyone using the shared database.");
+
+        var existing = parsed.Entries.Count - toImport.Count;
+        if (existing > 0) sb.Append(CultureInfo.CurrentCulture, $"\n\n{existing} entries are already in the catalog and are left out.");
+        if (parsed.SkippedFolders > 0)
+        {
+            sb.Append(CultureInfo.CurrentCulture, $"\n\n{parsed.SkippedFolders} folder rows are skipped: folders are rebuilt from each entry's group.");
+        }
+
+        sb.Append("\n\nThe CSV file holds passwords in plain text: delete it once the import is done.");
+        return sb.ToString();
+    }
 
     private async Task EditNewAsync(ConnectionEntry template, bool importFirst)
     {

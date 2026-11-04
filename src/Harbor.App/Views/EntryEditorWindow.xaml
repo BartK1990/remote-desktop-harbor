@@ -75,6 +75,8 @@
                            ToolTip="Stores the full Remote Desktop profile (.rdp settings) plus credentials." />
               <RadioButton GroupName="Kind" Style="{StaticResource Harbor.Segment}" Content="Credentials only" IsChecked="{Binding IsCredentialOnly}"
                            ToolTip="Stores only user name and password (and optional host); RDP uses default settings." />
+              <RadioButton GroupName="Kind" Style="{StaticResource Harbor.Segment}" Content="Other" IsChecked="{Binding IsOther}"
+                           ToolTip="Credentials of a system that is not opened with Remote Desktop (VNC, web portal, VPN…); copy them as needed." />
             </StackPanel>
 
             <Grid>

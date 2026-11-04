@@ -31,7 +31,8 @@ The password is encrypted before it is written to disk.
 
 :::tip
 Already have `.rdp` files? Click **Import .rdp…** instead of **New** — see
-[Importing .rdp files](../../guides/importing-rdp-files/).
+[Importing .rdp files](../../guides/importing-rdp-files/). Moving from Remote Desktop Manager? Use **Import RDM…** —
+see [Importing from Remote Desktop Manager](../../guides/importing-from-rdm/).
 :::
 
 ## 3. Connect

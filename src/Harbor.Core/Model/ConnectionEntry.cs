@@ -10,6 +10,12 @@ public enum EntryKind
 
     /// <summary>Only a credential (user + password, optional host). Launching uses default RDP settings.</summary>
     CredentialOnly = 1,
+
+    /// <summary>
+    /// Credentials (and optional host and port) of a system that is not reached with Remote Desktop — VNC, a web portal,
+    /// a VPN… Never launched; the user copies what they need. SPEC FR-03, ADR-0033
+    /// </summary>
+    Other = 2,
 }
 
 /// <summary>
@@ -50,7 +56,8 @@ public sealed record ConnectionEntry
     public IReadOnlyList<ConnectionAccount> Accounts { get; init; } = [];
 
     public bool HasPassword => PasswordCipher is { Length: > 0 };
-    public bool CanLaunch => !string.IsNullOrWhiteSpace(Host);
+    /// <summary>Remote Desktop can open this entry: it has a host and is not <see cref="EntryKind.Other"/>. SPEC FR-03</summary>
+    public bool CanLaunch => Kind != EntryKind.Other && !string.IsNullOrWhiteSpace(Host);
 
     /// <summary>
     /// Host as shown in the tree and details: <c>host</c>, or <c>host:port</c> when the port is not the RDP default;
