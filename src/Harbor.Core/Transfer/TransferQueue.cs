@@ -336,7 +336,8 @@ public sealed class TransferQueue : IAsyncDisposable
     /// <summary>Stops the running job (it stays resumable in the journal) and the queue.</summary>
     public async ValueTask DisposeAsync()
     {
-        await _shutdown.CancelAsync().ConfigureAwait(false);
+        // Synchronous: the running copy's linked token is cancelled before this returns, so it stops at the next chunk.
+        _shutdown.Cancel();
         if (_runner is not null)
         {
             await _runner.ConfigureAwait(false);
