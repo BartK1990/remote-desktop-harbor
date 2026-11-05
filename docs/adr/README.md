@@ -41,4 +41,5 @@ Process: see [spec/README.md](../spec/README.md).
 | [0033](0033-other-entry-kind.md) | A third entry kind, Other, for credentials of non-RDP systems | Accepted |
 | [0034](0034-entry-list-zoom.md) | Entry list size: zoom the tree rows, with a reset to 100 % | Accepted |
 | [0035](0035-generic-termsrv-credential.md) | Password handed to mstsc as a generic `TERMSRV/<host>` credential (works under Credential Guard) | Accepted |
-| [0036](0036-code-signing-signpath.md) | Release exes code-signed through SignPath Foundation | Accepted |
+| [0036](0036-code-signing-signpath.md) | Release exes code-signed through SignPath Foundation | Superseded by 0037 |
+| [0037](0037-code-signing-withdrawn.md) | Code signing withdrawn: releases stay unsigned for now | Accepted |
