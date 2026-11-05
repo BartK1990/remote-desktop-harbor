@@ -50,6 +50,12 @@ public sealed record ConnectionEntry
     public bool IsDeleted { get; init; }
 
     /// <summary>
+    /// Shared-database mode only: the entry is kept in this PC's local vault and never written to the shared database.
+    /// Set by <c>HarborWorkspace</c> from where the entry is stored; not a column. SPEC FR-29, ADR-0037
+    /// </summary>
+    public bool IsLocalOnly { get; init; }
+
+    /// <summary>
     /// Accounts besides the default one (<see cref="UserName"/>, <see cref="Domain"/>, <see cref="PasswordCipher"/>),
     /// in display order. See SPEC FR-09, ADR-0019.
     /// </summary>

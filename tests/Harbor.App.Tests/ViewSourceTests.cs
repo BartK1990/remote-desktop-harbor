@@ -94,6 +94,30 @@ public class ViewSourceTests
         Assert.Equal("PaneSplitter_MouseDoubleClick", (string?)splitter.Attribute("MouseDoubleClick"));
     }
 
+    // SPEC FR-29, ADR-0037: the entry editor offers "Shared database" / "This PC only" as its own radio group, and the
+    // details pane and the tree context menu can move the selected entry both ways.
+    [Fact]
+    public void Entries_can_be_stored_on_this_pc_and_moved_both_ways()
+    {
+        var editor = XDocument.Load(Source("EntryEditorWindow.xaml"));
+        Assert.Equal(new[] { "Shared database", "This PC only" }, editor.Descendants(Wpf + "RadioButton")
+            .Where(r => (string?)r.Attribute("GroupName") == "Storage").Select(r => (string)r.Attribute("Content")!));
+
+        var commands = XDocument.Load(Source("MainWindow.xaml")).Descendants(Wpf + "MenuItem").Select(m => (string?)m.Attribute("Command")).ToList();
+        Assert.Equal(2, commands.Count(c => c == "{Binding MoveToLocalCommand}"));
+        Assert.Equal(2, commands.Count(c => c == "{Binding MoveToSharedCommand}"));
+        Assert.Equal(2, commands.Count(c => c == "{Binding TransferFilesCommand}"));
+    }
+
+    // SPEC FR-60: the transfer list keeps a right gutter so the scroll bar never covers the Pause / Resume / Cancel buttons.
+    [Fact]
+    public void Transfer_rows_keep_a_gutter_for_the_scroll_bar()
+    {
+        var list = Assert.Single(XDocument.Load(Source("TransfersWindow.xaml")).Descendants(Wpf + "ListBox"));
+        var padding = (string)list.Descendants(Wpf + "Setter").Single(s => (string?)s.Attribute("Property") == "Padding").Attribute("Value")!;
+        Assert.True(int.Parse(padding.Split(',')[2]) >= 16, padding);
+    }
+
     // SPEC FR-48: the Quick connect results keep a right gutter too, so the scroll bar does not cover the in-use marker.
     [Fact]
     public void Quick_connect_results_keep_a_gutter_for_the_scroll_bar()
@@ -126,6 +150,7 @@ public class ViewSourceTests
     [InlineData("PassphraseWindow.xaml")]
     [InlineData("TitleBar.xaml")]
     [InlineData("MessageWindow.xaml")]
+    [InlineData("TransfersWindow.xaml")]
     public void Views_do_not_hard_code_colours(string view)
     {
         var colourProperties = new[] { "Foreground", "Background", "BorderBrush", "Fill", "Stroke" };
@@ -171,6 +196,7 @@ public class ViewSourceTests
                      ["F2"] = "EditCommand", ["Ctrl+Shift+C"] = "CopyPasswordCommand", ["Ctrl+Shift+U"] = "CopyUserNameCommand",
                      ["Ctrl+Shift+H"] = "CopyHostCommand", ["Ctrl+OemComma"] = "OpenSettingsCommand",
                      ["Ctrl+OemPlus"] = "ZoomTreeInCommand", ["Ctrl+OemMinus"] = "ZoomTreeOutCommand", ["Ctrl+D0"] = "ResetTreeZoomCommand",
+                     ["Ctrl+Shift+T"] = "TransferFilesCommand",
                  })
         {
             Assert.True(bound.TryGetValue(gesture, out var binding), gesture);
@@ -213,6 +239,7 @@ public class ViewSourceTests
     [InlineData("SettingsWindow.xaml", false)]
     [InlineData("PassphraseWindow.xaml", false)]
     [InlineData("MessageWindow.xaml", false)]
+    [InlineData("TransfersWindow.xaml", false)]
     public void Windows_use_the_app_title_bar(string view, bool minimizeMaximize)
     {
         XNamespace views = "clr-namespace:Harbor.App.Views";

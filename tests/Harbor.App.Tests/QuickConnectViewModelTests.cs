@@ -16,6 +16,10 @@ public class QuickConnectViewModelTests
         public void ShowError(string title, string message) { }
         public string? PickRdpFile() => null;
         public string? PickRdmCsvFile() => null;
+        public string[]? PickFilesToUpload() => null;
+        public string[]? PickFilesToDownload(string remoteFolder) => null;
+        public string? PickFolder(string title, string? initialFolder) => null;
+        public void ShowTransfers(TransfersViewModel transfers) { }
     }
 
     private static readonly ConnectionAccount Ops = ConnectionAccount.CreateNew("ops");

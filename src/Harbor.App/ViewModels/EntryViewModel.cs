@@ -18,7 +18,7 @@ public sealed partial class EntryViewModel : TreeNodeViewModel
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(Name), nameof(GroupName), nameof(Subtitle), nameof(KindLabel), nameof(HasPassword), nameof(CanLaunch),
         nameof(HasAccounts), nameof(Address), nameof(IsCredentialOnly), nameof(IsOther), nameof(IsRdpConnection), nameof(RdpSummary), nameof(HasNotes),
-        nameof(Environment), nameof(EnvironmentLabel))]
+        nameof(Environment), nameof(EnvironmentLabel), nameof(IsLocalOnly))]
     private ConnectionEntry _model;
 
     [ObservableProperty]
@@ -57,6 +57,9 @@ public sealed partial class EntryViewModel : TreeNodeViewModel
 
     /// <summary>Pinned by this user (SPEC FR-50); set by the main view model from the settings.</summary>
     [ObservableProperty] private bool _isPinned;
+
+    /// <summary>Kept in this PC's local vault only, next to a shared database (SPEC FR-29).</summary>
+    public bool IsLocalOnly => Model.IsLocalOnly;
 
     public bool HasNotes => !string.IsNullOrWhiteSpace(Model.Notes);
 

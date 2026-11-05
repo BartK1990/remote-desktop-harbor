@@ -4,17 +4,21 @@ using Harbor.Core.Rdp;
 using Harbor.Core.Security;
 using Harbor.Core.Services;
 using Harbor.Core.Storage;
+using Harbor.Core.Transfer;
 using Harbor.Data;
 using Harbor.Data.Providers;
 using Harbor.Windows.Identity;
 using Harbor.Windows.Rdp;
 using Harbor.Windows.Security;
+using Harbor.Windows.Transfer;
 
 namespace Harbor.App.Infrastructure;
 
 /// <summary>Composition root: turns settings into a signed-in user, an open workspace and services.</summary>
-public sealed class AppHost : IDisposable
+public sealed class AppHost : IAsyncDisposable
 {
+    private readonly NetworkShareConnector _shares = new();
+
     private AppHost(HarborSettings settings, UserIdentity user, HarborWorkspace workspace, SessionPresenceService presence,
         IRdpLauncher launcher)
     {
@@ -23,6 +27,9 @@ public sealed class AppHost : IDisposable
         Workspace = workspace;
         Presence = presence;
         Launcher = launcher;
+        // SPEC FR-60, FR-61, ADR-0038: the share is (re)connected with the entry's account before every attempt.
+        Transfers = new TransferQueue(new TransferJournal(AppPaths.TransfersDirectory), prepare: ConnectSharesAsync,
+            onError: ex => Log.Error("File transfer journal", ex));
     }
 
     public HarborSettings Settings { get; }
@@ -30,6 +37,27 @@ public sealed class AppHost : IDisposable
     public HarborWorkspace Workspace { get; }
     public SessionPresenceService Presence { get; }
     public IRdpLauncher Launcher { get; }
+
+    /// <summary>Resumable file transfers to and from entries' hosts (SPEC FR-60).</summary>
+    public TransferQueue Transfers { get; }
+
+    /// <summary>
+    /// Connects the shares of <paramref name="job"/>'s paths as the account of its entry (the signed-in Windows user when
+    /// the entry has no user name or is gone). The password is decrypted only for this call. SPEC FR-60, NFR-12
+    /// </summary>
+    public async Task ConnectSharesAsync(TransferJob job, CancellationToken cancellationToken)
+    {
+        string? userName = null;
+        string? password = null;
+        if (job.ConnectionId is { } id && (await Workspace.ListAsync(cancellationToken).ConfigureAwait(false)).FirstOrDefault(e => e.Id == id) is { } entry)
+        {
+            var account = entry.FindAccount(job.AccountId);
+            userName = entry.QualifiedUserNameFor(account);
+            password = userName is null ? null : Workspace.RevealPassword(entry, account?.Id);
+        }
+
+        await Task.Run(() => _shares.Connect([job.SourcePath, job.DestinationPath], userName, password), cancellationToken).ConfigureAwait(false);
+    }
 
     public static IIdentityProvider CreateIdentityProvider(HarborSettings settings, Func<nint> parentWindow) => settings.AuthMode switch
     {
@@ -55,6 +83,7 @@ public sealed class AppHost : IDisposable
 
         HarborWorkspace workspace;
         IPresenceStore? presenceStore = null;
+        System.IO.Directory.CreateDirectory(AppPaths.DataDirectory);
         var remoteConnectionString = settings.StorageMode == StorageMode.Remote
             ? SettingsStore.GetRemoteConnectionString(settings)
             : null;
@@ -75,14 +104,19 @@ public sealed class AppHost : IDisposable
                 DpapiNgKeyProtector.SchemeName => dpapiNg,
                 _ => signIn,
             };
-            workspace = HarborWorkspace.CreateRemote(user, cache, remote, local, forNewKey, resolver, settings.RemoteAutoMigrate);
+            // Entries kept on this PC only live in the local-mode vault file (SPEC FR-29, ADR-0037).
+            var localVault = new SqlHarborStore(DatabaseProviders.Sqlite, SqliteProvider.ConnectionStringForFile(AppPaths.LocalDatabase));
+            workspace = HarborWorkspace.CreateRemote(user, cache, remote, local, forNewKey, resolver, settings.RemoteAutoMigrate, localVault);
             workspace.ConvertRemoteKeyProtection = settings.RemoteKeyConvert;
             presenceStore = remote;
         }
 
-        System.IO.Directory.CreateDirectory(AppPaths.DataDirectory);
         await workspace.OpenAsync(cancellationToken).ConfigureAwait(false);
         Log.Info($"Workspace open: {(workspace.IsRemote ? "remote" : "local")}, online={workspace.IsOnline}");
+        if (workspace.LocalVaultError is { } vaultError)
+        {
+            Log.Error("This PC's local vault could not be opened; entries kept on this PC are unavailable", vaultError);
+        }
 
         var presence = new SessionPresenceService(presenceStore, PresenceOptions.FromSettings(settings), Environment.MachineName,
             ex => Log.Error("Presence update failed", ex));
@@ -95,7 +129,9 @@ public sealed class AppHost : IDisposable
         }
 
         CleanupStaleTempFiles();
-        return new AppHost(settings, user, workspace, presence, launcher);
+        var host = new AppHost(settings, user, workspace, presence, launcher);
+        host.Transfers.Start();
+        return host;
     }
 
     /// <summary>Removes .rdp files left behind if the app was killed during a launch.</summary>
@@ -121,5 +157,11 @@ public sealed class AppHost : IDisposable
         }
     }
 
-    public void Dispose() => Workspace.Dispose();
+    /// <summary>Pauses a running transfer (it resumes from the journal later), closes the shares it opened and the workspace.</summary>
+    public async ValueTask DisposeAsync()
+    {
+        await Transfers.DisposeAsync().ConfigureAwait(false);
+        _shares.Dispose();
+        Workspace.Dispose();
+    }
 }

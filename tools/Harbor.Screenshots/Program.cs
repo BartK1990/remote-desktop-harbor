@@ -61,7 +61,7 @@ internal static class Program
         SettingsStore.Save(settings);
 
         Step("Seeding the catalog");
-        using (var host = await AppHost.StartAsync(settings, () => 0, _ => null))
+        await using (var host = await AppHost.StartAsync(settings, () => 0, _ => null))
         {
             var entries = await DemoCatalog.SeedAsync(host);
             await DemoCatalog.AddColleaguesAsync(ConnectionString, entries);

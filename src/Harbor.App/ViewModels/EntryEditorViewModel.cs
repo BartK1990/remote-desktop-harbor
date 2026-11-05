@@ -27,6 +27,7 @@ public sealed partial class EntryEditorViewModel : ObservableValidator
         _userName = original.UserName;
         RdpSettings = new RdpSettingsEditorViewModel(original.RdpSettings);
         _notes = original.Notes;
+        _isLocalOnly = original.IsLocalOnly;
         _changePassword = isNew || !original.HasPassword;
         Accounts = new ObservableCollection<AccountEditorViewModel>(original.Accounts.Select(a => new AccountEditorViewModel(a)));
     }
@@ -54,6 +55,51 @@ public sealed partial class EntryEditorViewModel : ObservableValidator
     private bool _changePassword;
 
     [ObservableProperty] private string? _error;
+
+    // ------------------------------------------------------------------ where the entry is stored (SPEC FR-29, ADR-0037)
+
+    /// <summary>Shared-database mode with this PC's vault: the General tab shows where the entry is stored.</summary>
+    public bool ShowsStorage { get; private set; }
+
+    /// <summary>A new entry can go to the shared database or this PC; an existing one is moved from the details pane.</summary>
+    public bool CanChangeStorage => IsNew && ShowsStorage && _sharedAvailable;
+
+    private bool _sharedAvailable = true;
+
+    /// <summary>Keep the entry in this PC's local vault only, never in the shared database.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsShared), nameof(StorageHint))]
+    private bool _isLocalOnly;
+
+    public bool IsShared
+    {
+        get => !IsLocalOnly;
+        set { if (value) IsLocalOnly = false; }
+    }
+
+    public string StorageHint => IsLocalOnly
+        ? IsNew
+            ? _sharedAvailable
+                ? "Kept in this PC's local vault only; nobody else sees it. You can move it to the shared database later."
+                : "The shared database is offline, so new entries are kept on this PC. You can move it to the shared database later."
+            : "Kept in this PC's local vault only. To share it, use More → Move to shared database."
+        : IsNew
+            ? "Shared with everyone using the shared database."
+            : "In the shared database. To keep it on this PC only, use More → Move to this PC only.";
+
+    /// <summary>
+    /// Called by the main window in shared-database mode with a local vault: shows the storage choice; while the shared
+    /// database is offline a new entry is kept on this PC. SPEC FR-29
+    /// </summary>
+    public void OfferLocalStorage(bool sharedAvailable)
+    {
+        ShowsStorage = true;
+        _sharedAvailable = sharedAvailable;
+        if (IsNew && !sharedAvailable) IsLocalOnly = true;
+        OnPropertyChanged(nameof(ShowsStorage));
+        OnPropertyChanged(nameof(CanChangeStorage));
+        OnPropertyChanged(nameof(StorageHint));
+    }
 
     /// <summary>Where the last validation error is (SPEC FR-46): the tab header and the field to focus.</summary>
     public (string Tab, string Field)? ErrorLocation { get; private set; }
@@ -202,6 +248,7 @@ public sealed partial class EntryEditorViewModel : ObservableValidator
         RdpSettings = !IsRdpConnection ? null : RdpSettings.Build() is { Length: > 0 } rdp ? rdp : null,
         Notes = string.IsNullOrWhiteSpace(Notes) ? null : Notes,
         Accounts = Accounts.Select(a => a.Build()).ToList(),
+        IsLocalOnly = IsNew ? IsLocalOnly : _original.IsLocalOnly,
     };
 
     public SecretUpdate BuildSecretUpdate() => ToSecretUpdate(ChangePassword, Password);

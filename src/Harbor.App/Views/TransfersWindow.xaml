@@ -1,0 +1,92 @@
+<Window x:Class="Harbor.App.Views.TransfersWindow"
+        Background="{DynamicResource Harbor.WindowBackgroundBrush}"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:Harbor.App.ViewModels"
+        xmlns:views="clr-namespace:Harbor.App.Views"
+        Title="File transfer" Width="760" Height="520" MinWidth="560" MinHeight="360"
+        Icon="/Assets/AppIcon.ico"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False" ResizeMode="CanResizeWithGrip">
+  <!-- Own title bar (SPEC FR-52, ADR-0029). The window is not modal: transfers keep running while the main window is used. -->
+  <WindowChrome.WindowChrome>
+    <WindowChrome CaptionHeight="32" ResizeBorderThickness="6" GlassFrameThickness="0,0,0,1" CornerRadius="0" UseAeroCaptionButtons="False" />
+  </WindowChrome.WindowChrome>
+  <Window.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/Themes/Controls.xaml" />
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </Window.Resources>
+
+  <DockPanel>
+    <views:TitleBar DockPanel.Dock="Top" ShowMinimizeMaximize="False" />
+    <DockPanel Margin="16,8,16,16">
+      <!-- SPEC FR-60: target entry, account and folder on its host; upload files or a folder, download files. -->
+      <StackPanel DockPanel.Dock="Top">
+        <TextBlock Text="{Binding TargetText}" FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+        <TextBlock Text="Folder on the host" Style="{StaticResource FieldLabel}" />
+        <TextBox Text="{Binding RemoteFolder, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource Harbor.MonoFont}"
+                 AutomationProperties.Name="Folder on the host"
+                 ToolTip="A shared folder on the host, e.g. \\server\C$\Users\Public\Downloads. It is opened with the entry's account." />
+        <WrapPanel Margin="0,10,0,0">
+          <Button Content="Upload files…" Command="{Binding UploadFilesCommand}" Style="{DynamicResource AccentButtonStyle}" Margin="0,0,6,6" Padding="14,6" />
+          <Button Content="Upload folder…" Command="{Binding UploadFolderCommand}" Style="{StaticResource Harbor.Button}" Margin="0,0,6,6" />
+          <Button Content="Download…" Command="{Binding DownloadCommand}" Style="{StaticResource Harbor.Button}" Margin="0,0,6,6" />
+        </WrapPanel>
+        <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,2,0,8"
+                   Text="Each file is copied in chunks and its progress is saved after every chunk: when the connection drops the copy is retried and continues where it stopped, and unfinished transfers can be resumed after the app restarts." />
+      </StackPanel>
+
+      <DockPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+          <Button Content="Resume all" Command="{Binding ResumeAllCommand}" Style="{StaticResource Harbor.SubtleButton}" Margin="0,0,6,0" />
+          <Button Content="Clear done" Command="{Binding ClearFinishedCommand}" Style="{StaticResource Harbor.SubtleButton}" Margin="0,0,6,0" />
+          <Button Content="Close" IsCancel="True" Click="Close_Click" MinWidth="90" />
+        </StackPanel>
+        <TextBlock Text="{Binding Summary}" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+      </DockPanel>
+
+      <ListBox ItemsSource="{Binding Jobs}" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+               AutomationProperties.Name="Transfers">
+        <ListBox.ItemContainerStyle>
+          <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+            <!-- Right gutter so the overlay scroll bar never covers the buttons. -->
+            <Setter Property="Padding" Value="8,6,20,6" />
+          </Style>
+        </ListBox.ItemContainerStyle>
+        <ListBox.ItemTemplate>
+          <DataTemplate DataType="{x:Type vm:TransferItemViewModel}">
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <StackPanel>
+                <TextBlock TextTrimming="CharacterEllipsis">
+                  <Run Text="{Binding FileName, Mode=OneWay}" FontWeight="SemiBold" /><Run Text="  " /><Run Text="{Binding Direction, Mode=OneWay}"
+                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                </TextBlock>
+                <TextBlock Text="{Binding Destination}" Style="{StaticResource Harbor.Text.MonoSecondary}" TextTrimming="CharacterEllipsis"
+                           ToolTip="{Binding Destination}" />
+                <ProgressBar Value="{Binding Percent, Mode=OneWay}" Maximum="100" Height="4" Margin="0,4,0,2"
+                             AutomationProperties.Name="Progress" />
+                <TextBlock Text="{Binding StatusText}" FontSize="12" TextTrimming="CharacterEllipsis" ToolTip="{Binding StatusText}"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+              </StackPanel>
+              <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0,0,0">
+                <Button Content="Pause" Command="{Binding PauseCommand}" Style="{StaticResource Harbor.SubtleButton}" Margin="0,0,4,0"
+                        Visibility="{Binding CanPause, Converter={StaticResource BoolToVisibility}}" />
+                <Button Content="Resume" Command="{Binding ResumeCommand}" Style="{StaticResource Harbor.SubtleButton}" Margin="0,0,4,0"
+                        Visibility="{Binding CanResume, Converter={StaticResource BoolToVisibility}}"
+                        ToolTip="Continue where the copy stopped" />
+                <Button Content="{Binding RemoveText}" Command="{Binding RemoveCommand}" Style="{StaticResource Harbor.SubtleButton}"
+                        ToolTip="Remove from the list; Cancel also deletes the partly copied file" />
+              </StackPanel>
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </DockPanel>
+  </DockPanel>
+</Window>

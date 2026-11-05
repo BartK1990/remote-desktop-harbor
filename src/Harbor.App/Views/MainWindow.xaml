@@ -52,6 +52,15 @@
           </DataTrigger>
         </Style.Triggers>
       </Style>
+      <!-- Entry kept on this PC only, next to a shared database (SPEC FR-29, ADR-0037). -->
+      <Style x:Key="LocalOnlyMark" TargetType="TextBlock" BasedOn="{StaticResource Harbor.Text.Icon}">
+        <Setter Property="Text" Value="&#xE977;" />
+        <Setter Property="FontSize" Value="10" />
+        <Setter Property="Margin" Value="6,0,0,0" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        <Setter Property="ToolTip" Value="Kept on this PC only" />
+        <Setter Property="AutomationProperties.Name" Value="This PC only" />
+      </Style>
       <!-- Filled star of a pinned entry (SPEC FR-50). -->
       <Style x:Key="PinStar" TargetType="TextBlock" BasedOn="{StaticResource Harbor.Text.Icon}">
         <Setter Property="Text" Value="&#xE735;" />
@@ -74,6 +83,7 @@
     <KeyBinding Key="C" Modifiers="Ctrl+Shift" Command="{Binding CopyPasswordCommand}" />
     <KeyBinding Key="U" Modifiers="Ctrl+Shift" Command="{Binding CopyUserNameCommand}" />
     <KeyBinding Key="H" Modifiers="Ctrl+Shift" Command="{Binding CopyHostCommand}" />
+    <KeyBinding Key="T" Modifiers="Ctrl+Shift" Command="{Binding TransferFilesCommand}" />
     <!-- Entry list size (SPEC FR-55, ADR-0034): Ctrl+Plus / Ctrl+Minus zoom the rows, Ctrl+0 resets to 100 %. -->
     <KeyBinding Key="OemPlus" Modifiers="Ctrl" Command="{Binding ZoomTreeInCommand}" />
     <KeyBinding Key="Add" Modifiers="Ctrl" Command="{Binding ZoomTreeInCommand}" />
@@ -319,6 +329,7 @@
               </TextBlock>
               <StackPanel Grid.Column="1" Orientation="Horizontal">
                 <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                <TextBlock Style="{StaticResource LocalOnlyMark}" Visibility="{Binding IsLocalOnly, Converter={StaticResource BoolToVisibility}}" />
                 <TextBlock Style="{StaticResource PinStar}" Visibility="{Binding IsPinned, Converter={StaticResource BoolToVisibility}}" />
               </StackPanel>
               <TextBlock Grid.Column="2" Text="{Binding Address}" Margin="10,0,0,0" MaxWidth="200" TextTrimming="CharacterEllipsis"
@@ -450,6 +461,12 @@
             <MenuItem Header="Edit" Command="{Binding EditCommand}" InputGestureText="F2" />
             <MenuItem Header="Delete" Command="{Binding DeleteCommand}" />
             <Separator />
+            <MenuItem Header="Transfer files…" Command="{Binding TransferFilesCommand}" InputGestureText="Ctrl+Shift+T" />
+            <MenuItem Header="Move to this PC only…" Command="{Binding MoveToLocalCommand}"
+                      Visibility="{Binding SupportsLocalEntries, Converter={StaticResource BoolToVisibility}}" />
+            <MenuItem Header="Move to shared database…" Command="{Binding MoveToSharedCommand}"
+                      Visibility="{Binding SupportsLocalEntries, Converter={StaticResource BoolToVisibility}}" />
+            <Separator />
             <MenuItem Header="Expand all" Command="{Binding ExpandAllCommand}" />
             <MenuItem Header="Collapse all" Command="{Binding CollapseAllCommand}" />
           </ContextMenu>
@@ -501,6 +518,12 @@
                 <Run Text="{Binding GroupName, Mode=OneWay}" /><Run Text="  ·  " /><Run Text="{Binding KindLabel, Mode=OneWay}" />
               </TextBlock>
               <Border Style="{StaticResource EnvTag}" Margin="8,0,0,0"><TextBlock Text="{Binding EnvironmentLabel}" /></Border>
+              <StackPanel Orientation="Horizontal" Margin="8,0,0,0" VerticalAlignment="Center"
+                          Visibility="{Binding IsLocalOnly, Converter={StaticResource BoolToVisibility}}"
+                          ToolTip="Kept in this PC's local vault only; nobody else using the shared database sees it.">
+                <TextBlock Style="{StaticResource LocalOnlyMark}" Margin="0,0,4,0" />
+                <TextBlock Text="This PC only" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+              </StackPanel>
             </StackPanel>
             <DockPanel Margin="0,2,0,0">
               <!-- Pin / unpin (SPEC FR-50). -->
@@ -570,7 +593,13 @@
                 <Button.ContextMenu>
                   <ContextMenu>
                     <MenuItem Header="Copy host" Command="{Binding CopyHostCommand}" InputGestureText="Ctrl+Shift+H" />
+                    <MenuItem Header="Transfer files…" Command="{Binding TransferFilesCommand}" InputGestureText="Ctrl+Shift+T" />
                     <Separator />
+                    <MenuItem Header="Move to this PC only…" Command="{Binding MoveToLocalCommand}"
+                              Visibility="{Binding SupportsLocalEntries, Converter={StaticResource BoolToVisibility}}" />
+                    <MenuItem Header="Move to shared database…" Command="{Binding MoveToSharedCommand}"
+                              Visibility="{Binding SupportsLocalEntries, Converter={StaticResource BoolToVisibility}}" />
+                    <Separator Visibility="{Binding SupportsLocalEntries, Converter={StaticResource BoolToVisibility}}" />
                     <MenuItem Header="Delete…" Command="{Binding DeleteCommand}" InputGestureText="Del" />
                   </ContextMenu>
                 </Button.ContextMenu>

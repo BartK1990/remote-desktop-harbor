@@ -38,6 +38,7 @@ export default defineConfig({
 						'guides/importing-rdp-files',
 						'guides/importing-from-rdm',
 						'guides/connecting',
+						'guides/file-transfer',
 						'guides/keyboard-shortcuts',
 					],
 				},
@@ -49,6 +50,7 @@ export default defineConfig({
 						'team/entra-id',
 						'team/session-presence',
 						'team/offline-mode',
+						'team/local-entries',
 					],
 				},
 				{

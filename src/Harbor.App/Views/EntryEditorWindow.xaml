@@ -69,6 +69,19 @@
       <TabItem Header="General">
         <ScrollViewer Style="{StaticResource TabScroller}">
           <StackPanel Style="{StaticResource TabPage}">
+            <!-- SPEC FR-29, ADR-0037: in shared-database mode an entry can be kept on this PC only. -->
+            <StackPanel Visibility="{Binding ShowsStorage, Converter={StaticResource BoolToVisibility}}" Margin="0,0,0,12">
+              <TextBlock Text="Stored in" Style="{StaticResource FieldLabel}" Margin="0,0,0,4" />
+              <StackPanel Orientation="Horizontal" AutomationProperties.Name="Stored in" IsEnabled="{Binding CanChangeStorage}">
+                <RadioButton GroupName="Storage" Style="{StaticResource Harbor.Segment}" Content="Shared database" IsChecked="{Binding IsShared}"
+                             ToolTip="Everyone using the shared database sees the entry and can use its passwords." />
+                <RadioButton GroupName="Storage" Style="{StaticResource Harbor.Segment}" Content="This PC only" IsChecked="{Binding IsLocalOnly}"
+                             ToolTip="Kept in this PC's local vault, encrypted for your Windows account; never written to the shared database." />
+              </StackPanel>
+              <TextBlock Text="{Binding StorageHint}" TextWrapping="Wrap" Margin="0,4,0,0" FontSize="12"
+                         Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+            </StackPanel>
+
             <TextBlock Text="Type" Style="{StaticResource FieldLabel}" Margin="0,0,0,4" />
             <StackPanel Orientation="Horizontal" AutomationProperties.Name="Entry type">
               <RadioButton GroupName="Kind" Style="{StaticResource Harbor.Segment}" Content="RDP connection" IsChecked="{Binding IsRdpConnection}"

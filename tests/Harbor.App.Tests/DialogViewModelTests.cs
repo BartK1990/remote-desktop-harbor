@@ -19,9 +19,41 @@ public class DialogViewModelTests
         public void ShowError(string title, string message) { }
         public string? PickRdpFile() => null;
         public string? PickRdmCsvFile() => null;
+        public string[]? PickFilesToUpload() => null;
+        public string[]? PickFilesToDownload(string remoteFolder) => null;
+        public string? PickFolder(string title, string? initialFolder) => null;
+        public void ShowTransfers(TransfersViewModel transfers) { }
     }
 
     private static EntryEditorViewModel Editor(ConnectionEntry entry, bool isNew = false) => new(entry, isNew, new NoDialogs(), []);
+
+    // SPEC FR-29, ADR-0037: in shared-database mode a new entry can be kept on this PC only; offline it must be.
+    [Fact]
+    public void New_entries_can_be_kept_on_this_pc_and_must_be_while_offline()
+    {
+        var hidden = Editor(ConnectionEntry.CreateNew("srv"), isNew: true);
+        Assert.False(hidden.ShowsStorage);
+        Assert.False(hidden.BuildEntry().IsLocalOnly);
+
+        var online = Editor(ConnectionEntry.CreateNew("srv"), isNew: true);
+        online.OfferLocalStorage(sharedAvailable: true);
+        Assert.True(online.CanChangeStorage);
+        Assert.True(online.IsShared);
+        online.IsLocalOnly = true;
+        Assert.True(online.BuildEntry().IsLocalOnly);
+
+        var offline = Editor(ConnectionEntry.CreateNew("srv"), isNew: true);
+        offline.OfferLocalStorage(sharedAvailable: false);
+        Assert.False(offline.CanChangeStorage);
+        Assert.True(offline.BuildEntry().IsLocalOnly);
+
+        // An existing entry keeps where it is stored; moving is a separate action.
+        var existing = Editor(ConnectionEntry.CreateNew("srv") with { Version = 3, IsLocalOnly = true });
+        existing.OfferLocalStorage(sharedAvailable: true);
+        Assert.False(existing.CanChangeStorage);
+        existing.IsShared = true;
+        Assert.True(existing.BuildEntry().IsLocalOnly);
+    }
 
     [Fact]
     public void Pasted_host_port_and_domain_user_are_split_on_save()
