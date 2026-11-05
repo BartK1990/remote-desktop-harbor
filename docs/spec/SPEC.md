@@ -100,7 +100,7 @@ shows who is currently connected to which machine.
 | NFR-03 | Smooth with 10 000 entries (UI virtualization, in-memory filtering). |
 | NFR-04 | Default CI and release target: **Windows x64**. |
 | NFR-05 | Must stay publishable to the **Microsoft Store** (MSIX) later without architectural changes. |
-| NFR-06 | Release exes are **Authenticode-signed** (SignPath Foundation, timestamped) so Windows trusts them; the release fails rather than publishing an exe whose signature does not verify. Until signing is configured, releases are published unsigned. Policy: `website/src/content/docs/reference/code-signing.md`. See ADR-0036. |
+| NFR-06 | *Withdrawn* — release exes are not code-signed for now (ADR-0037; was: signing through SignPath Foundation, ADR-0036). |
 | NFR-10 | Secrets are encrypted with AES-256-GCM. Local keys are bound to the **Windows user and the machine** (DPAPI); a copied database cannot be decrypted elsewhere. |
 | NFR-11 | Ciphertexts are bound to their entry (associated data); swapped or tampered ciphertexts fail to decrypt. |
 | NFR-12 | No plaintext secret on disk, in `.rdp` files, on command lines or in logs. |
@@ -203,4 +203,3 @@ for the full list.
 | FR-46 | `App/Views/EntryEditorWindow`, `App/ViewModels/EntryEditorViewModel`, `Core/Model/EntryInput`, `App/Themes/Tokens` | `EntryInputTests`, `ViewSourceTests`, `DialogViewModelTests` (Windows), manual (Windows) |
 | NFR-10..13 | `Core/Security/*`, `Windows/Security/*` | `SecretCipherTests`, `WorkspaceTests` |
 | NFR-01..05 | `App/*`, publish profile, workflows | CI publish |
-| NFR-06 | `.github/workflows/release.yml` (SignPath steps), `.signpath/artifact-configuration.xml` | release job verifies the signature (`Get-AuthenticodeSignature`) |

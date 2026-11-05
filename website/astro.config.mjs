@@ -57,7 +57,6 @@ export default defineConfig({
 						'reference/settings',
 						'reference/data-and-files',
 						'reference/security-model',
-						'reference/code-signing',
 						'reference/data-model',
 						'reference/troubleshooting',
 					],

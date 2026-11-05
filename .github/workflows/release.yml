@@ -11,8 +11,6 @@ on:
 
 permissions:
   contents: write
-  # SignPath reads the job details and downloads the unsigned artifact with the job token (ADR-0036).
-  actions: read
 
 env:
   DOTNET_NOLOGO: true
@@ -53,49 +51,6 @@ jobs:
       - name: Remove symbols
         shell: pwsh
         run: Get-ChildItem out -Recurse -Filter *.pdb | Remove-Item
-
-      # Code signing via SignPath Foundation (SPEC NFR-06, ADR-0036). Runs only once the repository variable
-      # SIGNPATH_ORGANIZATION_ID is set; until then the release is published unsigned, as before.
-      # The artifact contains sc/RemoteDesktopHarbor.exe and fdd/RemoteDesktopHarbor.exe; its layout must match
-      # the artifact configuration in .signpath/artifact-configuration.xml.
-      - name: Upload unsigned exes for signing
-        id: unsigned
-        if: vars.SIGNPATH_ORGANIZATION_ID != ''
-        uses: actions/upload-artifact@v4
-        with:
-          name: unsigned
-          path: |
-            out/sc/RemoteDesktopHarbor.exe
-            out/fdd/RemoteDesktopHarbor.exe
-          if-no-files-found: error
-          retention-days: 1
-
-      - name: Sign with SignPath
-        if: vars.SIGNPATH_ORGANIZATION_ID != ''
-        uses: signpath/github-action-submit-signing-request@v3
-        with:
-          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
-          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
-          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG || 'remote-desktop-harbor' }}
-          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG || 'release-signing' }}
-          artifact-configuration-slug: ${{ vars.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG }}
-          github-artifact-id: ${{ steps.unsigned.outputs.artifact-id }}
-          wait-for-completion: true
-          # Release signing waits for a manual approval in SignPath.
-          wait-for-completion-timeout-in-seconds: 3600
-          output-artifact-directory: signed
-
-      - name: Use signed exes
-        if: vars.SIGNPATH_ORGANIZATION_ID != ''
-        shell: pwsh
-        run: |
-          foreach ($d in @("sc", "fdd")) {
-            $exe = "signed/$d/RemoteDesktopHarbor.exe"
-            $sig = Get-AuthenticodeSignature $exe
-            if ($sig.Status -ne "Valid") { throw "$exe is not validly signed: $($sig.Status) $($sig.StatusMessage)" }
-            "$d signed by: $($sig.SignerCertificate.Subject)"
-            Copy-Item $exe -Destination "out/$d/RemoteDesktopHarbor.exe" -Force
-          }
 
       - name: Package
         shell: pwsh
