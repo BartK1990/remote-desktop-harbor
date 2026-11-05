@@ -2,7 +2,7 @@ using Harbor.Core.Transfer;
 
 namespace Harbor.Core.Tests;
 
-// SPEC FR-60, FR-61, ADR-0038: resumable file transfer that survives dropped connections.
+// SPEC FR-60, FR-61, ADR-0039: resumable file transfer that survives dropped connections.
 public sealed class FileTransferTests : IDisposable
 {
     private const int Chunk = 1024;

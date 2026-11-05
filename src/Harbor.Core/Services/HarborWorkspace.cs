@@ -13,7 +13,7 @@ namespace Harbor.Core.Services;
 /// SQLite file. In <see cref="StorageMode.Remote"/> the shared database is the source of truth and a local
 /// SQLite cache serves reads and keeps working (read-only) while the shared database is unreachable.
 /// See ADR-0007. In remote mode entries can also be kept in this PC's local vault only, and moved between it and the
-/// shared database (SPEC FR-29, ADR-0037).
+/// shared database (SPEC FR-29, ADR-0038).
 /// </summary>
 public sealed class HarborWorkspace : IDisposable
 {
@@ -51,7 +51,7 @@ public sealed class HarborWorkspace : IDisposable
 
     /// <summary>
     /// Remote mode. <paramref name="localVault"/> (the local-mode vault file of this PC) holds entries kept on this PC only
-    /// (SPEC FR-29, ADR-0037); <c>null</c> disables them.
+    /// (SPEC FR-29, ADR-0038); <c>null</c> disables them.
     /// </summary>
     public static HarborWorkspace CreateRemote(UserIdentity user, IConnectionStore cache, IConnectionStore remote,
         IKeyProtector localProtector, IKeyProtector remoteProtectorForNewKey, IKeyProtectorResolver resolver, bool migrateRemote,
@@ -329,7 +329,7 @@ public sealed class HarborWorkspace : IDisposable
     /// Moves <paramref name="entry"/> from the shared database to this PC's local vault (<paramref name="toLocal"/>) or back,
     /// with its accounts and passwords. Needs the shared database online. The moved entry gets new ids (the source keeps a
     /// tombstone under the old ones, so caches learn it is gone) and its passwords are re-encrypted with the target vault's
-    /// key, bound to the new ids. Returns the stored entry. SPEC FR-29, ADR-0037
+    /// key, bound to the new ids. Returns the stored entry. SPEC FR-29, ADR-0038
     /// </summary>
     /// <exception cref="WorkspaceOfflineException">The shared database is offline.</exception>
     /// <exception cref="ConcurrencyConflictException">The entry was changed or deleted in the meantime; nothing was moved.</exception>

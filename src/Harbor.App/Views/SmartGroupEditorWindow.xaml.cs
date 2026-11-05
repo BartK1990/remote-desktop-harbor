@@ -4,7 +4,7 @@ using Harbor.App.ViewModels;
 
 namespace Harbor.App.Views;
 
-/// <summary>Smart group editor (SPEC FR-62, ADR-0039).</summary>
+/// <summary>Smart group editor (SPEC FR-62, ADR-0040).</summary>
 public partial class SmartGroupEditorWindow : Window
 {
     private readonly SmartGroupEditorViewModel _viewModel;

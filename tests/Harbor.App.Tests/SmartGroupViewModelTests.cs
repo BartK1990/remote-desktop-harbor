@@ -5,7 +5,7 @@ using Harbor.Core.Model;
 
 namespace Harbor.App.Tests;
 
-// SPEC FR-62, ADR-0039: smart groups in the entry tree and their editor. Windows only (WPF).
+// SPEC FR-62, ADR-0040: smart groups in the entry tree and their editor. Windows only (WPF).
 public class SmartGroupViewModelTests
 {
     private sealed class NoDialogs : IDialogService

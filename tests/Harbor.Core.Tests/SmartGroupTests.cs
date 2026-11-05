@@ -2,7 +2,7 @@ using Harbor.Core.Model;
 
 namespace Harbor.Core.Tests;
 
-// SPEC FR-62, ADR-0039: smart groups list the entries their rules match, like RDCMan's smart groups.
+// SPEC FR-62, ADR-0040: smart groups list the entries their rules match, like RDCMan's smart groups.
 public class SmartGroupTests
 {
     private static ConnectionEntry Entry(string name, string? folder = null, string? host = null, string? user = null,

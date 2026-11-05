@@ -1,4 +1,4 @@
-# ADR-0038: Built-in file transfer that resumes after dropped connections
+# ADR-0039: Built-in file transfer that resumes after dropped connections
 
 * Status: Accepted
 * Date: 2026-11-05

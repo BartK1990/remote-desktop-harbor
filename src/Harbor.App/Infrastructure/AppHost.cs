@@ -27,7 +27,7 @@ public sealed class AppHost : IAsyncDisposable
         Workspace = workspace;
         Presence = presence;
         Launcher = launcher;
-        // SPEC FR-60, FR-61, ADR-0038: the share is (re)connected with the entry's account before every attempt.
+        // SPEC FR-60, FR-61, ADR-0039: the share is (re)connected with the entry's account before every attempt.
         Transfers = new TransferQueue(new TransferJournal(AppPaths.TransfersDirectory), prepare: ConnectSharesAsync,
             onError: ex => Log.Error("File transfer journal", ex));
     }
@@ -104,7 +104,7 @@ public sealed class AppHost : IAsyncDisposable
                 DpapiNgKeyProtector.SchemeName => dpapiNg,
                 _ => signIn,
             };
-            // Entries kept on this PC only live in the local-mode vault file (SPEC FR-29, ADR-0037).
+            // Entries kept on this PC only live in the local-mode vault file (SPEC FR-29, ADR-0038).
             var localVault = new SqlHarborStore(DatabaseProviders.Sqlite, SqliteProvider.ConnectionStringForFile(AppPaths.LocalDatabase));
             workspace = HarborWorkspace.CreateRemote(user, cache, remote, local, forNewKey, resolver, settings.RemoteAutoMigrate, localVault);
             workspace.ConvertRemoteKeyProtection = settings.RemoteKeyConvert;

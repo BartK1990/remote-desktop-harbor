@@ -40,7 +40,7 @@ public sealed partial class FolderViewModel(string path, Action<FolderViewModel>
 }
 
 /// <summary>
-/// A smart group row (SPEC FR-62, ADR-0039): a virtual group listing the entries its rules match, as
+/// A smart group row (SPEC FR-62, ADR-0040): a virtual group listing the entries its rules match, as
 /// <see cref="EntryLinkViewModel"/> rows. Shown in its folder before the sub-folders, or at the top level.
 /// </summary>
 public sealed partial class SmartGroupViewModel(Guid id, Action<SmartGroupViewModel> expandedChanged) : TreeNodeViewModel

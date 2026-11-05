@@ -38,7 +38,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     // Pinned entries of this user (SPEC FR-50), kept in the settings.
     private readonly HashSet<Guid> _pinned;
 
-    // Smart groups (SPEC FR-62, ADR-0039): rows reused across rebuilds like folders; collapsed ones remembered by id.
+    // Smart groups (SPEC FR-62, ADR-0040): rows reused across rebuilds like folders; collapsed ones remembered by id.
     private Dictionary<Guid, SmartGroupViewModel> _smartGroups = [];
     private readonly HashSet<Guid> _collapsedSmartGroups;
     private readonly HashSet<Guid> _collapsedSmartGroupsWhileSearching = [];
@@ -271,7 +271,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         nameof(MoveToLocalCommand), nameof(MoveToSharedCommand))]
     private bool _canWrite;
 
-    /// <summary>Shared-database mode with this PC's vault: entries can be kept on this PC only (SPEC FR-29, ADR-0037).</summary>
+    /// <summary>Shared-database mode with this PC's vault: entries can be kept on this PC only (SPEC FR-29, ADR-0038).</summary>
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(AddCommand), nameof(EditCommand), nameof(DeleteCommand), nameof(ImportRdpCommand),
         nameof(MoveToLocalCommand), nameof(MoveToSharedCommand))]
@@ -520,7 +520,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     /// <summary>
     /// Smart group rows by the folder they are shown in ("" = top level), each filled with the visible entries its rules
     /// match. A group whose folder has no visible entries is shown at the top level while nothing is filtered, and hidden
-    /// otherwise; while searching, groups without matches are hidden like folders. SPEC FR-62, ADR-0039
+    /// otherwise; while searching, groups without matches are hidden like folders. SPEC FR-62, ADR-0040
     /// </summary>
     private Dictionary<string, List<SmartGroupViewModel>> BuildSmartGroups(List<EntryViewModel> visible, FolderTreeNode<EntryViewModel> root)
     {
@@ -932,7 +932,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
-    // ------------------------------------------------------------------ this PC only / shared (SPEC FR-29, ADR-0037)
+    // ------------------------------------------------------------------ this PC only / shared (SPEC FR-29, ADR-0038)
 
     private bool CanMoveToLocal => IsReady && SupportsLocalEntries && CanWrite && Selected is { IsLocalOnly: false };
     private bool CanMoveToShared => IsReady && SupportsLocalEntries && CanWrite && Selected is { IsLocalOnly: true };
@@ -971,7 +971,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
-    /// <summary>A moved entry gets a new id (ADR-0037): keep it pinned and in the recent list.</summary>
+    /// <summary>A moved entry gets a new id (ADR-0038): keep it pinned and in the recent list.</summary>
     private void RemapPersonalIds(Guid from, Guid to)
     {
         if (_pinned.Remove(from))
@@ -984,7 +984,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         SaveSettingsQuietly("Pinned and recent entries");
     }
 
-    // ------------------------------------------------------------------ smart groups (SPEC FR-62, ADR-0039)
+    // ------------------------------------------------------------------ smart groups (SPEC FR-62, ADR-0040)
 
     /// <summary>The smart group of the selected row: the group itself, or the group an entry is listed in.</summary>
     public SmartGroupViewModel? SelectedSmartGroup => SelectedNode switch
@@ -1053,7 +1053,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         RebuildTree();
     }
 
-    // ------------------------------------------------------------------ file transfer (SPEC FR-60, FR-61, ADR-0038)
+    // ------------------------------------------------------------------ file transfer (SPEC FR-60, FR-61, ADR-0039)
 
     private TransfersViewModel? _transfers;
 

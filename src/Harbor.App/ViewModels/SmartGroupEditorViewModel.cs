@@ -8,7 +8,7 @@ using Harbor.Core.Model;
 namespace Harbor.App.ViewModels;
 
 /// <summary>
-/// Creates or edits a smart group (SPEC FR-62, ADR-0039): name, folder it is shown in, All / Any and the rules, with a
+/// Creates or edits a smart group (SPEC FR-62, ADR-0040): name, folder it is shown in, All / Any and the rules, with a
 /// live count of the entries it would list.
 /// </summary>
 public sealed partial class SmartGroupEditorViewModel : ObservableObject

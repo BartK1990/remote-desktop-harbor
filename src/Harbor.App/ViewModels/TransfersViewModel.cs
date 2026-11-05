@@ -10,7 +10,7 @@ using Harbor.Core.Transfer;
 namespace Harbor.App.ViewModels;
 
 /// <summary>
-/// The File transfer window (SPEC FR-60, FR-61, ADR-0038): upload files or a folder to the selected entry's host, download
+/// The File transfer window (SPEC FR-60, FR-61, ADR-0039): upload files or a folder to the selected entry's host, download
 /// files from it, and follow every transfer, which survives dropped connections and restarts. Copies run in the
 /// <see cref="TransferQueue"/>; this view model only adds jobs and mirrors their state.
 /// </summary>

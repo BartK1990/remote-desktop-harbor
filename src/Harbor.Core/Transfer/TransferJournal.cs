@@ -6,7 +6,7 @@ namespace Harbor.Core.Transfer;
 /// <summary>
 /// Keeps every transfer's state as <c>&lt;id&gt;.json</c> in a folder of this PC's data directory, replaced atomically
 /// after each chunk, so the app always knows where a copy stopped — across dropped connections, restarts and crashes.
-/// SPEC FR-61, ADR-0038
+/// SPEC FR-61, ADR-0039
 /// </summary>
 public sealed class TransferJournal(string directory)
 {

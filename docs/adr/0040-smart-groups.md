@@ -1,4 +1,4 @@
-# ADR-0039: Smart groups: rule-based virtual groups in the entry tree, kept in personal settings
+# ADR-0040: Smart groups: rule-based virtual groups in the entry tree, kept in personal settings
 
 * Status: Accepted
 * Date: 2026-11-05
@@ -44,7 +44,7 @@ but are not saved and are only one at a time.
   while searching, empty groups hide like folders. A group whose folder has no visible entries is shown at the top
   level when nothing is filtered (so it can still be found and edited) and hidden otherwise.
 * **Personal storage (option 2).** `HarborSettings.SmartGroups` and `CollapsedSmartGroups` (ids). Groups match by
-  rules, not entry ids, so moving an entry between vaults (new id, ADR-0037) needs no remapping.
+  rules, not entry ids, so moving an entry between vaults (new id, ADR-0038) needs no remapping.
 * **Editing.** Tree context menu (**New smart group…** in the selected folder, **Edit…**, **Delete**), F2 / Del on a
   group row. The editor shows a live count of matching entries.
 

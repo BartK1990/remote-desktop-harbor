@@ -28,7 +28,7 @@
   <DockPanel>
     <views:TitleBar DockPanel.Dock="Top" ShowMinimizeMaximize="False" />
     <DockPanel Margin="16,8,16,16">
-      <!-- SPEC FR-62, ADR-0039: name, where the group is shown, All / Any and the rules, like RDCMan's smart groups. -->
+      <!-- SPEC FR-62, ADR-0040: name, where the group is shown, All / Any and the rules, like RDCMan's smart groups. -->
       <StackPanel DockPanel.Dock="Top">
         <Grid>
           <Grid.ColumnDefinitions>

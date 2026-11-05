@@ -51,7 +51,7 @@ public sealed record ConnectionEntry
 
     /// <summary>
     /// Shared-database mode only: the entry is kept in this PC's local vault and never written to the shared database.
-    /// Set by <c>HarborWorkspace</c> from where the entry is stored; not a column. SPEC FR-29, ADR-0037
+    /// Set by <c>HarborWorkspace</c> from where the entry is stored; not a column. SPEC FR-29, ADR-0038
     /// </summary>
     public bool IsLocalOnly { get; init; }
 

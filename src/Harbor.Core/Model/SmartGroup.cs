@@ -2,7 +2,7 @@ using System.Text.RegularExpressions;
 
 namespace Harbor.Core.Model;
 
-/// <summary>The entry property a <see cref="SmartGroupRule"/> looks at. SPEC FR-62, ADR-0039</summary>
+/// <summary>The entry property a <see cref="SmartGroupRule"/> looks at. SPEC FR-62, ADR-0040</summary>
 public enum SmartGroupField
 {
     /// <summary>The entry's display name.</summary>
@@ -62,7 +62,7 @@ public sealed record SmartGroupRule
 /// its own but lists every entry its rules match, and follows the catalog as entries are added, edited or deleted.
 /// It is shown in <see cref="Folder"/> (top level when <c>null</c>) and then only considers entries in that folder and
 /// its sub-folders. Smart groups are personal: kept in the user's settings, never in a shared database.
-/// SPEC FR-62, ADR-0039
+/// SPEC FR-62, ADR-0040
 /// </summary>
 public sealed record SmartGroup
 {

@@ -1,6 +1,6 @@
 # ADR-0036: Release exes code-signed through SignPath Foundation
 
-* Status: Accepted
+* Status: Superseded by ADR-0037
 * Date: 2026-11-04
 * Requirements: NFR-06, NFR-02, NFR-04
 

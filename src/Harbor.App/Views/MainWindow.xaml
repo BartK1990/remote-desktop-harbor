@@ -52,7 +52,7 @@
           </DataTrigger>
         </Style.Triggers>
       </Style>
-      <!-- Entry kept on this PC only, next to a shared database (SPEC FR-29, ADR-0037). -->
+      <!-- Entry kept on this PC only, next to a shared database (SPEC FR-29, ADR-0038). -->
       <Style x:Key="LocalOnlyMark" TargetType="TextBlock" BasedOn="{StaticResource Harbor.Text.Icon}">
         <Setter Property="Text" Value="&#xE977;" />
         <Setter Property="FontSize" Value="10" />
@@ -304,7 +304,7 @@
             </StackPanel>
           </HierarchicalDataTemplate>
 
-          <!-- Smart group (SPEC FR-62, ADR-0039): a virtual group of the entries its rules match; filter icon, italic count. -->
+          <!-- Smart group (SPEC FR-62, ADR-0040): a virtual group of the entries its rules match; filter icon, italic count. -->
           <HierarchicalDataTemplate DataType="{x:Type vm:SmartGroupViewModel}" ItemsSource="{Binding Children}">
             <StackPanel Orientation="Horizontal" ToolTip="{Binding Description}" AutomationProperties.Name="{Binding Name, StringFormat='Smart group {0}'}">
               <TextBlock Style="{StaticResource Harbor.Text.Icon}" Text="&#xE71C;" Margin="0,0,6,0" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
@@ -482,7 +482,7 @@
             <MenuItem Header="Move to shared database…" Command="{Binding MoveToSharedCommand}"
                       Visibility="{Binding SupportsLocalEntries, Converter={StaticResource BoolToVisibility}}" />
             <Separator />
-            <!-- SPEC FR-62, ADR-0039 -->
+            <!-- SPEC FR-62, ADR-0040 -->
             <MenuItem Header="New smart group…" Command="{Binding NewSmartGroupCommand}" />
             <MenuItem Header="Edit smart group…" Command="{Binding EditSmartGroupCommand}" />
             <MenuItem Header="Delete smart group" Command="{Binding DeleteSmartGroupCommand}" />

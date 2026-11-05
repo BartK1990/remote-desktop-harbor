@@ -94,7 +94,7 @@ public class ViewSourceTests
         Assert.Equal("PaneSplitter_MouseDoubleClick", (string?)splitter.Attribute("MouseDoubleClick"));
     }
 
-    // SPEC FR-29, ADR-0037: the entry editor offers "Shared database" / "This PC only" as its own radio group, and the
+    // SPEC FR-29, ADR-0038: the entry editor offers "Shared database" / "This PC only" as its own radio group, and the
     // details pane and the tree context menu can move the selected entry both ways.
     [Fact]
     public void Entries_can_be_stored_on_this_pc_and_moved_both_ways()
@@ -118,7 +118,7 @@ public class ViewSourceTests
         Assert.True(int.Parse(padding.Split(',')[2]) >= 16, padding);
     }
 
-    // SPEC FR-62, ADR-0039: the tree has rows for smart groups and the entries they list, and its context menu manages
+    // SPEC FR-62, ADR-0040: the tree has rows for smart groups and the entries they list, and its context menu manages
     // them; the editor saves with Ctrl+S like the other dialogs.
     [Fact]
     public void Tree_shows_smart_groups_and_its_menu_manages_them()
