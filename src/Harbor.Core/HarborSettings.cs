@@ -101,6 +101,12 @@ public sealed class HarborSettings
     /// </summary>
     public double ListPaneWidth { get; set; } = Model.ListPaneWidth.Default;
 
+    /// <summary>
+    /// Folder on the entry's host that file transfers start in (SPEC FR-60): relative to <c>\\host\</c>, or a full UNC path.
+    /// Remembered from the last transfer.
+    /// </summary>
+    public string TransferRemoteFolder { get; set; } = @"C$\Users\Public\Downloads";
+
     /// <summary>Entries this user pinned (SPEC FR-50); personal, never written to a shared database.</summary>
     public List<Guid> PinnedEntryIds { get; set; } = [];
 

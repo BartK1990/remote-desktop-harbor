@@ -7,6 +7,8 @@ In **shared mode** all entries — including their encrypted passwords — live 
 uses. Every client keeps a local, still-encrypted copy for speed and [offline use](../offline-mode/), and the shared
 database powers [session presence](../session-presence/).
 
+Entries you want to keep to yourself can stay [on this PC only](../local-entries/), next to the shared catalog.
+
 ```
  Alice's PC ──┐                                  ┌── Bob's PC
   local cache │◄──── sync (ciphertext only) ────►│ local cache

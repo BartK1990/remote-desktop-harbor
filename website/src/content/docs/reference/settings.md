@@ -84,6 +84,7 @@ Explorer.
 | Divider between the list and the details pane (double-click resets) | `ListPaneWidth` | `0.4` | Width of the entry list as a share of the list and details panes, `0.1` to `0.9`. Written when the app closes. |
 | Pin (star, <kbd>Ctrl</kbd>+<kbd>D</kbd>) | `PinnedEntryIds` | `[]` | Ids of the entries you pinned. Personal: never written to the shared database. |
 | (connecting) | `RecentEntryIds` | `[]` | Ids of the last 10 entries you connected to, most recent first. Personal. |
+| File transfer → Folder on the host | `TransferRemoteFolder` | `C$\Users\Public\Downloads` | Folder that [file transfers](../../guides/file-transfer/) start in: relative to `\\<host>\`, or a full UNC path. The last one used. |
 
 ## Validation
 

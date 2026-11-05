@@ -12,7 +12,8 @@ namespace Harbor.Core.Services;
 /// The app's single entry point to stored connections. In <see cref="StorageMode.Local"/> it works on one
 /// SQLite file. In <see cref="StorageMode.Remote"/> the shared database is the source of truth and a local
 /// SQLite cache serves reads and keeps working (read-only) while the shared database is unreachable.
-/// See ADR-0007.
+/// See ADR-0007. In remote mode entries can also be kept in this PC's local vault only, and moved between it and the
+/// shared database (SPEC FR-29, ADR-0038).
 /// </summary>
 public sealed class HarborWorkspace : IDisposable
 {
@@ -21,16 +22,18 @@ public sealed class HarborWorkspace : IDisposable
 
     private readonly IConnectionStore _local;
     private readonly IConnectionStore? _remote;
+    private readonly IConnectionStore? _localVault;
     private readonly IKeyProtector _localProtector;
     private readonly IKeyProtector? _remoteProtectorForNewKey;
     private readonly IKeyProtectorResolver _resolver;
     private readonly bool _migrateRemote;
     private readonly SemaphoreSlim _remoteLock = new(1, 1);
     private SecretCipher? _cipher;
+    private SecretCipher? _localVaultCipher;
     private bool _remoteKeyVerified;
 
     private HarborWorkspace(UserIdentity user, IConnectionStore local, IConnectionStore? remote, IKeyProtector localProtector,
-        IKeyProtector? remoteProtectorForNewKey, IKeyProtectorResolver resolver, bool migrateRemote)
+        IKeyProtector? remoteProtectorForNewKey, IKeyProtectorResolver resolver, bool migrateRemote, IConnectionStore? localVault)
     {
         User = user;
         _local = local;
@@ -39,15 +42,21 @@ public sealed class HarborWorkspace : IDisposable
         _remoteProtectorForNewKey = remoteProtectorForNewKey;
         _resolver = resolver;
         _migrateRemote = migrateRemote;
+        _localVault = localVault;
     }
 
     public static HarborWorkspace CreateLocal(UserIdentity user, IConnectionStore store, IKeyProtector localProtector,
         IKeyProtectorResolver resolver) =>
-        new(user, store, null, localProtector, null, resolver, migrateRemote: false);
+        new(user, store, null, localProtector, null, resolver, migrateRemote: false, localVault: null);
 
+    /// <summary>
+    /// Remote mode. <paramref name="localVault"/> (the local-mode vault file of this PC) holds entries kept on this PC only
+    /// (SPEC FR-29, ADR-0038); <c>null</c> disables them.
+    /// </summary>
     public static HarborWorkspace CreateRemote(UserIdentity user, IConnectionStore cache, IConnectionStore remote,
-        IKeyProtector localProtector, IKeyProtector remoteProtectorForNewKey, IKeyProtectorResolver resolver, bool migrateRemote) =>
-        new(user, cache, remote, localProtector, remoteProtectorForNewKey, resolver, migrateRemote);
+        IKeyProtector localProtector, IKeyProtector remoteProtectorForNewKey, IKeyProtectorResolver resolver, bool migrateRemote,
+        IConnectionStore? localVault = null) =>
+        new(user, cache, remote, localProtector, remoteProtectorForNewKey, resolver, migrateRemote, localVault);
 
     public UserIdentity User { get; }
     public bool IsRemote => _remote is not null;
@@ -57,6 +66,18 @@ public sealed class HarborWorkspace : IDisposable
 
     /// <summary>Writes are allowed in local mode and in remote mode while online.</summary>
     public bool CanWrite => !IsRemote || IsOnline;
+
+    /// <summary>
+    /// Remote mode with this PC's local vault open: entries can be kept on this PC only and moved between it and the shared
+    /// database. SPEC FR-29
+    /// </summary>
+    public bool SupportsLocalEntries => _localVaultCipher is not null;
+
+    /// <summary>Why <see cref="SupportsLocalEntries"/> is false although a local vault was given (e.g. it cannot be decrypted here).</summary>
+    public Exception? LocalVaultError { get; private set; }
+
+    /// <summary>Whether <paramref name="entry"/> can be changed or deleted now: local-only entries also while offline. SPEC FR-29</summary>
+    public bool CanWriteEntry(ConnectionEntry entry) => entry.IsLocalOnly ? SupportsLocalEntries : CanWrite;
 
     /// <summary>
     /// Remote mode: on the next successful connection, re-protect the existing shared vault key with the protector for
@@ -84,6 +105,8 @@ public sealed class HarborWorkspace : IDisposable
             return;
         }
 
+        await OpenLocalVaultAsync(cancellationToken).ConfigureAwait(false);
+
         // Start from the key cached on this machine: shown offline, and SyncAsync then needs no passphrase or DC
         // when the shared key is unchanged (ADR-0006).
         Exception? cacheError = null;
@@ -108,6 +131,29 @@ public sealed class HarborWorkspace : IDisposable
             throw new WorkspaceOfflineException(
                 "The shared database is unreachable and there is no offline copy on this machine yet. " +
                 $"Connect once while online. ({LastRemoteError?.Message})", LastRemoteError);
+        }
+    }
+
+    /// <summary>
+    /// Opens this PC's local vault for local-only entries (SPEC FR-29). A vault that cannot be opened (e.g. copied from
+    /// another user or machine) only disables local-only entries; the shared database still opens.
+    /// </summary>
+    private async Task OpenLocalVaultAsync(CancellationToken cancellationToken)
+    {
+        if (_localVault is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _localVault.InitializeAsync(cancellationToken).ConfigureAwait(false);
+            _localVaultCipher = await VaultKeyManager.OpenOrCreateAsync(_localVault, _localProtector, _resolver, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            LocalVaultError = ex;
         }
     }
 
@@ -184,24 +230,49 @@ public sealed class HarborWorkspace : IDisposable
         }
     }
 
-    public Task<IReadOnlyList<ConnectionEntry>> ListAsync(CancellationToken cancellationToken = default) =>
-        _local.ListAsync(includeDeleted: false, cancellationToken);
+    /// <summary>
+    /// All entries: in remote mode the cached shared ones followed by this PC's local-only ones (marked
+    /// <see cref="ConnectionEntry.IsLocalOnly"/>, SPEC FR-29).
+    /// </summary>
+    public async Task<IReadOnlyList<ConnectionEntry>> ListAsync(CancellationToken cancellationToken = default)
+    {
+        var entries = await _local.ListAsync(includeDeleted: false, cancellationToken).ConfigureAwait(false);
+        if (!SupportsLocalEntries)
+        {
+            return entries;
+        }
+
+        var localOnly = await _localVault!.ListAsync(includeDeleted: false, cancellationToken).ConfigureAwait(false);
+        return [.. entries, .. localOnly.Select(MarkLocal)];
+    }
+
+    private static ConnectionEntry MarkLocal(ConnectionEntry entry) => entry with { IsLocalOnly = true };
 
     /// <summary>
     /// Saves <paramref name="entry"/> with its accounts. <paramref name="password"/> applies to the default account;
     /// <paramref name="accountPasswords"/> to additional accounts by id (missing = keep). SPEC FR-04, FR-09
     /// </summary>
+    /// <remarks>
+    /// In remote mode an entry with <see cref="ConnectionEntry.IsLocalOnly"/> is saved to this PC's local vault only,
+    /// also while the shared database is offline (SPEC FR-29).
+    /// </remarks>
     public async Task<ConnectionEntry> SaveAsync(ConnectionEntry entry, SecretUpdate password,
         IReadOnlyDictionary<Guid, SecretUpdate>? accountPasswords = null, CancellationToken cancellationToken = default)
     {
+        var cipher = CipherFor(entry);
         var toStore = entry with
         {
-            PasswordCipher = Apply(password, entry.PasswordCipher, entry.Id),
+            PasswordCipher = Apply(cipher, password, entry.PasswordCipher, entry.Id),
             Accounts = entry.Accounts.Select(a => a with
             {
-                PasswordCipher = Apply(accountPasswords?.GetValueOrDefault(a.Id) ?? SecretUpdate.Keep, a.PasswordCipher, a.Id),
+                PasswordCipher = Apply(cipher, accountPasswords?.GetValueOrDefault(a.Id) ?? SecretUpdate.Keep, a.PasswordCipher, a.Id),
             }).ToList(),
         };
+
+        if (IsLocalOnlyIn(entry))
+        {
+            return MarkLocal(await _localVault!.SaveAsync(toStore, User.UserName, cancellationToken).ConfigureAwait(false));
+        }
 
         if (_remote is null)
         {
@@ -215,6 +286,12 @@ public sealed class HarborWorkspace : IDisposable
 
     public async Task DeleteAsync(ConnectionEntry entry, CancellationToken cancellationToken = default)
     {
+        if (IsLocalOnlyIn(entry))
+        {
+            await _localVault!.DeleteAsync(entry.Id, entry.Version, User.UserName, cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
         if (_remote is null)
         {
             await _local.DeleteAsync(entry.Id, entry.Version, User.UserName, cancellationToken).ConfigureAwait(false);
@@ -242,21 +319,121 @@ public sealed class HarborWorkspace : IDisposable
         if (accountId is not null)
         {
             var account = entry.FindAccount(accountId) ?? throw new InvalidOperationException("The account no longer exists.");
-            return account.PasswordCipher is { Length: > 0 } a ? Cipher.Decrypt(a, account.Id) : null;
+            return account.PasswordCipher is { Length: > 0 } a ? CipherFor(entry).Decrypt(a, account.Id) : null;
         }
 
-        return entry.PasswordCipher is { Length: > 0 } c ? Cipher.Decrypt(c, entry.Id) : null;
+        return entry.PasswordCipher is { Length: > 0 } c ? CipherFor(entry).Decrypt(c, entry.Id) : null;
     }
 
-    private byte[]? Apply(SecretUpdate update, byte[]? current, Guid boundTo) => update.Mode switch
+    /// <summary>
+    /// Moves <paramref name="entry"/> from the shared database to this PC's local vault (<paramref name="toLocal"/>) or back,
+    /// with its accounts and passwords. Needs the shared database online. The moved entry gets new ids (the source keeps a
+    /// tombstone under the old ones, so caches learn it is gone) and its passwords are re-encrypted with the target vault's
+    /// key, bound to the new ids. Returns the stored entry. SPEC FR-29, ADR-0038
+    /// </summary>
+    /// <exception cref="WorkspaceOfflineException">The shared database is offline.</exception>
+    /// <exception cref="ConcurrencyConflictException">The entry was changed or deleted in the meantime; nothing was moved.</exception>
+    public async Task<ConnectionEntry> MoveAsync(ConnectionEntry entry, bool toLocal, CancellationToken cancellationToken = default)
+    {
+        if (!SupportsLocalEntries)
+        {
+            throw new InvalidOperationException("Entries can only be moved in shared database mode with a local vault on this PC.");
+        }
+
+        if (entry.IsLocalOnly == toLocal)
+        {
+            return entry;
+        }
+
+        if (!IsOnline)
+        {
+            throw new WorkspaceOfflineException(
+                "The shared database is offline. Entries can be moved once it is reachable again.", LastRemoteError);
+        }
+
+        var copy = Recrypt(entry, CipherFor(entry), toLocal ? _localVaultCipher! : Cipher) with { IsLocalOnly = toLocal };
+        if (toLocal)
+        {
+            // Local copy first, then the shared tombstone; if the shared delete fails, the local copy is withdrawn again.
+            var stored = await _localVault!.SaveAsync(copy, User.UserName, cancellationToken).ConfigureAwait(false);
+            try
+            {
+                await DeleteAsync(entry, cancellationToken).ConfigureAwait(false);
+            }
+            catch
+            {
+                await _localVault.DeleteAsync(stored.Id, stored.Version, User.UserName, CancellationToken.None).ConfigureAwait(false);
+                throw;
+            }
+
+            return MarkLocal(stored);
+        }
+
+        var shared = await OnRemoteAsync(r => r.SaveAsync(copy, User.UserName, cancellationToken)).ConfigureAwait(false);
+        await _local.ApplyReplicaAsync([shared], cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await _localVault!.DeleteAsync(entry.Id, entry.Version, User.UserName, cancellationToken).ConfigureAwait(false);
+        }
+        catch
+        {
+            await DeleteAsync(shared, CancellationToken.None).ConfigureAwait(false);
+            throw;
+        }
+
+        return shared;
+    }
+
+    /// <summary>
+    /// A new, unsaved copy of <paramref name="entry"/> with new ids whose passwords are decrypted with <paramref name="from"/>
+    /// and encrypted with <paramref name="to"/>, bound to the new ids (NFR-11). The plaintext only lives in memory.
+    /// </summary>
+    private static ConnectionEntry Recrypt(ConnectionEntry entry, SecretCipher from, SecretCipher to)
+    {
+        var id = Guid.NewGuid();
+        return entry with
+        {
+            Id = id,
+            Version = 0,
+            IsDeleted = false,
+            PasswordCipher = entry.PasswordCipher is { Length: > 0 } c ? to.Encrypt(from.Decrypt(c, entry.Id), id) : null,
+            Accounts = entry.Accounts.Select(a =>
+            {
+                var accountId = Guid.NewGuid();
+                return a with
+                {
+                    Id = accountId,
+                    PasswordCipher = a.PasswordCipher is { Length: > 0 } ac ? to.Encrypt(from.Decrypt(ac, a.Id), accountId) : null,
+                };
+            }).ToList(),
+        };
+    }
+
+    private static byte[]? Apply(SecretCipher cipher, SecretUpdate update, byte[]? current, Guid boundTo) => update.Mode switch
     {
         SecretUpdateMode.Clear => null,
         SecretUpdateMode.Set when string.IsNullOrEmpty(update.Value) => null,
-        SecretUpdateMode.Set => Cipher.Encrypt(update.Value!, boundTo),
+        SecretUpdateMode.Set => cipher.Encrypt(update.Value!, boundTo),
         _ => current,
     };
 
     private SecretCipher Cipher => _cipher ?? throw new InvalidOperationException("Workspace is not open.");
+
+    /// <summary>Whether <paramref name="entry"/> lives in this PC's local vault next to a shared database (SPEC FR-29).</summary>
+    private bool IsLocalOnlyIn(ConnectionEntry entry)
+    {
+        if (!entry.IsLocalOnly || _remote is null)
+        {
+            return false;
+        }
+
+        return SupportsLocalEntries
+            ? true
+            : throw new InvalidOperationException("This PC's local vault is not available.", LocalVaultError);
+    }
+
+    /// <summary>The key of the vault that holds <paramref name="entry"/>.</summary>
+    private SecretCipher CipherFor(ConnectionEntry entry) => IsLocalOnlyIn(entry) ? _localVaultCipher! : Cipher;
 
     private async Task<T> OnRemoteAsync<T>(Func<IConnectionStore, Task<T>> action)
     {
@@ -322,6 +499,7 @@ public sealed class HarborWorkspace : IDisposable
     public void Dispose()
     {
         _cipher?.Dispose();
+        _localVaultCipher?.Dispose();
         _remoteLock.Dispose();
     }
 }

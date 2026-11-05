@@ -14,7 +14,7 @@ from that copy.
 | Start the app, browse, search | ✅ |
 | Connect to an entry | ✅ |
 | Copy user name / password / host | ✅ |
-| Create, import, edit, delete | ❌ disabled |
+| Create, import, edit, delete | ❌ disabled (except [entries on this PC only](../local-entries/)) |
 | See who is connected | ❌ (no presence shown) |
 
 The status bar shows **Shared database · OFFLINE (read-only cached copy)** in orange, and the reason on the left.

@@ -20,6 +20,7 @@ description: Keyboard shortcuts in the main window.
 | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> | Copy the selected account's password (cleared from the clipboard after 30 s) |
 | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>U</kbd> | Copy the selected account's user name |
 | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd> | Copy the selected entry's host (`host:port` for a non-default port) |
+| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> | [Transfer files](../file-transfer/) to or from the selected entry's host |
 | <kbd>Ctrl</kbd>+<kbd>,</kbd> | Open Settings |
 | <kbd>F5</kbd> | Sync with the shared database and refresh presence |
 | <kbd>Ctrl</kbd>+<kbd>Plus</kbd> / <kbd>Ctrl</kbd>+<kbd>Minus</kbd> (or <kbd>Ctrl</kbd>+wheel over the tree) | Larger / smaller rows in the entry list |

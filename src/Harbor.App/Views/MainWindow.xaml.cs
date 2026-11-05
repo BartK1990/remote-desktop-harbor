@@ -276,6 +276,16 @@ public partial class MainWindow : Window
             return;
         }
 
+        // SPEC FR-61: unfinished transfers are paused and resume from where they stopped on the next start.
+        if (_viewModel.ActiveTransferCount > 0 && !MessageWindow.Show(this, "Transfers still running",
+                $"{_viewModel.ActiveTransferCount} file transfer(s) are not finished. They are paused and can be resumed where they " +
+                "stopped the next time you open File transfer. Close anyway?",
+                MessageKind.Risky, "Close anyway", "Cancel"))
+        {
+            e.Cancel = true;
+            return;
+        }
+
         e.Cancel = true;
         RememberListPaneWidth();
         await _viewModel.DisposeAsync();

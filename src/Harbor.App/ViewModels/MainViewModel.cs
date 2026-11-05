@@ -249,17 +249,25 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(ConnectCommand), nameof(EditCommand), nameof(DeleteCommand), nameof(CopyPasswordCommand), nameof(CopyUserNameCommand),
         nameof(CopyHostCommand), nameof(ConnectAsCommand),
-        nameof(TogglePinCommand))]
+        nameof(TogglePinCommand), nameof(MoveToLocalCommand), nameof(MoveToSharedCommand), nameof(TransferFilesCommand))]
     [NotifyPropertyChangedFor(nameof(PinText))]
     private EntryViewModel? _selected;
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(AddCommand), nameof(EditCommand), nameof(DeleteCommand), nameof(ImportRdpCommand), nameof(ImportRdmCommand), nameof(ConnectCommand), nameof(ConnectAsCommand))]
+    [NotifyCanExecuteChangedFor(nameof(AddCommand), nameof(EditCommand), nameof(DeleteCommand), nameof(ImportRdpCommand), nameof(ImportRdmCommand),
+        nameof(ConnectCommand), nameof(ConnectAsCommand), nameof(MoveToLocalCommand), nameof(MoveToSharedCommand), nameof(TransferFilesCommand))]
     private bool _isReady;
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(AddCommand), nameof(EditCommand), nameof(DeleteCommand), nameof(ImportRdpCommand), nameof(ImportRdmCommand))]
+    [NotifyCanExecuteChangedFor(nameof(AddCommand), nameof(EditCommand), nameof(DeleteCommand), nameof(ImportRdpCommand), nameof(ImportRdmCommand),
+        nameof(MoveToLocalCommand), nameof(MoveToSharedCommand))]
     private bool _canWrite;
+
+    /// <summary>Shared-database mode with this PC's vault: entries can be kept on this PC only (SPEC FR-29, ADR-0038).</summary>
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(AddCommand), nameof(EditCommand), nameof(DeleteCommand), nameof(ImportRdpCommand),
+        nameof(MoveToLocalCommand), nameof(MoveToSharedCommand))]
+    private bool _supportsLocalEntries;
 
     [ObservableProperty] private string _userText = "Signing in…";
     [ObservableProperty] private string _storeText = "";
@@ -383,12 +391,15 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
 
         CanWrite = ws.CanWrite;
         IsRemote = ws.IsRemote;
+        SupportsLocalEntries = ws.SupportsLocalEntries;
         IsOffline = ws.IsRemote && !ws.IsOnline;
         StoreText = !ws.IsRemote
             ? "Local vault"
             : ws.IsOnline
                 ? $"Shared database · online{(ws.LastSyncUtc is { } t ? $" · synced {t.ToLocalTime():T}" : "")}"
-                : "Shared database · OFFLINE (read-only cached copy)";
+                : ws.SupportsLocalEntries
+                    ? "Shared database · OFFLINE (read-only cached copy; entries on this PC can still be changed)"
+                    : "Shared database · OFFLINE (read-only cached copy)";
         if (IsOffline && ws.LastRemoteError is { } err)
         {
             StatusText = $"Offline: {err.Message}";
@@ -574,8 +585,15 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     // ------------------------------------------------------------------ commands
 
     private bool HasSelection => IsReady && Selected is not null;
-    private bool CanEdit => IsReady && CanWrite;
-    private bool CanEditSelection => CanEdit && Selected is not null;
+
+    /// <summary>New entries: always in local mode; in shared mode while online, or on this PC while offline (SPEC FR-29).</summary>
+    private bool CanEdit => IsReady && (CanWrite || SupportsLocalEntries);
+
+    /// <summary>Bulk import writes to the shared database in shared mode.</summary>
+    private bool CanImport => IsReady && CanWrite;
+
+    /// <summary>Entries kept on this PC can be changed while the shared database is offline (SPEC FR-29).</summary>
+    private bool CanEditSelection => IsReady && Selected is { } vm && (vm.IsLocalOnly ? SupportsLocalEntries : CanWrite);
     private bool CanConnectSelection => HasSelection && Selected!.CanLaunch;
 
     [RelayCommand(CanExecute = nameof(CanConnectSelection))]
@@ -613,6 +631,9 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
             StatusText = accountName is null ? $"Launched {entry.Name}" : $"Launched {entry.Name} as {accountName}";
             RememberRecent(entry.Id);
             Log.Info($"Launched {entry.Id}");
+
+            // SPEC FR-29: an entry kept on this PC is private, so no presence is published for it.
+            if (entry.IsLocalOnly) return;
 
             var lease = await _host.Presence.BeginAsync(entry.Id, accountName, _host.User);
             _leases.Add(lease);
@@ -660,7 +681,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     /// Imports a Remote Desktop Manager CSV export after one confirmation that says what will be added and skipped.
     /// Passwords from the file are only held in memory until each entry is saved encrypted. SPEC FR-54, ADR-0032
     /// </summary>
-    [RelayCommand(CanExecute = nameof(CanEdit))]
+    [RelayCommand(CanExecute = nameof(CanImport))]
     private async Task ImportRdmAsync()
     {
         if (_host is null || _dialogs.PickRdmCsvFile() is not { } path) return;
@@ -733,6 +754,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     private async Task EditNewAsync(ConnectionEntry template, bool importFirst)
     {
         var editor = new EntryEditorViewModel(template with { Folder = SelectedFolderPath }, isNew: true, _dialogs, Folders());
+        if (SupportsLocalEntries) editor.OfferLocalStorage(sharedAvailable: CanWrite);
         if (importFirst)
         {
             editor.ImportRdpFileCommand.Execute(null);
@@ -742,8 +764,13 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     }
 
     [RelayCommand(CanExecute = nameof(CanEditSelection))]
-    private Task EditAsync() =>
-        Selected is { } vm ? RunEditorAsync(new EntryEditorViewModel(vm.Model, isNew: false, _dialogs, Folders())) : Task.CompletedTask;
+    private Task EditAsync()
+    {
+        if (Selected is not { } vm) return Task.CompletedTask;
+        var editor = new EntryEditorViewModel(vm.Model, isNew: false, _dialogs, Folders());
+        if (SupportsLocalEntries) editor.OfferLocalStorage(sharedAvailable: CanWrite);
+        return RunEditorAsync(editor);
+    }
 
     private async Task RunEditorAsync(EntryEditorViewModel editor)
     {
@@ -777,7 +804,8 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     private async Task DeleteAsync()
     {
         if (_host is null || Selected is not { } vm) return;
-        if (!_dialogs.ConfirmRisky("Delete entry", $"Delete '{vm.Name}'?{(_host.Workspace.IsRemote ? " It will be removed for everyone using the shared database." : "")}", "Delete"))
+        var shared = _host.Workspace.IsRemote && !vm.IsLocalOnly;
+        if (!_dialogs.ConfirmRisky("Delete entry", $"Delete '{vm.Name}'?{(shared ? " It will be removed for everyone using the shared database." : "")}", "Delete"))
         {
             return;
         }
@@ -793,6 +821,82 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
             _dialogs.ShowError("Not deleted", ex.Message);
         }
     }
+
+    // ------------------------------------------------------------------ this PC only / shared (SPEC FR-29, ADR-0038)
+
+    private bool CanMoveToLocal => IsReady && SupportsLocalEntries && CanWrite && Selected is { IsLocalOnly: false };
+    private bool CanMoveToShared => IsReady && SupportsLocalEntries && CanWrite && Selected is { IsLocalOnly: true };
+
+    [RelayCommand(CanExecute = nameof(CanMoveToLocal))]
+    private Task MoveToLocalAsync() => MoveAsync(toLocal: true);
+
+    [RelayCommand(CanExecute = nameof(CanMoveToShared))]
+    private Task MoveToSharedAsync() => MoveAsync(toLocal: false);
+
+    private async Task MoveAsync(bool toLocal)
+    {
+        if (_host is null || Selected is not { } vm) return;
+        var confirmed = toLocal
+            ? _dialogs.ConfirmRisky("Move to this PC only",
+                $"Move '{vm.Name}' to this PC only?{Environment.NewLine}{Environment.NewLine}It is removed from the shared database for everyone " +
+                "and kept, with its passwords, only in this PC's local vault, encrypted for your Windows account.", "Move to this PC")
+            : _dialogs.ConfirmRisky("Move to shared database",
+                $"Move '{vm.Name}' to the shared database?{Environment.NewLine}{Environment.NewLine}Everyone using the shared database will see it " +
+                "and can use its passwords. It is removed from this PC's local vault.", "Share");
+        if (!confirmed) return;
+
+        try
+        {
+            var moved = await _host.Workspace.MoveAsync(vm.Model, toLocal);
+            RemapPersonalIds(vm.Model.Id, moved.Id);
+            await ReloadAsync();
+            Selected = Entries.FirstOrDefault(e => e.Model.Id == moved.Id);
+            StatusText = toLocal ? $"{moved.Name} is now kept on this PC only" : $"{moved.Name} is now in the shared database";
+            Log.Info($"Moved {vm.Model.Id} to {(toLocal ? "this PC" : "the shared database")} as {moved.Id}");
+        }
+        catch (Exception ex) when (ex is ConcurrencyConflictException or WorkspaceOfflineException or InvalidOperationException)
+        {
+            _dialogs.ShowError("Not moved", ex.Message);
+            if (ex is ConcurrencyConflictException) await SyncAsync();
+        }
+    }
+
+    /// <summary>A moved entry gets a new id (ADR-0038): keep it pinned and in the recent list.</summary>
+    private void RemapPersonalIds(Guid from, Guid to)
+    {
+        if (_pinned.Remove(from))
+        {
+            _pinned.Add(to);
+            Settings.PinnedEntryIds = [.. _pinned];
+        }
+
+        Settings.RecentEntryIds = Settings.RecentEntryIds.Select(id => id == from ? to : id).ToList();
+        SaveSettingsQuietly("Pinned and recent entries");
+    }
+
+    // ------------------------------------------------------------------ file transfer (SPEC FR-60, FR-61, ADR-0039)
+
+    private TransfersViewModel? _transfers;
+
+    private bool CanTransferFiles => HasSelection && !string.IsNullOrWhiteSpace(Selected!.Model.Host);
+
+    /// <summary>Opens the File transfer window for the selected entry and account.</summary>
+    [RelayCommand(CanExecute = nameof(CanTransferFiles))]
+    private void TransferFiles()
+    {
+        if (_host is null || Selected is not { } vm) return;
+        _transfers ??= new TransfersViewModel(_host.Transfers, _dialogs, _host.ConnectSharesAsync, Settings.TransferRemoteFolder, folder =>
+        {
+            Settings.TransferRemoteFolder = folder;
+            SaveSettingsQuietly("Transfer folder");
+        });
+        _transfers.Target(vm.Model, SelectedAccount?.AccountId);
+        _dialogs.ShowTransfers(_transfers);
+    }
+
+    /// <summary>Transfers still copying or retrying; closing the app pauses them (they resume later). SPEC FR-61</summary>
+    public int ActiveTransferCount => _host?.Transfers.Jobs.Count(j => j.State is Core.Transfer.TransferState.Running
+        or Core.Transfer.TransferState.Retrying or Core.Transfer.TransferState.Queued) ?? 0;
 
     [RelayCommand(CanExecute = nameof(HasSelection))]
     private void CopyPassword()
@@ -898,6 +1002,6 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         _presenceTimer.Stop();
         // End presence records now; otherwise others would see us as connected until the TTL runs out.
         await Task.WhenAll(_leases.ToList().Select(l => l.DisposeAsync().AsTask()));
-        _host?.Dispose();
+        if (_host is not null) await _host.DisposeAsync();
     }
 }

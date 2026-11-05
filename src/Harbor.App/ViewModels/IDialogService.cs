@@ -16,4 +16,15 @@ public interface IDialogService
 
     /// <summary>Picks a Remote Desktop Manager CSV export to import (SPEC FR-54).</summary>
     string? PickRdmCsvFile();
+
+    /// <summary>Files to upload to an entry's host (SPEC FR-60).</summary>
+    string[]? PickFilesToUpload();
+
+    /// <summary>Files to download from <paramref name="remoteFolder"/>, a connected UNC folder (SPEC FR-60).</summary>
+    string[]? PickFilesToDownload(string remoteFolder);
+
+    string? PickFolder(string title, string? initialFolder);
+
+    /// <summary>Shows the File transfer window (one, not modal). SPEC FR-60</summary>
+    void ShowTransfers(TransfersViewModel transfers);
 }

@@ -43,3 +43,5 @@ Process: see [spec/README.md](../spec/README.md).
 | [0035](0035-generic-termsrv-credential.md) | Password handed to mstsc as a generic `TERMSRV/<host>` credential (works under Credential Guard) | Accepted |
 | [0036](0036-code-signing-signpath.md) | Release exes code-signed through SignPath Foundation | Superseded by 0037 |
 | [0037](0037-code-signing-withdrawn.md) | Code signing withdrawn: releases stay unsigned for now | Accepted |
+| [0038](0038-local-only-entries-in-shared-mode.md) | Entries kept on this PC only while using a shared database, movable both ways | Accepted |
+| [0039](0039-resumable-file-transfer.md) | Built-in file transfer over SMB that resumes after dropped connections | Accepted |
