@@ -263,7 +263,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         nameof(MoveToLocalCommand), nameof(MoveToSharedCommand))]
     private bool _canWrite;
 
-    /// <summary>Shared-database mode with this PC's vault: entries can be kept on this PC only (SPEC FR-29, ADR-0037).</summary>
+    /// <summary>Shared-database mode with this PC's vault: entries can be kept on this PC only (SPEC FR-29, ADR-0038).</summary>
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(AddCommand), nameof(EditCommand), nameof(DeleteCommand), nameof(ImportRdpCommand),
         nameof(MoveToLocalCommand), nameof(MoveToSharedCommand))]
@@ -822,7 +822,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
-    // ------------------------------------------------------------------ this PC only / shared (SPEC FR-29, ADR-0037)
+    // ------------------------------------------------------------------ this PC only / shared (SPEC FR-29, ADR-0038)
 
     private bool CanMoveToLocal => IsReady && SupportsLocalEntries && CanWrite && Selected is { IsLocalOnly: false };
     private bool CanMoveToShared => IsReady && SupportsLocalEntries && CanWrite && Selected is { IsLocalOnly: true };
@@ -861,7 +861,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
-    /// <summary>A moved entry gets a new id (ADR-0037): keep it pinned and in the recent list.</summary>
+    /// <summary>A moved entry gets a new id (ADR-0038): keep it pinned and in the recent list.</summary>
     private void RemapPersonalIds(Guid from, Guid to)
     {
         if (_pinned.Remove(from))
@@ -874,7 +874,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         SaveSettingsQuietly("Pinned and recent entries");
     }
 
-    // ------------------------------------------------------------------ file transfer (SPEC FR-60, FR-61, ADR-0038)
+    // ------------------------------------------------------------------ file transfer (SPEC FR-60, FR-61, ADR-0039)
 
     private TransfersViewModel? _transfers;
 

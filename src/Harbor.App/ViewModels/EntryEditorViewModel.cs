@@ -56,7 +56,7 @@ public sealed partial class EntryEditorViewModel : ObservableValidator
 
     [ObservableProperty] private string? _error;
 
-    // ------------------------------------------------------------------ where the entry is stored (SPEC FR-29, ADR-0037)
+    // ------------------------------------------------------------------ where the entry is stored (SPEC FR-29, ADR-0038)
 
     /// <summary>Shared-database mode with this PC's vault: the General tab shows where the entry is stored.</summary>
     public bool ShowsStorage { get; private set; }

@@ -52,7 +52,7 @@
           </DataTrigger>
         </Style.Triggers>
       </Style>
-      <!-- Entry kept on this PC only, next to a shared database (SPEC FR-29, ADR-0037). -->
+      <!-- Entry kept on this PC only, next to a shared database (SPEC FR-29, ADR-0038). -->
       <Style x:Key="LocalOnlyMark" TargetType="TextBlock" BasedOn="{StaticResource Harbor.Text.Icon}">
         <Setter Property="Text" Value="&#xE977;" />
         <Setter Property="FontSize" Value="10" />

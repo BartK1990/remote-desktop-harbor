@@ -8,7 +8,7 @@ namespace Harbor.Windows.Transfer;
 /// <summary>
 /// Connects <c>\\host\share</c> with an entry's account before a file transfer (and again before every retry), using
 /// <c>WNetAddConnection2</c>: the password goes straight to Windows, never on a command line or to disk (NFR-12). Connections
-/// it made are closed on <see cref="Dispose"/>. SPEC FR-60, ADR-0038
+/// it made are closed on <see cref="Dispose"/>. SPEC FR-60, ADR-0039
 /// </summary>
 [SupportedOSPlatform("windows")]
 public sealed partial class NetworkShareConnector : IDisposable

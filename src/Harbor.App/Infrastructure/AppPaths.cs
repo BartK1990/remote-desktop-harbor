@@ -18,7 +18,7 @@ public static class AppPaths
     public static string SettingsFile => Path.Combine(DataDirectory, "settings.json");
     public static string LocalDatabase => Path.Combine(DataDirectory, "harbor.db");
     public static string TempDirectory => Path.Combine(DataDirectory, "tmp");
-    /// <summary>Journal of file transfers, one JSON file per transfer (SPEC FR-61, ADR-0038).</summary>
+    /// <summary>Journal of file transfers, one JSON file per transfer (SPEC FR-61, ADR-0039).</summary>
     public static string TransfersDirectory => Path.Combine(DataDirectory, "transfers");
     public static string LogFile => Path.Combine(DataDirectory, "logs", "harbor.log");
 

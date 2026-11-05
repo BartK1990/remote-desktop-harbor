@@ -27,7 +27,7 @@ public class DialogViewModelTests
 
     private static EntryEditorViewModel Editor(ConnectionEntry entry, bool isNew = false) => new(entry, isNew, new NoDialogs(), []);
 
-    // SPEC FR-29, ADR-0037: in shared-database mode a new entry can be kept on this PC only; offline it must be.
+    // SPEC FR-29, ADR-0038: in shared-database mode a new entry can be kept on this PC only; offline it must be.
     [Fact]
     public void New_entries_can_be_kept_on_this_pc_and_must_be_while_offline()
     {

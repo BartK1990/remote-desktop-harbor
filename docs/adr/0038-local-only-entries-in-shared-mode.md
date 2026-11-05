@@ -1,4 +1,4 @@
-# ADR-0037: Entries kept on this PC only while using a shared database
+# ADR-0038: Entries kept on this PC only while using a shared database
 
 * Status: Accepted
 * Date: 2026-11-05

@@ -5,7 +5,7 @@ using Harbor.Core.Storage;
 
 namespace Harbor.Data.Tests;
 
-// SPEC FR-29, ADR-0037: entries kept on this PC only while using a shared database, and moving them both ways.
+// SPEC FR-29, ADR-0038: entries kept on this PC only while using a shared database, and moving them both ways.
 public class LocalOnlyEntryTests
 {
     private static readonly TestKeyProtector AliceLocal = new("local-alice", "alice-machine");

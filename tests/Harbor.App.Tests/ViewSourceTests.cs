@@ -94,7 +94,7 @@ public class ViewSourceTests
         Assert.Equal("PaneSplitter_MouseDoubleClick", (string?)splitter.Attribute("MouseDoubleClick"));
     }
 
-    // SPEC FR-29, ADR-0037: the entry editor offers "Shared database" / "This PC only" as its own radio group, and the
+    // SPEC FR-29, ADR-0038: the entry editor offers "Shared database" / "This PC only" as its own radio group, and the
     // details pane and the tree context menu can move the selected entry both ways.
     [Fact]
     public void Entries_can_be_stored_on_this_pc_and_moved_both_ways()

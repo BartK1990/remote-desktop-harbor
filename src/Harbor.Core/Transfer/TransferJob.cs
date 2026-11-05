@@ -27,7 +27,7 @@ public enum TransferState
 /// <summary>
 /// One file copied by <see cref="ResumableFileCopier"/>, as kept in the transfer journal after every chunk so a copy can
 /// continue where it stopped after a dropped connection, a closed app or a crash. Holds no secret: credentials are looked
-/// up from the entry for every attempt. SPEC FR-60, FR-61, ADR-0038
+/// up from the entry for every attempt. SPEC FR-60, FR-61, ADR-0039
 /// </summary>
 public sealed class TransferJob
 {

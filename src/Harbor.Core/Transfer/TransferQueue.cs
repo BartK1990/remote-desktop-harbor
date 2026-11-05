@@ -14,7 +14,7 @@ public sealed record TransferRetryPolicy(TimeSpan FirstDelay, TimeSpan MaxDelay,
 /// A connection problem (<see cref="IOException"/>, <see cref="TimeoutException"/>) is retried automatically from the last
 /// recorded chunk; transfers left unfinished when the app closed come back paused and resume where they stopped.
 /// <c>prepare</c> runs before every attempt, e.g. to (re)connect a share with the entry's credentials.
-/// SPEC FR-60, FR-61, ADR-0038
+/// SPEC FR-60, FR-61, ADR-0039
 /// </summary>
 public sealed class TransferQueue : IAsyncDisposable
 {

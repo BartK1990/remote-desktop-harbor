@@ -7,7 +7,7 @@ namespace Harbor.Core.Transfer;
 /// through <c>checkpoint</c>, in the journal) before the next one, so an attempt cut off by a dropped connection, a closed
 /// app or a crash continues from the last recorded chunk. Before resuming, the partial file's length and its last chunk
 /// are checked against the journal; a changed source starts over. When all bytes are in, the partial file gets its final
-/// name. SPEC FR-60, FR-61, ADR-0038
+/// name. SPEC FR-60, FR-61, ADR-0039
 /// </summary>
 public sealed class ResumableFileCopier(ITransferFileSystem? fileSystem = null)
 {
