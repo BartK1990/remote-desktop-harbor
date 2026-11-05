@@ -21,11 +21,12 @@ public sealed class MstscLauncher(string tempDirectory, bool keepCredential, Act
     private static readonly ConcurrentDictionary<string, long> PendingCleanup = new(StringComparer.OrdinalIgnoreCase);
     private static long _launchCount;
 
-    public Task<IRdpSession> LaunchAsync(ConnectionEntry entry, string? password, CancellationToken cancellationToken = default)
+    public Task<IRdpSession> LaunchAsync(ConnectionEntry entry, string? password, IReadOnlyList<string>? overrides = null,
+        CancellationToken cancellationToken = default)
     {
         Directory.CreateDirectory(tempDirectory);
         var rdpPath = Path.Combine(tempDirectory, $"{Guid.NewGuid():N}.rdp");
-        File.WriteAllText(rdpPath, RdpFile.Build(entry));
+        File.WriteAllText(rdpPath, RdpFile.Build(entry, overrides: overrides));
 
         var target = RdpFile.CredentialTarget(entry.Host!);
         var launch = Interlocked.Increment(ref _launchCount);

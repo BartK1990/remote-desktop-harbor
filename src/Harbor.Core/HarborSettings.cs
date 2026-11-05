@@ -39,6 +39,16 @@ public static class AppThemeExtensions
     };
 }
 
+/// <summary>How file transfers reach the host (SPEC FR-60, FR-63).</summary>
+public enum TransferMethod
+{
+    /// <summary>Through the Remote Desktop connection: only the Remote Desktop port is needed (ADR-0041).</summary>
+    RemoteDesktop = 0,
+
+    /// <summary>Over Windows file sharing (SMB, port 445) with the entry's account (ADR-0039).</summary>
+    NetworkShare = 1,
+}
+
 /// <summary>User-editable app configuration, persisted as JSON in the data directory. See SPEC section 7.</summary>
 public sealed class HarborSettings
 {
@@ -106,6 +116,15 @@ public sealed class HarborSettings
     /// Remembered from the last transfer.
     /// </summary>
     public string TransferRemoteFolder { get; set; } = @"C$\Users\Public\Downloads";
+
+    /// <summary>How file transfers reach the host; the last choice in the File transfer window (SPEC FR-63).</summary>
+    public TransferMethod TransferMethod { get; set; } = TransferMethod.RemoteDesktop;
+
+    /// <summary>
+    /// Remote Desktop transfers: folder on the server, as the server sees it; environment variables are expanded there
+    /// (SPEC FR-63). Remembered from the last transfer.
+    /// </summary>
+    public string TransferServerFolder { get; set; } = @"%USERPROFILE%\Downloads";
 
     /// <summary>
     /// Smart groups of this user (SPEC FR-62, ADR-0040): virtual tree groups listing the entries their rules match.

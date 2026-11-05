@@ -46,3 +46,4 @@ Process: see [spec/README.md](../spec/README.md).
 | [0038](0038-local-only-entries-in-shared-mode.md) | Entries kept on this PC only while using a shared database, movable both ways | Accepted |
 | [0039](0039-resumable-file-transfer.md) | Built-in file transfer over SMB that resumes after dropped connections | Accepted |
 | [0040](0040-smart-groups.md) | Smart groups: rule-based virtual groups in the entry tree, kept in personal settings | Accepted |
+| [0041](0041-file-transfer-through-remote-desktop.md) | File transfer through the Remote Desktop connection (port 3389 only) | Accepted |

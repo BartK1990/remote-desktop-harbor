@@ -19,6 +19,7 @@ machine-wide files.
 |---|---|
 | `settings.json` | [Settings](../settings/). The remote connection string is DPAPI-protected. |
 | `harbor.db` | Local vault (SQLite) — used in local storage mode, and in shared mode for [entries kept on this PC only](../../team/local-entries/). |
+| `rdp-transfers\` | [Transfers through Remote Desktop](../../guides/file-transfer/#copying-through-remote-desktop): the copy helper, and per transfer its plan, start command and progress. Shared into the session while it copies. No passwords. |
 | `transfers\<id>.json` | Journal of [file transfers](../../guides/file-transfer/): where each copy stopped, so it can resume. No passwords. |
 | `cache-<hash>.db` | Local offline copy of a shared database. One file per provider + connection string, so switching databases never mixes data. |
 | `logs\harbor.log` | Application log. Rotated to `harbor.log.1` at 2 MB. Never contains secrets. |

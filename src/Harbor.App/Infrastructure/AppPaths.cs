@@ -20,6 +20,8 @@ public static class AppPaths
     public static string TempDirectory => Path.Combine(DataDirectory, "tmp");
     /// <summary>Journal of file transfers, one JSON file per transfer (SPEC FR-61, ADR-0039).</summary>
     public static string TransfersDirectory => Path.Combine(DataDirectory, "transfers");
+    /// <summary>Helper, plans and status of transfers through Remote Desktop; shared into the session (SPEC FR-63, ADR-0041).</summary>
+    public static string RdpTransfersDirectory => Path.Combine(DataDirectory, "rdp-transfers");
     public static string LogFile => Path.Combine(DataDirectory, "logs", "harbor.log");
 
     /// <summary>Offline cache for a remote database; one file per remote so switching databases never mixes data.</summary>

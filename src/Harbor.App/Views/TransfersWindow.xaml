@@ -4,7 +4,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:Harbor.App.ViewModels"
         xmlns:views="clr-namespace:Harbor.App.Views"
-        Title="File transfer" Width="760" Height="520" MinWidth="560" MinHeight="360"
+        Title="File transfer" Width="780" Height="640" MinWidth="580" MinHeight="420"
         Icon="/Assets/AppIcon.ico"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False" ResizeMode="CanResizeWithGrip">
   <!-- Own title bar (SPEC FR-52, ADR-0029). The window is not modal: transfers keep running while the main window is used. -->
@@ -22,20 +22,59 @@
   <DockPanel>
     <views:TitleBar DockPanel.Dock="Top" ShowMinimizeMaximize="False" />
     <DockPanel Margin="16,8,16,16">
-      <!-- SPEC FR-60: target entry, account and folder on its host; upload files or a folder, download files. -->
+      <!-- SPEC FR-60, FR-63: target entry and account, how to copy, the folder on the host; upload files or a folder, download files. -->
       <StackPanel DockPanel.Dock="Top">
         <TextBlock Text="{Binding TargetText}" FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-        <TextBlock Text="Folder on the host" Style="{StaticResource FieldLabel}" />
-        <TextBox Text="{Binding RemoteFolder, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource Harbor.MonoFont}"
-                 AutomationProperties.Name="Folder on the host"
-                 ToolTip="A shared folder on the host, e.g. \\server\C$\Users\Public\Downloads. It is opened with the entry's account." />
+        <TextBlock Text="Copy over" Style="{StaticResource FieldLabel}" Margin="0,8,0,4" />
+        <StackPanel Orientation="Horizontal" AutomationProperties.Name="Copy over">
+          <RadioButton GroupName="Method" Style="{StaticResource Harbor.Segment}" Content="Remote Desktop (port 3389)" IsChecked="{Binding UseRemoteDesktop}"
+                       ToolTip="Through the Remote Desktop connection: works wherever you can connect. A helper started in the session copies the files." />
+          <RadioButton GroupName="Method" Style="{StaticResource Harbor.Segment}" Content="Network share (port 445)" IsChecked="{Binding UseNetworkShare}"
+                       ToolTip="Over Windows file sharing with the entry's account; needs port 445 to the host." />
+        </StackPanel>
+        <TextBlock Text="{Binding MethodHint}" TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
+
+        <StackPanel Visibility="{Binding UseRemoteDesktop, Converter={StaticResource BoolToVisibility}}">
+          <TextBlock Text="Folder on the server" Style="{StaticResource FieldLabel}" />
+          <TextBox Text="{Binding ServerFolder, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource Harbor.MonoFont}"
+                   AutomationProperties.Name="Folder on the server"
+                   ToolTip="As the server sees it, e.g. %USERPROFILE%\Downloads or D:\Install. Environment variables are expanded on the server." />
+          <CheckBox Content="Replace files that already exist" IsChecked="{Binding ReplaceExisting}" Margin="0,6,0,0" />
+        </StackPanel>
+        <StackPanel Visibility="{Binding UseNetworkShare, Converter={StaticResource BoolToVisibility}}">
+          <TextBlock Text="Folder on the host" Style="{StaticResource FieldLabel}" />
+          <TextBox Text="{Binding RemoteFolder, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource Harbor.MonoFont}"
+                   AutomationProperties.Name="Folder on the host"
+                   ToolTip="A shared folder on the host, e.g. \\server\C$\Users\Public\Downloads. It is opened with the entry's account." />
+        </StackPanel>
         <WrapPanel Margin="0,10,0,0">
           <Button Content="Upload files…" Command="{Binding UploadFilesCommand}" Style="{DynamicResource AccentButtonStyle}" Margin="0,0,6,6" Padding="14,6" />
           <Button Content="Upload folder…" Command="{Binding UploadFolderCommand}" Style="{StaticResource Harbor.Button}" Margin="0,0,6,6" />
           <Button Content="Download…" Command="{Binding DownloadCommand}" Style="{StaticResource Harbor.Button}" Margin="0,0,6,6" />
         </WrapPanel>
+        <!-- SPEC FR-63: what to do in the session to start a Remote Desktop transfer. -->
+        <Border BorderBrush="{DynamicResource AccentFillColorDefaultBrush}" BorderThickness="1" CornerRadius="4" Padding="10,8" Margin="0,2,0,8">
+          <Border.Style>
+            <Style TargetType="Border">
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding StartHint}" Value="{x:Null}">
+                  <Setter Property="Visibility" Value="Collapsed" />
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </Border.Style>
+          <StackPanel>
+            <TextBlock Text="{Binding StartHint}" TextWrapping="Wrap" />
+            <DockPanel Margin="0,6,0,0">
+              <Button DockPanel.Dock="Right" Content="Copy command" Command="{Binding CopyStartCommandCommand}" Style="{StaticResource Harbor.SubtleButton}"
+                      Margin="8,0,0,0" ToolTip="Put the start command on the clipboard again" />
+              <TextBox Text="{Binding StartCommand, Mode=OneWay}" IsReadOnly="True" FontFamily="{StaticResource Harbor.MonoFont}"
+                       AutomationProperties.Name="Start command" />
+            </DockPanel>
+          </StackPanel>
+        </Border>
         <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,2,0,8"
-                   Text="Each file is copied in chunks and its progress is saved after every chunk: when the connection drops the copy is retried and continues where it stopped, and unfinished transfers can be resumed after the app restarts." />
+                   Text="Each file is copied in chunks and its progress is saved after every chunk: when the connection drops the copy waits or retries and continues where it stopped." />
       </StackPanel>
 
       <DockPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
@@ -80,6 +119,9 @@
                 <Button Content="Resume" Command="{Binding ResumeCommand}" Style="{StaticResource Harbor.SubtleButton}" Margin="0,0,4,0"
                         Visibility="{Binding CanResume, Converter={StaticResource BoolToVisibility}}"
                         ToolTip="Continue where the copy stopped" />
+                <Button Content="Copy command" Command="{Binding CopyStartCommandCommand}" Style="{StaticResource Harbor.SubtleButton}" Margin="0,0,4,0"
+                        Visibility="{Binding HasStartCommand, Converter={StaticResource BoolToVisibility}}"
+                        ToolTip="Copy the command that starts (or resumes) this transfer in the Remote Desktop session (Win+R, Ctrl+V)" />
                 <Button Content="{Binding RemoveText}" Command="{Binding RemoveCommand}" Style="{StaticResource Harbor.SubtleButton}"
                         ToolTip="Remove from the list; Cancel also deletes the partly copied file" />
               </StackPanel>

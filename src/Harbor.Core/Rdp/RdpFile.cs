@@ -58,8 +58,11 @@ public static class RdpFile
         return new ImportResult(host, port, domain, user, rest.ToString().TrimEnd());
     }
 
-    /// <summary>Produces the .rdp file used to launch <paramref name="entry"/>.</summary>
-    public static string Build(ConnectionEntry entry, IReadOnlyDictionary<string, string>? defaults = null)
+    /// <summary>
+    /// Produces the .rdp file used to launch <paramref name="entry"/>. <paramref name="overrides"/> are lines that win over
+    /// the defaults and the entry's settings (e.g. drives shared for a file transfer, SPEC FR-63); managed keys are ignored.
+    /// </summary>
+    public static string Build(ConnectionEntry entry, IReadOnlyDictionary<string, string>? defaults = null, IEnumerable<string>? overrides = null)
     {
         if (!entry.CanLaunch)
         {
@@ -86,6 +89,11 @@ public static class RdpFile
             {
                 if (!ManagedKeys.Contains(key)) Set(key, raw);
             }
+        }
+
+        foreach (var (key, _, _, raw) in Parse(string.Join("\n", overrides ?? [])))
+        {
+            if (!ManagedKeys.Contains(key)) Set(key, raw);
         }
 
         var address = entry.Port == ConnectionEntry.DefaultRdpPort ? entry.Host! : $"{entry.Host}:{entry.Port}";
