@@ -35,6 +35,7 @@ export default defineConfig({
 					label: 'Using the app',
 					items: [
 						'guides/managing-entries',
+						'guides/smart-groups',
 						'guides/importing-rdp-files',
 						'guides/importing-from-rdm',
 						'guides/connecting',

@@ -304,6 +304,21 @@
             </StackPanel>
           </HierarchicalDataTemplate>
 
+          <!-- Smart group (SPEC FR-62, ADR-0040): a virtual group of the entries its rules match; filter icon, italic count. -->
+          <HierarchicalDataTemplate DataType="{x:Type vm:SmartGroupViewModel}" ItemsSource="{Binding Children}">
+            <StackPanel Orientation="Horizontal" ToolTip="{Binding Description}" AutomationProperties.Name="{Binding Name, StringFormat='Smart group {0}'}">
+              <TextBlock Style="{StaticResource Harbor.Text.Icon}" Text="&#xE71C;" Margin="0,0,6,0" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+              <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontStyle="Italic" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+              <TextBlock Text="{Binding Count}" Margin="6,0,0,0" FontSize="{StaticResource Harbor.FontSize.Caption}" VerticalAlignment="Center"
+                         Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+            </StackPanel>
+          </HierarchicalDataTemplate>
+
+          <!-- An entry listed in a smart group looks like its own row; it has no account rows (Connect's menu lists them). -->
+          <DataTemplate DataType="{x:Type vm:EntryLinkViewModel}">
+            <ContentPresenter Content="{Binding Entry}" />
+          </DataTemplate>
+
           <!-- An entry with several accounts has one child row per account (SPEC FR-09). -->
           <HierarchicalDataTemplate DataType="{x:Type vm:EntryViewModel}" ItemsSource="{Binding Children}">
             <Grid ToolTip="{Binding Subtitle}">
@@ -466,6 +481,11 @@
                       Visibility="{Binding SupportsLocalEntries, Converter={StaticResource BoolToVisibility}}" />
             <MenuItem Header="Move to shared database…" Command="{Binding MoveToSharedCommand}"
                       Visibility="{Binding SupportsLocalEntries, Converter={StaticResource BoolToVisibility}}" />
+            <Separator />
+            <!-- SPEC FR-62, ADR-0040 -->
+            <MenuItem Header="New smart group…" Command="{Binding NewSmartGroupCommand}" />
+            <MenuItem Header="Edit smart group…" Command="{Binding EditSmartGroupCommand}" />
+            <MenuItem Header="Delete smart group" Command="{Binding DeleteSmartGroupCommand}" />
             <Separator />
             <MenuItem Header="Expand all" Command="{Binding ExpandAllCommand}" />
             <MenuItem Header="Collapse all" Command="{Binding CollapseAllCommand}" />
