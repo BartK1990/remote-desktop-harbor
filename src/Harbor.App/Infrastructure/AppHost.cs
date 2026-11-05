@@ -5,6 +5,7 @@ using Harbor.Core.Security;
 using Harbor.Core.Services;
 using Harbor.Core.Storage;
 using Harbor.Core.Transfer;
+using Harbor.Core.Transfer.Rdp;
 using Harbor.Data;
 using Harbor.Data.Providers;
 using Harbor.Windows.Identity;
@@ -38,8 +39,11 @@ public sealed class AppHost : IAsyncDisposable
     public SessionPresenceService Presence { get; }
     public IRdpLauncher Launcher { get; }
 
-    /// <summary>Resumable file transfers to and from entries' hosts (SPEC FR-60).</summary>
+    /// <summary>Resumable file transfers to and from entries' hosts over a network share (SPEC FR-60).</summary>
     public TransferQueue Transfers { get; }
+
+    /// <summary>Transfers through the Remote Desktop connection, copied by a helper in the session (SPEC FR-63).</summary>
+    public RdpTransferKit RdpTransfers { get; } = new(AppPaths.RdpTransfersDirectory);
 
     /// <summary>
     /// Connects the shares of <paramref name="job"/>'s paths as the account of its entry (the signed-in Windows user when

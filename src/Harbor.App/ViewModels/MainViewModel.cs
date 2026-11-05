@@ -697,9 +697,19 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     [RelayCommand(CanExecute = nameof(CanConnectSelection))]
     private async Task ConnectAsync()
     {
-        if (_host is null || Selected is not { } vm || SelectedAccount is not { } accountVm) return;
+        if (Selected is { } vm && SelectedAccount is { } accountVm) await ConnectEntryAsync(vm, accountVm.AccountId, null);
+    }
+
+    /// <summary>
+    /// Connects <paramref name="vm"/> as <paramref name="accountId"/>, with the takeover and production questions, presence
+    /// and recent list; <paramref name="overrides"/> are extra .rdp lines for this launch (drives shared for a file
+    /// transfer, SPEC FR-63). Returns false when nothing was launched.
+    /// </summary>
+    private async Task<bool> ConnectEntryAsync(EntryViewModel vm, Guid? accountId, IReadOnlyList<string>? overrides)
+    {
+        if (_host is null) return false;
         var entry = vm.Model;
-        var account = entry.FindAccount(accountVm.AccountId);
+        var account = entry.FindAccount(accountId);
         var accountName = entry.QualifiedUserNameFor(account);
 
         // SPEC FR-33: hosts that allow several sessions (e.g. Windows Server) let other accounts connect side by side;
@@ -712,36 +722,38 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
                 $"{EntryViewModel.Describe(conflicts)}{prodNote}{Environment.NewLine}{Environment.NewLine}Connect anyway? This may disconnect the other user.",
                 "Connect anyway"))
         {
-            return;
+            return false;
         }
 
         if (conflicts.Count == 0 && production && Settings.ConfirmProductionConnect && !_dialogs.ConfirmRisky("Production entry",
                 $"{entry.Name} is in {vm.GroupName} (PROD).{Environment.NewLine}{Environment.NewLine}Connect{(accountName is null ? "" : $" as {accountName}")}?",
                 "Connect"))
         {
-            return;
+            return false;
         }
 
         try
         {
             var password = _host.Workspace.RevealPassword(entry, account?.Id);
-            var session = await _host.Launcher.LaunchAsync(entry.ForAccount(account), password);
+            var session = await _host.Launcher.LaunchAsync(entry.ForAccount(account), password, overrides);
             StatusText = accountName is null ? $"Launched {entry.Name}" : $"Launched {entry.Name} as {accountName}";
             RememberRecent(entry.Id);
             Log.Info($"Launched {entry.Id}");
 
             // SPEC FR-29: an entry kept on this PC is private, so no presence is published for it.
-            if (entry.IsLocalOnly) return;
+            if (entry.IsLocalOnly) return true;
 
             var lease = await _host.Presence.BeginAsync(entry.Id, accountName, _host.User);
             _leases.Add(lease);
             await RefreshPresenceAsync();
             _ = TrackSessionAsync(session, lease);
+            return true;
         }
         catch (Exception ex)
         {
             Log.Error("Launch failed", ex);
             _dialogs.ShowError("Could not start Remote Desktop", ex.Message);
+            return false;
         }
     }
 
@@ -1064,14 +1076,18 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     private void TransferFiles()
     {
         if (_host is null || Selected is not { } vm) return;
-        _transfers ??= new TransfersViewModel(_host.Transfers, _dialogs, _host.ConnectSharesAsync, Settings.TransferRemoteFolder, folder =>
-        {
-            Settings.TransferRemoteFolder = folder;
-            SaveSettingsQuietly("Transfer folder");
-        });
+        _transfers ??= new TransfersViewModel(_host.Transfers, _host.RdpTransfers, _dialogs, _host.ConnectSharesAsync, ConnectForTransferAsync,
+            Settings, () => SaveSettingsQuietly("Transfer settings"));
         _transfers.Target(vm.Model, SelectedAccount?.AccountId);
         _dialogs.ShowTransfers(_transfers);
     }
+
+    /// <summary>
+    /// SPEC FR-63: connects the transfer's entry and account with the drives it needs shared into the session. A session
+    /// already open with the same account is reconnected with them.
+    /// </summary>
+    private Task<bool> ConnectForTransferAsync(Guid entryId, Guid? accountId, IReadOnlyList<string> overrides) =>
+        Entries.FirstOrDefault(e => e.Model.Id == entryId) is { } vm ? ConnectEntryAsync(vm, accountId, overrides) : Task.FromResult(false);
 
     /// <summary>Transfers still copying or retrying; closing the app pauses them (they resume later). SPEC FR-61</summary>
     public int ActiveTransferCount => _host?.Transfers.Jobs.Count(j => j.State is Core.Transfer.TransferState.Running

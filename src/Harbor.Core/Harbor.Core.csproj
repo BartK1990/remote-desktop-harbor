@@ -5,6 +5,8 @@
     <IsTrimmable>true</IsTrimmable>
   </PropertyGroup>
   <ItemGroup>
+    <!-- SPEC FR-63, ADR-0041: the helper that copies inside the Remote Desktop session. -->
+    <EmbeddedResource Include="Transfer\Rdp\harbor-copy.ps1" LogicalName="Harbor.Core.Transfer.Rdp.harbor-copy.ps1" />
     <InternalsVisibleTo Include="Harbor.Core.Tests" />
   </ItemGroup>
 </Project>

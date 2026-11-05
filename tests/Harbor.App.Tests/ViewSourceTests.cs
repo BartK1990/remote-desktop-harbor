@@ -109,6 +109,18 @@ public class ViewSourceTests
         Assert.Equal(2, commands.Count(c => c == "{Binding TransferFilesCommand}"));
     }
 
+    // SPEC FR-63, ADR-0041: File transfer chooses between Remote Desktop (port 3389) and a network share (port 445), and
+    // Remote Desktop transfers show the command that starts them in the session.
+    [Fact]
+    public void Transfers_can_go_through_remote_desktop_or_a_network_share()
+    {
+        var doc = XDocument.Load(Source("TransfersWindow.xaml"));
+        Assert.Equal(new[] { "Remote Desktop (port 3389)", "Network share (port 445)" }, doc.Descendants(Wpf + "RadioButton")
+            .Where(r => (string?)r.Attribute("GroupName") == "Method").Select(r => (string)r.Attribute("Content")!));
+        var commands = doc.Descendants(Wpf + "Button").Select(b => (string?)b.Attribute("Command")).ToList();
+        Assert.Equal(2, commands.Count(c => c == "{Binding CopyStartCommandCommand}"));
+    }
+
     // SPEC FR-60: the transfer list keeps a right gutter so the scroll bar never covers the Pause / Resume / Cancel buttons.
     [Fact]
     public void Transfer_rows_keep_a_gutter_for_the_scroll_bar()

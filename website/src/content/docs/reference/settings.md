@@ -86,6 +86,8 @@ Explorer.
 | Smart group arrows in the entry tree | `CollapsedSmartGroups` | `[]` | Ids of the smart groups collapsed in the entry tree. Written when the app closes. |
 | Pin (star, <kbd>Ctrl</kbd>+<kbd>D</kbd>) | `PinnedEntryIds` | `[]` | Ids of the entries you pinned. Personal: never written to the shared database. |
 | (connecting) | `RecentEntryIds` | `[]` | Ids of the last 10 entries you connected to, most recent first. Personal. |
+| File transfer → Copy over | `TransferMethod` | `0` | `0` Remote Desktop (port 3389), `1` Network share (port 445). The last choice. |
+| File transfer → Folder on the server | `TransferServerFolder` | `%USERPROFILE%\Downloads` | Folder on the server for transfers through Remote Desktop, as the server sees it. The last one used. |
 | File transfer → Folder on the host | `TransferRemoteFolder` | `C$\Users\Public\Downloads` | Folder that [file transfers](../../guides/file-transfer/) start in: relative to `\\<host>\`, or a full UNC path. The last one used. |
 
 ## Validation
