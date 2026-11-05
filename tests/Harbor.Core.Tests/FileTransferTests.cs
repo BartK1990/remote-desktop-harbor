@@ -139,17 +139,20 @@ public sealed class FileTransferTests : IDisposable
     {
         var journal = new TransferJournal(Path.Combine(_dir, "journal"));
         var job = Job(Source(8 * Chunk));
-        var slow = new FlakyFileSystem { DelayPerWrite = TimeSpan.FromMilliseconds(30) };
+        var held = new FlakyFileSystem { HoldAtBytes = 3L * Chunk }; // the fourth chunk waits until the app is closing
 
-        await using (var first = new TransferQueue(journal, slow))
-        {
-            first.Start();
-            first.Enqueue(job);
-            await WaitUntilAsync(() => first.Jobs.Single().BytesDone >= 3L * Chunk);
-        } // the app closes mid-copy
+        var first = new TransferQueue(journal, held);
+        first.Start();
+        first.Enqueue(job);
+        await WaitUntilAsync(() => first.Jobs.Single().BytesDone >= 3L * Chunk);
+        var closing = first.DisposeAsync(); // the app closes mid-copy
+        held.Release();
+        await closing;
 
         var stopped = Assert.Single(journal.LoadAll());
-        Assert.InRange(stopped.BytesDone, 3L * Chunk, 7L * Chunk);
+        Assert.Equal(TransferState.Paused, stopped.State);
+        // The chunk in flight is either dropped or finished and recorded; nothing after it is copied.
+        Assert.InRange(stopped.BytesDone, 3L * Chunk, 4L * Chunk);
 
         await using var second = new TransferQueue(journal);
         second.Start();
@@ -184,13 +187,15 @@ public sealed class FileTransferTests : IDisposable
     public async Task Cancel_deletes_the_partial_file_and_forgets_the_transfer()
     {
         var journal = new TransferJournal(Path.Combine(_dir, "journal"));
-        await using var queue = new TransferQueue(journal, new FlakyFileSystem { DelayPerWrite = TimeSpan.FromMilliseconds(20) });
+        var held = new FlakyFileSystem { HoldAtBytes = Chunk };
+        await using var queue = new TransferQueue(journal, held);
         queue.Start();
         var job = Job(Source(50 * Chunk));
         queue.Enqueue(job);
         await WaitUntilAsync(() => queue.Jobs.Single().BytesDone > 0);
 
         queue.Cancel(job.Id);
+        held.Release();
         await WaitUntilAsync(() => queue.Jobs.Count == 0);
         await WaitUntilAsync(() => !File.Exists(job.PartialPath));
         Assert.Empty(journal.LoadAll());
@@ -241,6 +246,13 @@ public sealed class FileTransferTests : IDisposable
         public long? FailEveryBytes { get; set; }
 
         public TimeSpan DelayPerWrite { get; set; }
+
+        /// <summary>The write that would pass this many bytes waits for <see cref="Release"/>; makes "mid-copy" exact.</summary>
+        public long? HoldAtBytes { get; set; }
+
+        private readonly ManualResetEventSlim _gate = new(false);
+
+        public void Release() => _gate.Set();
         public long BytesWrittenAfterRecovery { get; private set; }
 
         public TransferFileInfo? GetFile(string path) => LocalTransferFileSystem.Instance.GetFile(path);
@@ -253,6 +265,10 @@ public sealed class FileTransferTests : IDisposable
         private void BeforeWrite(int count)
         {
             if (DelayPerWrite > TimeSpan.Zero) Thread.Sleep(DelayPerWrite);
+            if (HoldAtBytes is { } hold && _written + count > hold && !_gate.Wait(TimeSpan.FromSeconds(20)))
+            {
+                throw new TimeoutException("The test never released the held write.");
+            }
             if (FailEveryBytes is { } every && _written + count > every)
             {
                 _written = 0;
