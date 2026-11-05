@@ -118,6 +118,28 @@ public class ViewSourceTests
         Assert.True(int.Parse(padding.Split(',')[2]) >= 16, padding);
     }
 
+    // SPEC FR-62, ADR-0039: the tree has rows for smart groups and the entries they list, and its context menu manages
+    // them; the editor saves with Ctrl+S like the other dialogs.
+    [Fact]
+    public void Tree_shows_smart_groups_and_its_menu_manages_them()
+    {
+        var doc = XDocument.Load(Source("MainWindow.xaml"));
+        var types = doc.Descendants().Where(e => e.Name.LocalName is "HierarchicalDataTemplate" or "DataTemplate")
+            .Select(t => (string?)t.Attribute("DataType")).ToList();
+        Assert.Contains("{x:Type vm:SmartGroupViewModel}", types);
+        Assert.Contains("{x:Type vm:EntryLinkViewModel}", types);
+
+        var tree = doc.Descendants(Wpf + "TreeView").Single(t => (string?)t.Attribute(Xaml + "Name") == "EntryTree");
+        var commands = tree.Descendants(Wpf + "MenuItem").Select(m => (string?)m.Attribute("Command")).ToList();
+        Assert.Contains("{Binding NewSmartGroupCommand}", commands);
+        Assert.Contains("{Binding EditSmartGroupCommand}", commands);
+        Assert.Contains("{Binding DeleteSmartGroupCommand}", commands);
+
+        var editor = XDocument.Load(Source("SmartGroupEditorWindow.xaml"));
+        var save = Assert.Single(editor.Root!.Element(Wpf + "Window.InputBindings")!.Elements(Wpf + "KeyBinding"));
+        Assert.Equal("ApplicationCommands.Save", (string?)save.Attribute("Command"));
+    }
+
     // SPEC FR-48: the Quick connect results keep a right gutter too, so the scroll bar does not cover the in-use marker.
     [Fact]
     public void Quick_connect_results_keep_a_gutter_for_the_scroll_bar()
@@ -151,6 +173,7 @@ public class ViewSourceTests
     [InlineData("TitleBar.xaml")]
     [InlineData("MessageWindow.xaml")]
     [InlineData("TransfersWindow.xaml")]
+    [InlineData("SmartGroupEditorWindow.xaml")]
     public void Views_do_not_hard_code_colours(string view)
     {
         var colourProperties = new[] { "Foreground", "Background", "BorderBrush", "Fill", "Stroke" };
@@ -240,6 +263,7 @@ public class ViewSourceTests
     [InlineData("PassphraseWindow.xaml", false)]
     [InlineData("MessageWindow.xaml", false)]
     [InlineData("TransfersWindow.xaml", false)]
+    [InlineData("SmartGroupEditorWindow.xaml", false)]
     public void Windows_use_the_app_title_bar(string view, bool minimizeMaximize)
     {
         XNamespace views = "clr-namespace:Harbor.App.Views";

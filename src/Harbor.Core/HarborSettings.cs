@@ -107,6 +107,15 @@ public sealed class HarborSettings
     /// </summary>
     public string TransferRemoteFolder { get; set; } = @"C$\Users\Public\Downloads";
 
+    /// <summary>
+    /// Smart groups of this user (SPEC FR-62, ADR-0039): virtual tree groups listing the entries their rules match.
+    /// Personal, like pins: never written to a shared database.
+    /// </summary>
+    public List<Model.SmartGroup> SmartGroups { get; set; } = [];
+
+    /// <summary>Smart groups collapsed in the entry tree (SPEC FR-62); restored at start.</summary>
+    public List<Guid> CollapsedSmartGroups { get; set; } = [];
+
     /// <summary>Entries this user pinned (SPEC FR-50); personal, never written to a shared database.</summary>
     public List<Guid> PinnedEntryIds { get; set; } = [];
 

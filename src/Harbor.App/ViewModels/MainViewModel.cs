@@ -38,12 +38,18 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     // Pinned entries of this user (SPEC FR-50), kept in the settings.
     private readonly HashSet<Guid> _pinned;
 
+    // Smart groups (SPEC FR-62, ADR-0039): rows reused across rebuilds like folders; collapsed ones remembered by id.
+    private Dictionary<Guid, SmartGroupViewModel> _smartGroups = [];
+    private readonly HashSet<Guid> _collapsedSmartGroups;
+    private readonly HashSet<Guid> _collapsedSmartGroupsWhileSearching = [];
+
     public MainViewModel(HarborSettings settings, IDialogService dialogs)
     {
         Settings = settings;
         _dialogs = dialogs;
         _collapsed = new HashSet<string>(settings.CollapsedFolders, StringComparer.CurrentCultureIgnoreCase);
         _pinned = [.. settings.PinnedEntryIds];
+        _collapsedSmartGroups = [.. settings.CollapsedSmartGroups];
         _treeZoom = _savedTreeZoom = Zoom.Normalize(settings.TreeZoom);
         _listPaneWidth = _savedListPaneWidth = PaneWidth.Normalize(settings.ListPaneWidth);
         _syncTimer.Tick += async (_, _) => await SyncAsync();
@@ -243,7 +249,8 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
 
     /// <summary>The selected tree row (folder, entry or account); kept in sync with <see cref="Selected"/>.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(SelectedAccount), nameof(ConnectText), nameof(TakeoverWarning))]
+    [NotifyPropertyChangedFor(nameof(SelectedAccount), nameof(ConnectText), nameof(TakeoverWarning), nameof(SelectedSmartGroup))]
+    [NotifyCanExecuteChangedFor(nameof(EditCommand), nameof(DeleteCommand), nameof(EditSmartGroupCommand), nameof(DeleteSmartGroupCommand))]
     private TreeNodeViewModel? _selectedNode;
 
     [ObservableProperty]
@@ -255,7 +262,8 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(AddCommand), nameof(EditCommand), nameof(DeleteCommand), nameof(ImportRdpCommand), nameof(ImportRdmCommand),
-        nameof(ConnectCommand), nameof(ConnectAsCommand), nameof(MoveToLocalCommand), nameof(MoveToSharedCommand), nameof(TransferFilesCommand))]
+        nameof(ConnectCommand), nameof(ConnectAsCommand), nameof(MoveToLocalCommand), nameof(MoveToSharedCommand), nameof(TransferFilesCommand),
+        nameof(NewSmartGroupCommand), nameof(EditSmartGroupCommand), nameof(DeleteSmartGroupCommand))]
     private bool _isReady;
 
     [ObservableProperty]
@@ -303,6 +311,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     partial void OnSearchTextChanged(string value)
     {
         _collapsedWhileSearching.Clear();
+        _collapsedSmartGroupsWhileSearching.Clear();
         RebuildTree();
         UpdateCountText();
     }
@@ -315,6 +324,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     {
         AccountViewModel a => a,
         EntryViewModel e => e.DefaultAccount,
+        EntryLinkViewModel l => l.Entry.DefaultAccount,
         _ => null,
     };
 
@@ -326,6 +336,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         {
             EntryViewModel e => e,
             AccountViewModel a => a.Entry,
+            EntryLinkViewModel l => l.Entry, // SPEC FR-62: a smart group row stands for its entry
             _ => null,
         };
     }
@@ -333,12 +344,13 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     partial void OnSelectedChanged(EntryViewModel? value)
     {
         // An account row of the entry counts as the entry being selected.
-        if (value is not null && !ReferenceEquals(SelectedNode, value) && (SelectedNode as AccountViewModel)?.Entry != value)
+        if (value is not null && !ReferenceEquals(SelectedNode, value) && (SelectedNode as AccountViewModel)?.Entry != value
+            && (SelectedNode as EntryLinkViewModel)?.Entry != value)
         {
             RevealFolder(value.Model.Folder);
             SelectedNode = value;
         }
-        else if (value is null && SelectedNode is EntryViewModel or AccountViewModel)
+        else if (value is null && SelectedNode is EntryViewModel or AccountViewModel or EntryLinkViewModel)
         {
             SelectedNode = null;
         }
@@ -442,14 +454,16 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         StatusText = IsSearching ? $"{CountMatches()} of {Entries.Count} entries" : $"{Entries.Count} entries";
     }
 
-    private int CountMatches() => Tree.Sum(n => n is FolderViewModel f ? f.Count : 1);
+    // Smart groups list entries that also have their own row, so they are not counted (SPEC FR-62).
+    private int CountMatches() => Tree.Sum(n => n switch { FolderViewModel f => f.Count, EntryViewModel => 1, _ => 0 });
 
     // ------------------------------------------------------------------ tree (SPEC FR-02)
 
     /// <summary>Rebuilds the tree from <see cref="Entries"/> and <see cref="SearchText"/>, reusing existing rows.</summary>
     private void RebuildTree()
     {
-        var root = FolderTree.Build(Entries.Where(e => e.Matches(SearchText) && PassesFilter(e)), e => e.Model.Folder, e => e.Name);
+        var visible = Entries.Where(e => e.Matches(SearchText) && PassesFilter(e)).ToList();
+        var root = FolderTree.Build(visible, e => e.Model.Folder, e => e.Name);
         var previous = _folders;
         _folders = new Dictionary<string, FolderViewModel>(StringComparer.CurrentCultureIgnoreCase);
 
@@ -459,10 +473,13 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         {
             selectionPath.Add(selected);
             if (selected is AccountViewModel account) selectionPath.Add(account.Entry);
+            if (selected is EntryLinkViewModel link) selectionPath.Add(link.Group);
             var folder = selected switch
             {
                 FolderViewModel f => f.Path,
                 AccountViewModel a => a.Entry.Model.Folder,
+                SmartGroupViewModel g => g.Group.Folder,
+                EntryLinkViewModel l => l.Group.Group.Folder,
                 _ => ((EntryViewModel)selected).Model.Folder,
             };
             foreach (var path in FolderTree.AncestorPaths(folder))
@@ -474,16 +491,88 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         _rebuildingTree = true;
         try
         {
-            Tree.ReplaceWith(BuildRows(root, previous, selectionPath), Tree.Any(selectionPath.Contains));
+            var smartGroups = BuildSmartGroups(visible, root);
+            Tree.ReplaceWith(BuildRows(root, previous, selectionPath, smartGroups), Tree.Any(selectionPath.Contains));
 
             // The TreeView may have moved its selection while rows were replaced; the view model's selection stands.
             foreach (var folder in _folders.Values) folder.IsSelected = ReferenceEquals(folder, SelectedNode);
+            foreach (var group in _smartGroups.Values) group.IsSelected = ReferenceEquals(group, SelectedNode);
             if (SelectedNode is not null) SelectedNode.IsSelected = true;
         }
         finally
         {
             _rebuildingTree = false;
         }
+
+        // SPEC FR-62: an entry that left its smart group (edited, filtered out, group deleted or hidden) stays selected
+        // in its own folder; a deleted or hidden smart group gives the selection up.
+        if (SelectedNode is EntryLinkViewModel stale && (!_smartGroups.ContainsKey(stale.Group.Id) || !stale.Group.Children.Contains(stale)))
+        {
+            SelectedNode = Entries.Contains(stale.Entry) ? stale.Entry : null;
+            if (SelectedNode is EntryViewModel entry) RevealFolder(entry.Model.Folder);
+        }
+        else if (SelectedNode is SmartGroupViewModel gone && !_smartGroups.ContainsKey(gone.Id))
+        {
+            SelectedNode = null;
+        }
+    }
+
+    /// <summary>
+    /// Smart group rows by the folder they are shown in ("" = top level), each filled with the visible entries its rules
+    /// match. A group whose folder has no visible entries is shown at the top level while nothing is filtered, and hidden
+    /// otherwise; while searching, groups without matches are hidden like folders. SPEC FR-62, ADR-0039
+    /// </summary>
+    private Dictionary<string, List<SmartGroupViewModel>> BuildSmartGroups(List<EntryViewModel> visible, FolderTreeNode<EntryViewModel> root)
+    {
+        var folders = new HashSet<string>(StringComparer.CurrentCultureIgnoreCase);
+        void Collect(FolderTreeNode<EntryViewModel> node)
+        {
+            foreach (var child in node.Folders)
+            {
+                folders.Add(child.Path);
+                Collect(child);
+            }
+        }
+
+        Collect(root);
+        var filtered = IsSearching || TreeFilter != TreeFilter.All;
+        var collapsed = IsSearching ? _collapsedSmartGroupsWhileSearching : _collapsedSmartGroups;
+        var previous = _smartGroups;
+        _smartGroups = [];
+        var byFolder = new Dictionary<string, List<SmartGroupViewModel>>(StringComparer.CurrentCultureIgnoreCase);
+        foreach (var group in Settings.SmartGroups.OrderBy(g => g.Name, StringComparer.CurrentCultureIgnoreCase))
+        {
+            var members = SmartGroups.Filter(group, visible, e => e.Model)
+                .OrderBy(e => e.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
+            if (IsSearching && members.Count == 0) continue;
+
+            var folder = FolderTree.Normalize(group.Folder) ?? "";
+            if (folder.Length > 0 && !folders.Contains(folder))
+            {
+                if (filtered) continue;
+                folder = "";
+            }
+
+            if (!previous.TryGetValue(group.Id, out var row)) row = new SmartGroupViewModel(group.Id, OnSmartGroupExpandedChanged);
+            row.Group = group;
+            row.Count = members.Count;
+            row.IsExpanded = !collapsed.Contains(group.Id);
+            var links = row.LinksFor(members);
+            row.Children.ReplaceWith(links, links.Contains(SelectedNode!));
+            _smartGroups[group.Id] = row;
+            if (!byFolder.TryGetValue(folder, out var list)) byFolder[folder] = list = [];
+            list.Add(row);
+        }
+
+        return byFolder;
+    }
+
+    private void OnSmartGroupExpandedChanged(SmartGroupViewModel group)
+    {
+        if (_rebuildingTree) return;
+        var collapsed = IsSearching ? _collapsedSmartGroupsWhileSearching : _collapsedSmartGroups;
+        if (group.IsExpanded) collapsed.Remove(group.Id);
+        else collapsed.Add(group.Id);
     }
 
     /// <summary>Called by the view when the user selects a row. Ignored while rows are replaced by <see cref="RebuildTree"/>.</summary>
@@ -492,11 +581,13 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         if (!_rebuildingTree) SelectedNode = node;
     }
 
-    private List<TreeNodeViewModel> BuildRows(
-        FolderTreeNode<EntryViewModel> node, Dictionary<string, FolderViewModel> previous, HashSet<TreeNodeViewModel> selectionPath)
+    private List<TreeNodeViewModel> BuildRows(FolderTreeNode<EntryViewModel> node, Dictionary<string, FolderViewModel> previous,
+        HashSet<TreeNodeViewModel> selectionPath, Dictionary<string, List<SmartGroupViewModel>> smartGroups)
     {
         var rows = new List<TreeNodeViewModel>(node.Folders.Count + node.Items.Count);
         var collapsed = IsSearching ? _collapsedWhileSearching : _collapsed;
+        // SPEC FR-62: smart groups come first in their folder, like RDCMan lists them with the groups.
+        if (smartGroups.TryGetValue(node.Path, out var groups)) rows.AddRange(groups);
         foreach (var child in node.Folders)
         {
             if (!previous.TryGetValue(child.Path, out var folder))
@@ -507,7 +598,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
             folder.Name = child.Name;
             folder.Count = child.TotalCount;
             folder.IsExpanded = !collapsed.Contains(child.Path);
-            folder.Children.ReplaceWith(BuildRows(child, previous, selectionPath), folder.Children.Any(selectionPath.Contains));
+            folder.Children.ReplaceWith(BuildRows(child, previous, selectionPath, smartGroups), folder.Children.Any(selectionPath.Contains));
             _folders[child.Path] = folder;
             rows.Add(folder);
         }
@@ -538,12 +629,14 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     private void ExpandAll()
     {
         foreach (var folder in _folders.Values) folder.IsExpanded = true;
+        foreach (var group in _smartGroups.Values) group.IsExpanded = true;
     }
 
     [RelayCommand]
     private void CollapseAll()
     {
         foreach (var folder in _folders.Values) folder.IsExpanded = false;
+        foreach (var group in _smartGroups.Values) group.IsExpanded = false;
     }
 
     [RelayCommand]
@@ -555,6 +648,8 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         FolderViewModel f => f.Path,
         EntryViewModel e => e.Model.Folder,
         AccountViewModel a => a.Entry.Model.Folder,
+        EntryLinkViewModel l => l.Entry.Model.Folder,
+        SmartGroupViewModel g => g.Group.Folder,
         _ => null,
     };
 
@@ -594,6 +689,9 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
 
     /// <summary>Entries kept on this PC can be changed while the shared database is offline (SPEC FR-29).</summary>
     private bool CanEditSelection => IsReady && Selected is { } vm && (vm.IsLocalOnly ? SupportsLocalEntries : CanWrite);
+
+    /// <summary>F2 and Del act on the selected smart group row too (SPEC FR-62); smart groups are personal, so also offline.</summary>
+    private bool CanEditSelectionOrGroup => SelectedNode is SmartGroupViewModel ? IsReady : CanEditSelection;
     private bool CanConnectSelection => HasSelection && Selected!.CanLaunch;
 
     [RelayCommand(CanExecute = nameof(CanConnectSelection))]
@@ -763,9 +861,15 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         await RunEditorAsync(editor);
     }
 
-    [RelayCommand(CanExecute = nameof(CanEditSelection))]
+    [RelayCommand(CanExecute = nameof(CanEditSelectionOrGroup))]
     private Task EditAsync()
     {
+        if (SelectedNode is SmartGroupViewModel)
+        {
+            EditSmartGroup();
+            return Task.CompletedTask;
+        }
+
         if (Selected is not { } vm) return Task.CompletedTask;
         var editor = new EntryEditorViewModel(vm.Model, isNew: false, _dialogs, Folders());
         if (SupportsLocalEntries) editor.OfferLocalStorage(sharedAvailable: CanWrite);
@@ -800,9 +904,15 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
-    [RelayCommand(CanExecute = nameof(CanEditSelection))]
+    [RelayCommand(CanExecute = nameof(CanEditSelectionOrGroup))]
     private async Task DeleteAsync()
     {
+        if (SelectedNode is SmartGroupViewModel)
+        {
+            DeleteSmartGroup();
+            return;
+        }
+
         if (_host is null || Selected is not { } vm) return;
         var shared = _host.Workspace.IsRemote && !vm.IsLocalOnly;
         if (!_dialogs.ConfirmRisky("Delete entry", $"Delete '{vm.Name}'?{(shared ? " It will be removed for everyone using the shared database." : "")}", "Delete"))
@@ -872,6 +982,75 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
 
         Settings.RecentEntryIds = Settings.RecentEntryIds.Select(id => id == from ? to : id).ToList();
         SaveSettingsQuietly("Pinned and recent entries");
+    }
+
+    // ------------------------------------------------------------------ smart groups (SPEC FR-62, ADR-0039)
+
+    /// <summary>The smart group of the selected row: the group itself, or the group an entry is listed in.</summary>
+    public SmartGroupViewModel? SelectedSmartGroup => SelectedNode switch
+    {
+        SmartGroupViewModel g => g,
+        EntryLinkViewModel l => l.Group,
+        _ => null,
+    };
+
+    private bool HasSmartGroupSelection => IsReady && SelectedSmartGroup is not null;
+
+    /// <summary>New smart group, shown in the selected folder (or at the top level), like RDCMan's "Add smart group".</summary>
+    [RelayCommand(CanExecute = nameof(IsReady))]
+    private void NewSmartGroup()
+    {
+        var folder = SelectedNode is FolderViewModel f ? f.Path : null;
+        RunSmartGroupEditor(new SmartGroup { Name = "New smart group", Folder = folder }, isNew: true);
+    }
+
+    [RelayCommand(CanExecute = nameof(HasSmartGroupSelection))]
+    private void EditSmartGroup()
+    {
+        if (SelectedSmartGroup is { } row) RunSmartGroupEditor(row.Group, isNew: false);
+    }
+
+    [RelayCommand(CanExecute = nameof(HasSmartGroupSelection))]
+    private void DeleteSmartGroup()
+    {
+        if (SelectedSmartGroup is not { } row) return;
+        if (!_dialogs.ConfirmRisky("Delete smart group",
+                $"Delete the smart group '{row.Name}'?{Environment.NewLine}{Environment.NewLine}The entries it lists are not deleted.", "Delete"))
+        {
+            return;
+        }
+
+        Settings.SmartGroups = Settings.SmartGroups.Where(g => g.Id != row.Id).ToList();
+        _collapsedSmartGroups.Remove(row.Id);
+        SaveSmartGroups();
+        StatusText = $"Deleted smart group {row.Name}";
+    }
+
+    private void RunSmartGroupEditor(SmartGroup group, bool isNew)
+    {
+        var editor = new SmartGroupEditorViewModel(group, isNew, Folders(), Entries.Select(e => e.Model).ToList());
+        if (!_dialogs.EditSmartGroup(editor)) return;
+
+        var saved = editor.BuildGroup();
+        Settings.SmartGroups = isNew
+            ? [.. Settings.SmartGroups, saved]
+            : Settings.SmartGroups.Select(g => g.Id == saved.Id ? saved : g).ToList();
+        _collapsedSmartGroups.Remove(saved.Id);
+        SaveSmartGroups();
+        if (_smartGroups.TryGetValue(saved.Id, out var row))
+        {
+            RevealFolder(saved.Folder);
+            SelectedNode = row;
+        }
+
+        StatusText = $"Saved smart group {saved.Name}";
+    }
+
+    private void SaveSmartGroups()
+    {
+        Settings.CollapsedSmartGroups = [.. _collapsedSmartGroups];
+        SaveSettingsQuietly("Smart groups");
+        RebuildTree();
     }
 
     // ------------------------------------------------------------------ file transfer (SPEC FR-60, FR-61, ADR-0038)
@@ -973,13 +1152,16 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
-    /// <summary>Remembers which folders are collapsed, the tree zoom (SPEC FR-55) and the list pane width (FR-56) for the next start.</summary>
+    /// <summary>Remembers which folders and smart groups (SPEC FR-62) are collapsed, the tree zoom (SPEC FR-55) and the list pane width (FR-56) for the next start.</summary>
     private void SaveTreeState()
     {
         var collapsed = _collapsed.Order(StringComparer.CurrentCultureIgnoreCase).ToList();
+        // Only groups that still exist, so deleted ones do not pile up in the settings (SPEC FR-62).
+        var collapsedGroups = Settings.SmartGroups.Select(g => g.Id).Where(_collapsedSmartGroups.Contains).ToList();
         if (collapsed.SequenceEqual(Settings.CollapsedFolders, StringComparer.CurrentCultureIgnoreCase) && TreeZoom == _savedTreeZoom
-            && ListPaneWidth == _savedListPaneWidth) return;
+            && ListPaneWidth == _savedListPaneWidth && collapsedGroups.SequenceEqual(Settings.CollapsedSmartGroups)) return;
         Settings.CollapsedFolders = collapsed;
+        Settings.CollapsedSmartGroups = collapsedGroups;
         Settings.TreeZoom = _savedTreeZoom = TreeZoom;
         Settings.ListPaneWidth = _savedListPaneWidth = ListPaneWidth;
         try

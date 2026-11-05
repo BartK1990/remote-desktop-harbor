@@ -12,6 +12,8 @@ public sealed class DialogService : IDialogService
 
     public bool EditSettings(SettingsViewModel settings) => new SettingsWindow(settings) { Owner = Owner }.ShowDialog() == true;
 
+    public bool EditSmartGroup(SmartGroupEditorViewModel editor) => new SmartGroupEditorWindow(editor) { Owner = Owner }.ShowDialog() == true;
+
     // SPEC FR-53, ADR-0030: the app's own message box instead of the system one.
     public bool Confirm(string title, string message) => MessageWindow.Show(Owner, title, message, MessageKind.Question);
 

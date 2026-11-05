@@ -113,6 +113,9 @@ and host. Entries with
   your pinned entries, or the last 10 you connected to. Pin the selected entry with the star in the details pane,
   the context menu or <kbd>Ctrl</kbd>+<kbd>D</kbd>; pinned entries get a small star in the list. Pins and the recent
   list are personal (kept in your settings, not in a shared database).
+- **Smart groups.** Right-click the tree and choose **New smart group…** for a group that lists every entry
+  matching your rules (e.g. *host starts with `sql-`* and *environment is PROD*), like smart groups in RDCMan.
+  Entries stay in their folders. See [Smart groups](../smart-groups/).
 - Click the arrow next to a folder, double-click it, or press <kbd>←</kbd>/<kbd>→</kbd> to collapse or expand it.
 - Right-click the tree for **Expand all** and **Collapse all** (and the actions for the selected entry).
 - Folders are matched regardless of case; entries without a folder are listed at the root, after the folders.

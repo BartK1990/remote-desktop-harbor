@@ -134,7 +134,7 @@ public partial class MainWindow : Window
         // Double-clicking a folder toggles it (built into TreeViewItem); an entry or account row connects. Handled in the
         // preview phase so an entry with account rows connects instead of expanding (SPEC FR-09).
         // A quick double click on the expand arrow only toggles the row.
-        if (RowAt(e.OriginalSource, out var onExpander)?.DataContext is EntryViewModel or AccountViewModel && !onExpander
+        if (RowAt(e.OriginalSource, out var onExpander)?.DataContext is EntryViewModel or AccountViewModel or EntryLinkViewModel && !onExpander
             && _viewModel.ConnectCommand.CanExecute(null))
         {
             _viewModel.ConnectCommand.Execute(null);
@@ -186,6 +186,11 @@ public partial class MainWindow : Window
         if (_viewModel.SelectedNode is FolderViewModel folder)
         {
             folder.IsExpanded = !folder.IsExpanded;
+            e.Handled = true;
+        }
+        else if (_viewModel.SelectedNode is SmartGroupViewModel group) // SPEC FR-62
+        {
+            group.IsExpanded = !group.IsExpanded;
             e.Handled = true;
         }
         else if (_viewModel.ConnectCommand.CanExecute(null))

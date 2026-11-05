@@ -44,3 +44,4 @@ Process: see [spec/README.md](../spec/README.md).
 | [0036](0036-code-signing-signpath.md) | Release exes code-signed through SignPath Foundation | Accepted |
 | [0037](0037-local-only-entries-in-shared-mode.md) | Entries kept on this PC only while using a shared database, movable both ways | Accepted |
 | [0038](0038-resumable-file-transfer.md) | Built-in file transfer over SMB that resumes after dropped connections | Accepted |
+| [0039](0039-smart-groups.md) | Smart groups: rule-based virtual groups in the entry tree, kept in personal settings | Accepted |

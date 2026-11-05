@@ -4,6 +4,9 @@ public interface IDialogService
 {
     bool EditEntry(EntryEditorViewModel editor);
     bool EditSettings(SettingsViewModel settings);
+
+    /// <summary>Shows the smart group editor (SPEC FR-62); <c>true</c> when the group was saved.</summary>
+    bool EditSmartGroup(SmartGroupEditorViewModel editor);
     bool Confirm(string title, string message);
 
     /// <summary>

@@ -1,0 +1,112 @@
+<Window x:Class="Harbor.App.Views.SmartGroupEditorWindow"
+        Background="{DynamicResource Harbor.WindowBackgroundBrush}"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:Harbor.App.ViewModels"
+        xmlns:views="clr-namespace:Harbor.App.Views"
+        Title="{Binding Title}" Width="680" Height="520" MinWidth="560" MinHeight="380"
+        Icon="/Assets/AppIcon.ico"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False" ResizeMode="CanResizeWithGrip">
+  <!-- Own title bar with Close only (SPEC FR-52, ADR-0029). -->
+  <WindowChrome.WindowChrome>
+    <WindowChrome CaptionHeight="32" ResizeBorderThickness="6" GlassFrameThickness="0,0,0,1" CornerRadius="0" UseAeroCaptionButtons="False" />
+  </WindowChrome.WindowChrome>
+  <Window.InputBindings>
+    <KeyBinding Key="S" Modifiers="Ctrl" Command="ApplicationCommands.Save" />
+  </Window.InputBindings>
+  <Window.CommandBindings>
+    <CommandBinding Command="ApplicationCommands.Save" Executed="Save_Executed" />
+  </Window.CommandBindings>
+  <Window.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/Themes/Controls.xaml" />
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </Window.Resources>
+
+  <DockPanel>
+    <views:TitleBar DockPanel.Dock="Top" ShowMinimizeMaximize="False" />
+    <DockPanel Margin="16,8,16,16">
+      <!-- SPEC FR-62, ADR-0039: name, where the group is shown, All / Any and the rules, like RDCMan's smart groups. -->
+      <StackPanel DockPanel.Dock="Top">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="12" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+          <StackPanel>
+            <TextBlock Text="Name" Style="{StaticResource FieldLabel}" />
+            <TextBox x:Name="NameBox" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Name" />
+          </StackPanel>
+          <StackPanel Grid.Column="2">
+            <TextBlock Text="Show in folder" Style="{StaticResource FieldLabel}" />
+            <ComboBox IsEditable="True" ItemsSource="{Binding Folders}" Text="{Binding Folder, UpdateSourceTrigger=PropertyChanged}"
+                      AutomationProperties.Name="Show in folder"
+                      ToolTip="The group is shown in this folder and only lists entries in it and its sub-folders. Leave empty for the top level and every entry." />
+          </StackPanel>
+        </Grid>
+        <StackPanel Orientation="Horizontal" Margin="0,14,0,6">
+          <TextBlock Text="List entries that match" VerticalAlignment="Center" Margin="0,0,8,0" />
+          <ComboBox ItemsSource="{Binding Source={x:Static vm:SmartGroupEditorViewModel.MatchChoices}}" DisplayMemberPath="Label"
+                    SelectedValuePath="Value" SelectedValue="{Binding Match}" MinWidth="120" AutomationProperties.Name="Match" />
+        </StackPanel>
+      </StackPanel>
+
+      <!-- Footer: preview and the problem that blocks saving on the left, actions on the right. -->
+      <Grid DockPanel.Dock="Bottom" Margin="0,12,0,0">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
+          <TextBlock Text="{Binding Preview}" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+          <TextBlock Text="{Binding Error}" Style="{StaticResource Harbor.Text.Error}" TextWrapping="Wrap" />
+        </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal">
+          <Button IsDefault="True" Click="Save_Click" Style="{DynamicResource AccentButtonStyle}" MinWidth="90" Margin="0,0,8,0" ToolTip="Save (Ctrl+S or Enter)">Save</Button>
+          <Button Content="Cancel" IsCancel="True" MinWidth="90" ToolTip="Cancel (Esc)" />
+        </StackPanel>
+      </Grid>
+
+      <Button DockPanel.Dock="Bottom" HorizontalAlignment="Left" Command="{Binding AddRuleCommand}" Style="{StaticResource Harbor.Button}" Margin="0,8,0,0">
+        <StackPanel Orientation="Horizontal">
+          <TextBlock Style="{StaticResource Harbor.Text.Icon}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Text="&#xE710;" Margin="0,0,6,0" />
+          <TextBlock Text="Add rule" />
+        </StackPanel>
+      </Button>
+
+      <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <!-- Right gutter so the overlay scroll bar never covers the Remove buttons. -->
+        <ItemsControl ItemsSource="{Binding Rules}" Margin="0,0,20,0" AutomationProperties.Name="Rules">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate DataType="{x:Type vm:SmartGroupRuleViewModel}">
+              <Grid Margin="0,0,0,6">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="130" />
+                  <ColumnDefinition Width="8" />
+                  <ColumnDefinition Width="170" />
+                  <ColumnDefinition Width="8" />
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <ComboBox ItemsSource="{Binding Source={x:Static vm:SmartGroupRuleViewModel.FieldChoices}}" DisplayMemberPath="Label"
+                          SelectedValuePath="Value" SelectedValue="{Binding Field}" AutomationProperties.Name="Field" />
+                <ComboBox Grid.Column="2" ItemsSource="{Binding Source={x:Static vm:SmartGroupRuleViewModel.OperatorChoices}}" DisplayMemberPath="Label"
+                          SelectedValuePath="Value" SelectedValue="{Binding Operator}" AutomationProperties.Name="Comparison" />
+                <TextBox Grid.Column="4" Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" ToolTip="{Binding ValueHint}"
+                         Style="{StaticResource Harbor.MonoTextBox}" AutomationProperties.Name="Value" />
+                <Button Grid.Column="5" Style="{StaticResource Harbor.SubtleButton}" Margin="6,0,0,0" Padding="8,5"
+                        Command="{Binding DataContext.RemoveRuleCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                        CommandParameter="{Binding}" ToolTip="Remove this rule" AutomationProperties.Name="Remove rule">
+                  <TextBlock Style="{StaticResource Harbor.Text.Icon}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Text="&#xE711;" />
+                </Button>
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+    </DockPanel>
+  </DockPanel>
+</Window>

@@ -36,6 +36,9 @@ public static class SettingsStore
 
     public static string Serialize(HarborSettings settings) => JsonSerializer.Serialize(settings, SettingsJsonContext.Default.HarborSettings);
 
+    public static HarborSettings Deserialize(string json) =>
+        JsonSerializer.Deserialize(json, SettingsJsonContext.Default.HarborSettings) ?? new HarborSettings();
+
     public static string? GetRemoteConnectionString(HarborSettings settings) =>
         string.IsNullOrEmpty(settings.RemoteConnectionStringProtected)
             ? null

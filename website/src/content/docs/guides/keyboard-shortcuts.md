@@ -15,8 +15,8 @@ description: Keyboard shortcuts in the main window.
 | Double-click (in the tree) | Connect to the entry; on a folder, expand or collapse it |
 | <kbd>←</kbd> / <kbd>→</kbd> (in the tree) | Collapse / expand the folder; <kbd>←</kbd> on an entry jumps to its folder |
 | <kbd>↑</kbd> / <kbd>↓</kbd> (in the tree) | Previous / next visible row |
-| <kbd>Del</kbd> (in the tree) | Delete the selected entry (after confirmation) |
-| <kbd>F2</kbd> | Edit the selected entry |
+| <kbd>Del</kbd> (in the tree) | Delete the selected entry, or the selected [smart group](../smart-groups/) (after confirmation) |
+| <kbd>F2</kbd> | Edit the selected entry, or the selected smart group |
 | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> | Copy the selected account's password (cleared from the clipboard after 30 s) |
 | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>U</kbd> | Copy the selected account's user name |
 | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd> | Copy the selected entry's host (`host:port` for a non-default port) |

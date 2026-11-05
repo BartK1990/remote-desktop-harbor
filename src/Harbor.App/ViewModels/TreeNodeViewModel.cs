@@ -40,6 +40,68 @@ public sealed partial class FolderViewModel(string path, Action<FolderViewModel>
 }
 
 /// <summary>
+/// A smart group row (SPEC FR-62, ADR-0039): a virtual group listing the entries its rules match, as
+/// <see cref="EntryLinkViewModel"/> rows. Shown in its folder before the sub-folders, or at the top level.
+/// </summary>
+public sealed partial class SmartGroupViewModel(Guid id, Action<SmartGroupViewModel> expandedChanged) : TreeNodeViewModel
+{
+    private Dictionary<Guid, EntryLinkViewModel> _links = [];
+
+    public Guid Id { get; } = id;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Description))]
+    private Harbor.Core.Model.SmartGroup _group = new();
+
+    public string Name => Group.Name;
+
+    /// <summary>The rules in words, for the tooltip.</summary>
+    public string Description => $"Smart group: {Harbor.Core.Model.SmartGroups.Describe(Group)}";
+
+    /// <summary>Entries in the group that match the current search and filter.</summary>
+    [ObservableProperty] private int _count;
+
+    public TreeChildren Children { get; } = [];
+
+    partial void OnGroupChanged(Harbor.Core.Model.SmartGroup value) => OnPropertyChanged(nameof(Name));
+
+    /// <summary>
+    /// The link rows for <paramref name="entries"/>, reusing the rows of entries already listed so their containers and
+    /// selection survive a rebuild.
+    /// </summary>
+    public List<TreeNodeViewModel> LinksFor(IEnumerable<EntryViewModel> entries)
+    {
+        var links = new Dictionary<Guid, EntryLinkViewModel>();
+        var rows = new List<TreeNodeViewModel>();
+        foreach (var entry in entries)
+        {
+            if (!_links.TryGetValue(entry.Model.Id, out var link) || !ReferenceEquals(link.Entry, entry))
+            {
+                link = new EntryLinkViewModel(this, entry);
+            }
+
+            links[entry.Model.Id] = link;
+            rows.Add(link);
+        }
+
+        _links = links;
+        return rows;
+    }
+
+    protected override void OnExpandedChanged() => expandedChanged(this);
+}
+
+/// <summary>
+/// An entry listed in a smart group (SPEC FR-62). It is a reference, not a copy: selecting it selects
+/// <see cref="Entry"/> for the details pane and every action, and the entry still has its row in its own folder.
+/// </summary>
+public sealed class EntryLinkViewModel(SmartGroupViewModel group, EntryViewModel entry) : TreeNodeViewModel
+{
+    public SmartGroupViewModel Group { get; } = group;
+    public EntryViewModel Entry { get; } = entry;
+}
+
+/// <summary>
 /// Child rows of the tree. Small changes are applied item by item, so the containers of unchanged rows (and the
 /// TreeView's selection, expansion and scroll position) survive; large changes are applied with a single
 /// notification, so filtering 10 000 entries stays fast (SPEC NFR-03).
