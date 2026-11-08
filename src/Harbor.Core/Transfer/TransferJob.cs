@@ -2,6 +2,19 @@ using System.Text.Json.Serialization;
 
 namespace Harbor.Core.Transfer;
 
+/// <summary>What a transfer does with a file that already exists at the destination. SPEC FR-64</summary>
+public enum ExistingFiles
+{
+    /// <summary>Fail that file; the others are copied.</summary>
+    Fail = 0,
+
+    /// <summary>Replace it.</summary>
+    Replace = 1,
+
+    /// <summary>Leave it as it is and copy only the files that are not there yet (same name and extension).</summary>
+    Skip = 2,
+}
+
 /// <summary>Where a transfer stands. SPEC FR-60</summary>
 public enum TransferState
 {
@@ -55,6 +68,12 @@ public sealed class TransferJob
     /// <summary>Replace an existing destination file at the end instead of failing.</summary>
     public bool Overwrite { get; set; }
 
+    /// <summary>Leave an existing destination file as it is and finish without copying. SPEC FR-64</summary>
+    public bool SkipExisting { get; set; }
+
+    /// <summary>Finished without copying because the destination already existed (<see cref="SkipExisting"/>).</summary>
+    public bool Skipped { get; set; }
+
     public int ChunkSize { get; set; } = DefaultChunkSize;
 
     /// <summary>Source length and last write time when copying started; a change restarts the copy from 0.</summary>
@@ -81,7 +100,7 @@ public sealed class TransferJob
 
     [JsonIgnore]
     /// <summary>0..1; 0 while the length is not known yet.</summary>
-    public double Progress => Length > 0 ? (double)BytesDone / Length : State == TransferState.Completed ? 1 : 0;
+    public double Progress => Skipped ? 1 : Length > 0 ? (double)BytesDone / Length : State == TransferState.Completed ? 1 : 0;
 
     public TransferJob Clone()
     {
