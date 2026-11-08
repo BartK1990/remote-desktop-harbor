@@ -45,6 +45,9 @@ public sealed class AppHost : IAsyncDisposable
     /// <summary>Transfers through the Remote Desktop connection, copied by a helper in the session (SPEC FR-63).</summary>
     public RdpTransferKit RdpTransfers { get; } = new(AppPaths.RdpTransfersDirectory);
 
+    /// <summary>Harbor's own Remote Desktop window that starts those transfers in the session (SPEC FR-65, ADR-0042).</summary>
+    public IRdpTransferSessionHost RdpTransferSessions { get; } = new RdpTransferSessionHost();
+
     /// <summary>
     /// Connects the shares of <paramref name="job"/>'s paths as the account of its entry (the signed-in Windows user when
     /// the entry has no user name or is gone). The password is decrypted only for this call. SPEC FR-60, NFR-12

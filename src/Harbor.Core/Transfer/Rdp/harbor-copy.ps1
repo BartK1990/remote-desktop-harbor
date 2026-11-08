@@ -98,6 +98,20 @@ $JournalFolder = Join-Path (Join-Path $localData 'RemoteDesktopHarbor') 'transfe
 [void][IO.Directory]::CreateDirectory($JournalFolder)
 $JournalPath = Join-Path $JournalFolder "$($PlanData.id).json"
 
+# One helper per transfer: a second start (the app starting it again after a reconnect, ADR-0042) leaves the running
+# one alone. The lock is released when this process ends, however it ends.
+$LockFolder = Join-Path $JournalFolder 'running'
+[void][IO.Directory]::CreateDirectory($LockFolder)
+$LockPath = Join-Path $LockFolder "$($PlanData.id).lock"
+try { $script:Lock = New-Object IO.FileStream $LockPath, 'OpenOrCreate', 'ReadWrite', 'None', 1, 'DeleteOnClose' }
+catch {
+    Write-Host "The transfer '$($PlanData.label)' is already running in this session."
+    if (-not $NoPause) { Start-Sleep -Seconds 5 }
+    exit 4
+}
+
+function Close-Lock { try { $script:Lock.Dispose(); [IO.File]::Delete($LockPath) } catch { } }
+
 if ([IO.File]::Exists($JournalPath)) {
     $Journal = [IO.File]::ReadAllText($JournalPath) | ConvertFrom-Json
     Write-Host "Resuming the transfer '$($PlanData.label)'."
@@ -113,7 +127,7 @@ else {
         $dialog.Title = "Files to copy to your PC ($($PlanData.clientFolder))"
         $start = Expand-Folder $PlanData.serverFolder
         if ([IO.Directory]::Exists($start)) { $dialog.InitialDirectory = $start }
-        if ($dialog.ShowDialog() -ne [System.Windows.Forms.DialogResult]::OK) { Write-Host 'Nothing selected.'; exit 0 }
+        if ($dialog.ShowDialog() -ne [System.Windows.Forms.DialogResult]::OK) { Write-Host 'Nothing selected.'; Close-Lock; exit 0 }
         $items = @($dialog.FileNames | ForEach-Object { [pscustomobject]@{ source = $_; destination = (Split-Path -Leaf $_) } })
     }
 
@@ -131,7 +145,7 @@ else {
 }
 
 $ChunkSize = [int]$PlanData.chunkSize
-if ($ChunkSize -le 0) { $ChunkSize = 4MB }
+if ($ChunkSize -le 0) { $ChunkSize = 1MB }
 $Overwrite = [bool]$PlanData.overwrite
 # SPEC FR-64: leave files that already exist alone. Plans written before this option have no such property.
 $SkipExisting = (-not $Overwrite) -and ($null -ne $PlanData.PSObject.Properties['skipExisting']) -and [bool]$PlanData.skipExisting
@@ -291,6 +305,7 @@ if ($cancelled) {
     try { [IO.File]::Delete($JournalPath) } catch { }
     Save-Status 'cancelled' 'Cancelled.'
     Write-Host 'Transfer cancelled.'
+    Close-Lock
     exit 2
 }
 
@@ -312,5 +327,6 @@ else {
     $code = 1
 }
 
+Close-Lock
 if (-not $NoPause) { [void](Read-Host 'Press Enter to close') }
 exit $code

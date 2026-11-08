@@ -703,9 +703,11 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     /// <summary>
     /// Connects <paramref name="vm"/> as <paramref name="accountId"/>, with the takeover and production questions, presence
     /// and recent list; <paramref name="overrides"/> are extra .rdp lines for this launch (drives shared for a file
-    /// transfer, SPEC FR-63). Returns false when nothing was launched.
+    /// transfer, SPEC FR-63). <paramref name="launch"/> replaces mstsc (Harbor's own transfer window, SPEC FR-65); it gets
+    /// the entry with the account applied and the decrypted password. Returns false when nothing was launched.
     /// </summary>
-    private async Task<bool> ConnectEntryAsync(EntryViewModel vm, Guid? accountId, IReadOnlyList<string>? overrides)
+    private async Task<bool> ConnectEntryAsync(EntryViewModel vm, Guid? accountId, IReadOnlyList<string>? overrides,
+        Func<ConnectionEntry, string?, Task<Core.Rdp.IRdpSession>>? launch = null)
     {
         if (_host is null) return false;
         var entry = vm.Model;
@@ -735,7 +737,9 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         try
         {
             var password = _host.Workspace.RevealPassword(entry, account?.Id);
-            var session = await _host.Launcher.LaunchAsync(entry.ForAccount(account), password, overrides);
+            var session = launch is null
+                ? await _host.Launcher.LaunchAsync(entry.ForAccount(account), password, overrides)
+                : await launch(entry.ForAccount(account), password);
             StatusText = accountName is null ? $"Launched {entry.Name}" : $"Launched {entry.Name} as {accountName}";
             RememberRecent(entry.Id);
             Log.Info($"Launched {entry.Id}");
@@ -1076,18 +1080,20 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     private void TransferFiles()
     {
         if (_host is null || Selected is not { } vm) return;
-        _transfers ??= new TransfersViewModel(_host.Transfers, _host.RdpTransfers, _dialogs, _host.ConnectSharesAsync, ConnectForTransferAsync,
-            Settings, () => SaveSettingsQuietly("Transfer settings"));
+        _transfers ??= new TransfersViewModel(_host.Transfers, _host.RdpTransfers, _host.RdpTransferSessions, _dialogs, _host.ConnectSharesAsync,
+            ConnectForTransferAsync, Settings, () => SaveSettingsQuietly("Transfer settings"));
         _transfers.Target(vm.Model, SelectedAccount?.AccountId);
         _dialogs.ShowTransfers(_transfers);
     }
 
     /// <summary>
-    /// SPEC FR-63: connects the transfer's entry and account with the drives it needs shared into the session. A session
+    /// SPEC FR-63, FR-65: connects the transfer's entry and account with the drives it needs shared into the session, in mstsc
+    /// or with <paramref name="launch"/> (Harbor's transfer window). A session
     /// already open with the same account is reconnected with them.
     /// </summary>
-    private Task<bool> ConnectForTransferAsync(Guid entryId, Guid? accountId, IReadOnlyList<string> overrides) =>
-        Entries.FirstOrDefault(e => e.Model.Id == entryId) is { } vm ? ConnectEntryAsync(vm, accountId, overrides) : Task.FromResult(false);
+    private Task<bool> ConnectForTransferAsync(Guid entryId, Guid? accountId, IReadOnlyList<string> overrides,
+        Func<ConnectionEntry, string?, Task<Core.Rdp.IRdpSession>>? launch) =>
+        Entries.FirstOrDefault(e => e.Model.Id == entryId) is { } vm ? ConnectEntryAsync(vm, accountId, overrides, launch) : Task.FromResult(false);
 
     /// <summary>Transfers still copying or retrying; closing the app pauses them (they resume later). SPEC FR-61</summary>
     public int ActiveTransferCount => _host?.Transfers.Jobs.Count(j => j.State is Core.Transfer.TransferState.Running

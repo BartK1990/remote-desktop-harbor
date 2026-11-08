@@ -44,8 +44,11 @@ public enum TransferState
 /// </summary>
 public sealed class TransferJob
 {
-    /// <summary>Default chunk: bytes between two checkpoints in the journal.</summary>
-    public const int DefaultChunkSize = 4 * 1024 * 1024;
+    /// <summary>
+    /// Default chunk: bytes between two checkpoints in the journal. 1 MiB, so a dropped slow link loses little and progress
+    /// moves often (ADR-0042). A journal keeps the chunk size it was started with.
+    /// </summary>
+    public const int DefaultChunkSize = 1024 * 1024;
 
     /// <summary>Suffix of the destination file while it is incomplete; renamed to the final name at the end.</summary>
     public const string PartialSuffix = ".harbor-part";

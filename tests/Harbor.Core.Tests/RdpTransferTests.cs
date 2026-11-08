@@ -70,6 +70,35 @@ public sealed class RdpTransferTests : IDisposable
         Assert.DoesNotContain("password", RdpTransferKit.Script.Split('\n').Where(l => !l.TrimStart().StartsWith('#')), StringComparer.OrdinalIgnoreCase);
     }
 
+    // SPEC FR-65, ADR-0042: Harbor's transfer window types the start command with /auto, so the helper's window closes at the end.
+    [Fact]
+    public void The_transfer_window_starts_the_helper_without_the_final_pause()
+    {
+        var kit = new RdpTransferKit(@"C:\Harbor\rdp-transfers");
+        Assert.Equal(@"\\tsclient\C\Harbor\rdp-transfers\abc\start.cmd /auto", kit.AutoStartCommand("abc"));
+        var cmd = RdpTransferKit.StartScript(@"\\tsclient\C\h.ps1", @"\\tsclient\C\plan.json");
+        Assert.Contains("if /i \"%~1\"==\"/auto\" set \"HARBOR_ARGS=-NoPause\"", cmd, StringComparison.Ordinal);
+        Assert.Contains("-Plan '\\\\tsclient\\C\\plan.json' %HARBOR_ARGS%\"", cmd, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_plan_remembers_the_account_to_connect_with()
+    {
+        var account = Guid.NewGuid();
+        var prepared = Kit.CreateUpload("SRV01", Guid.NewGuid(), [(File("a.txt", 1), "a.txt")], ServerFolder, ExistingFiles.Fail, account);
+        Assert.Equal(account, Assert.Single(Kit.List()).AccountId);
+        Assert.Equal(account, prepared.Plan.AccountId);
+    }
+
+    // ADR-0042: 1 MiB chunks, so a dropped slow link loses little and progress moves often.
+    [Fact]
+    public void Chunks_are_one_mebibyte()
+    {
+        Assert.Equal(1024 * 1024, TransferJob.DefaultChunkSize);
+        Assert.Equal(1024 * 1024, new RdpTransferKit(_dir).ChunkSize);
+        Assert.Contains("$ChunkSize = 1MB", RdpTransferKit.Script, StringComparison.Ordinal);
+    }
+
     // ---------------------------------------------------------------- the helper itself (needs PowerShell)
 
     private RdpTransferKit Kit => new(Path.Combine(_dir, "pc", "rdp-transfers"), p => p) { ChunkSize = Chunk }; // no \\tsclient off Windows
@@ -159,6 +188,26 @@ public sealed class RdpTransferTests : IDisposable
         Assert.Equal("cancelled", Kit.ReadStatus(cancelled.Plan.Id)!.State);
         Assert.False(System.IO.File.Exists(Path.Combine(ServerFolder, "b.txt")));
         Assert.Equal(2, Kit.List().Count);
+    }
+
+    // ADR-0042: the transfer window may start the helper again after a reconnect; a second one leaves the running one alone.
+    [Fact]
+    public void A_second_helper_for_the_same_transfer_does_not_run()
+    {
+        if (PowerShell is null) return;
+        var file = File("a.bin", 3 * Chunk);
+        var prepared = Upload([(file, "a.bin")]);
+        var lockFolder = Path.Combine(JournalFolder, "running");
+        Directory.CreateDirectory(lockFolder);
+        using (new FileStream(Path.Combine(lockFolder, prepared.Plan.Id + ".lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None))
+        {
+            Assert.Equal(4, Run(prepared)); // "already running"
+            Assert.False(System.IO.File.Exists(Path.Combine(ServerFolder, "a.bin")));
+        }
+
+        Assert.Equal(0, Run(prepared));
+        Assert.Equal(System.IO.File.ReadAllBytes(file), System.IO.File.ReadAllBytes(Path.Combine(ServerFolder, "a.bin")));
+        Assert.Empty(Directory.GetFiles(lockFolder)); // released when done
     }
 
     [Fact]

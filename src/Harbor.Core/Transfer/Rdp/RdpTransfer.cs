@@ -14,6 +14,10 @@ public sealed class RdpTransferPlan
     public string Id { get; set; } = "";
     public string Label { get; set; } = "";
     public Guid? ConnectionId { get; set; }
+
+    /// <summary>Additional account of the entry the transfer connects with (SPEC FR-09); <c>null</c> for the default one.</summary>
+    public Guid? AccountId { get; set; }
+
     public bool IsUpload { get; set; } = true;
 
     /// <summary>Folder on the server (environment variables such as <c>%USERPROFILE%</c> are expanded there).</summary>
@@ -138,9 +142,10 @@ public sealed class RdpTransferKit(string directory, Func<string, string>? clien
 
     /// <summary>Plan to copy local <paramref name="files"/> (source, path relative to the server folder) to <paramref name="serverFolder"/>.</summary>
     public RdpTransferPrepared CreateUpload(string label, Guid? connectionId, IReadOnlyList<(string Source, string RelativeDestination)> files,
-        string serverFolder, ExistingFiles existing)
+        string serverFolder, ExistingFiles existing, Guid? accountId = null)
     {
         var plan = NewPlan(label, connectionId, existing);
+        plan.AccountId = accountId;
         plan.IsUpload = true;
         plan.ServerFolder = serverFolder;
         plan.Items = files.Select(f => new RdpTransferItem(_clientPath(f.Source), f.RelativeDestination.Replace('/', '\\'))).ToList();
@@ -148,9 +153,11 @@ public sealed class RdpTransferKit(string directory, Func<string, string>? clien
     }
 
     /// <summary>Plan to copy files picked in the session (starting in <paramref name="serverFolder"/>) to local <paramref name="localFolder"/>.</summary>
-    public RdpTransferPrepared CreateDownload(string label, Guid? connectionId, string serverFolder, string localFolder, ExistingFiles existing)
+    public RdpTransferPrepared CreateDownload(string label, Guid? connectionId, string serverFolder, string localFolder, ExistingFiles existing,
+        Guid? accountId = null)
     {
         var plan = NewPlan(label, connectionId, existing);
+        plan.AccountId = accountId;
         plan.IsUpload = false;
         plan.ServerFolder = serverFolder;
         plan.ClientFolder = _clientPath(localFolder);
@@ -192,9 +199,11 @@ public sealed class RdpTransferKit(string directory, Func<string, string>? clien
     internal static string StartScript(string scriptPath, string planPath)
     {
         static string Quote(string s) => "'" + s.Replace("'", "''").Replace("%", "%%") + "'";
+        // "start.cmd /auto" (started by Harbor's own transfer window, ADR-0042) closes when done: the app shows the result.
         return "@echo off\r\nchcp 65001 >nul\r\ntitle Remote Desktop Harbor - file transfer\r\n" +
+               "set \"HARBOR_ARGS=\"\r\nif /i \"%~1\"==\"" + AutoSwitch + "\" set \"HARBOR_ARGS=-NoPause\"\r\n" +
                "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"& ([scriptblock]::Create([IO.File]::ReadAllText(" +
-               Quote(scriptPath) + "))) -Plan " + Quote(planPath) + "\"\r\n";
+               Quote(scriptPath) + "))) -Plan " + Quote(planPath) + " %HARBOR_ARGS%\"\r\n";
     }
 
     /// <summary>All plans in the folder, oldest first.</summary>
@@ -234,6 +243,15 @@ public sealed class RdpTransferKit(string directory, Func<string, string>? clien
     }
 
     public string StartCommand(string planId) => _clientPath(Path.Combine(directory, planId, "start.cmd"));
+
+    /// <summary>
+    /// What Harbor's own transfer window types into the session's Run box (SPEC FR-65, ADR-0042): the start command with
+    /// <see cref="AutoSwitch"/>, so the helper's window closes when the copy ends.
+    /// </summary>
+    public string AutoStartCommand(string planId) => StartCommand(planId) + " " + AutoSwitch;
+
+    /// <summary>Argument of <c>start.cmd</c> for a start by the app: no "Press Enter to close" at the end.</summary>
+    public const string AutoSwitch = "/auto";
 
     /// <summary>Asks a running helper to stop and delete its partial files.</summary>
     public void Cancel(string planId) => File.WriteAllText(Path.Combine(directory, planId, "cancel"), "");
