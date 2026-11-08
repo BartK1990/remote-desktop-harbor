@@ -27,6 +27,10 @@ public sealed class RdpTransferPlan
 
     public int ChunkSize { get; set; } = TransferJob.DefaultChunkSize;
     public bool Overwrite { get; set; }
+
+    /// <summary>Leave files that already exist at the destination as they are (SPEC FR-64); ignored with <see cref="Overwrite"/>.</summary>
+    public bool SkipExisting { get; set; }
+
     public DateTimeOffset CreatedUtc { get; set; } = DateTimeOffset.UtcNow;
 
     /// <summary>
@@ -45,6 +49,9 @@ public sealed class RdpTransferStatus
     public string State { get; set; } = "";
     public int FilesDone { get; set; }
     public int FilesTotal { get; set; }
+
+    /// <summary>Files left alone because they already existed (SPEC FR-64); counted in <see cref="FilesDone"/> too.</summary>
+    public int FilesSkipped { get; set; }
     public long BytesDone { get; set; }
     public long BytesTotal { get; set; }
     public string? CurrentFile { get; set; }
@@ -131,9 +138,9 @@ public sealed class RdpTransferKit(string directory, Func<string, string>? clien
 
     /// <summary>Plan to copy local <paramref name="files"/> (source, path relative to the server folder) to <paramref name="serverFolder"/>.</summary>
     public RdpTransferPrepared CreateUpload(string label, Guid? connectionId, IReadOnlyList<(string Source, string RelativeDestination)> files,
-        string serverFolder, bool overwrite)
+        string serverFolder, ExistingFiles existing)
     {
-        var plan = NewPlan(label, connectionId, overwrite);
+        var plan = NewPlan(label, connectionId, existing);
         plan.IsUpload = true;
         plan.ServerFolder = serverFolder;
         plan.Items = files.Select(f => new RdpTransferItem(_clientPath(f.Source), f.RelativeDestination.Replace('/', '\\'))).ToList();
@@ -141,9 +148,9 @@ public sealed class RdpTransferKit(string directory, Func<string, string>? clien
     }
 
     /// <summary>Plan to copy files picked in the session (starting in <paramref name="serverFolder"/>) to local <paramref name="localFolder"/>.</summary>
-    public RdpTransferPrepared CreateDownload(string label, Guid? connectionId, string serverFolder, string localFolder, bool overwrite)
+    public RdpTransferPrepared CreateDownload(string label, Guid? connectionId, string serverFolder, string localFolder, ExistingFiles existing)
     {
-        var plan = NewPlan(label, connectionId, overwrite);
+        var plan = NewPlan(label, connectionId, existing);
         plan.IsUpload = false;
         plan.ServerFolder = serverFolder;
         plan.ClientFolder = _clientPath(localFolder);
@@ -151,14 +158,15 @@ public sealed class RdpTransferKit(string directory, Func<string, string>? clien
         return Write(plan, [localFolder]);
     }
 
-    private RdpTransferPlan NewPlan(string label, Guid? connectionId, bool overwrite) => new()
+    private RdpTransferPlan NewPlan(string label, Guid? connectionId, ExistingFiles existing) => new()
     {
         ChunkSize = ChunkSize,
         // Short id: the start command typed in the session (Win+R) must stay well under 260 characters.
         Id = Guid.NewGuid().ToString("N")[..12],
         Label = label,
         ConnectionId = connectionId,
-        Overwrite = overwrite,
+        Overwrite = existing == ExistingFiles.Replace,
+        SkipExisting = existing == ExistingFiles.Skip,
     };
 
     private RdpTransferPrepared Write(RdpTransferPlan plan, IEnumerable<string> localPaths)

@@ -45,6 +45,7 @@ public sealed partial class TransfersViewModel : ObservableObject
         _saveSettings = saveSettings;
         _useRemoteDesktop = settings.TransferMethod != TransferMethod.NetworkShare;
         _serverFolder = settings.TransferServerFolder;
+        _existingFiles = settings.TransferExistingFiles;
 
         foreach (var plan in kit.List()) Jobs.Add(new RdpTransferRowViewModel(plan, kit, Forget));
         foreach (var job in queue.Jobs) Jobs.Add(new TransferItemViewModel(job, queue));
@@ -99,8 +100,35 @@ public sealed partial class TransfersViewModel : ObservableObject
     [NotifyCanExecuteChangedFor(nameof(UploadFilesCommand), nameof(UploadFolderCommand), nameof(DownloadCommand))]
     private string _serverFolder;
 
-    /// <summary>Remote Desktop mode: replace files that already exist at the destination.</summary>
-    [ObservableProperty] private bool _replaceExisting;
+    /// <summary>What to do with files that already exist at the destination, either way of copying. SPEC FR-64</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SkipExisting), nameof(ReplaceExisting), nameof(FailExisting))]
+    private ExistingFiles _existingFiles;
+
+    partial void OnExistingFilesChanged(ExistingFiles value)
+    {
+        _settings.TransferExistingFiles = value;
+        _saveSettings();
+    }
+
+    /// <summary>Copy only the files that are not there yet (same name and extension, same sub-folder). SPEC FR-64</summary>
+    public bool SkipExisting
+    {
+        get => ExistingFiles == ExistingFiles.Skip;
+        set { if (value) ExistingFiles = ExistingFiles.Skip; }
+    }
+
+    public bool ReplaceExisting
+    {
+        get => ExistingFiles == ExistingFiles.Replace;
+        set { if (value) ExistingFiles = ExistingFiles.Replace; }
+    }
+
+    public bool FailExisting
+    {
+        get => ExistingFiles == ExistingFiles.Fail;
+        set { if (value) ExistingFiles = ExistingFiles.Fail; }
+    }
 
     /// <summary>What to do in the session to start the last Remote Desktop transfer; <c>null</c> until one was prepared.</summary>
     [ObservableProperty] private string? _startHint;
@@ -148,7 +176,7 @@ public sealed partial class TransfersViewModel : ObservableObject
         if (UseRemoteDesktop)
         {
             await StartRdpAsync(() => _kit.CreateUpload(Entry!.Name, Entry.Id, files.Select(f => (f, Path.GetFileName(f))).ToList(),
-                ServerFolder.Trim(), ReplaceExisting));
+                ServerFolder.Trim(), ExistingFiles));
             return;
         }
 
@@ -175,7 +203,7 @@ public sealed partial class TransfersViewModel : ObservableObject
         if (files.Count == 0) return;
         if (UseRemoteDesktop)
         {
-            await StartRdpAsync(() => _kit.CreateUpload(Entry!.Name, Entry.Id, files, ServerFolder.Trim(), ReplaceExisting));
+            await StartRdpAsync(() => _kit.CreateUpload(Entry!.Name, Entry.Id, files, ServerFolder.Trim(), ExistingFiles));
             return;
         }
 
@@ -192,7 +220,7 @@ public sealed partial class TransfersViewModel : ObservableObject
         if (UseRemoteDesktop)
         {
             if (_dialogs.PickFolder("Save the files to", Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)) is not { } local) return;
-            await StartRdpAsync(() => _kit.CreateDownload(Entry!.Name, Entry.Id, ServerFolder.Trim(), local, ReplaceExisting));
+            await StartRdpAsync(() => _kit.CreateDownload(Entry!.Name, Entry.Id, ServerFolder.Trim(), local, ExistingFiles));
             return;
         }
 
@@ -276,15 +304,22 @@ public sealed partial class TransfersViewModel : ObservableObject
         _settings.TransferRemoteFolder = RemoteFolder;
         _saveSettings();
 
-        // An existing destination file is only replaced after asking (SPEC FR-60); a remote one is checked when copying.
-        var existing = upload ? 0 : files.Count(f => File.Exists(f.Destination));
-        var overwrite = existing > 0 && _dialogs.ConfirmRisky("Files already exist",
-            $"{existing} of the {files.Count} files already exist in the target folder. Replace them?", "Replace");
+        // SPEC FR-60, FR-64: existing files are skipped, fail, or are replaced; a local one only after asking. A remote
+        // one is checked when copying.
+        var overwrite = ExistingFiles == ExistingFiles.Replace;
+        var skip = ExistingFiles == ExistingFiles.Skip;
+        if (overwrite && !upload && files.Count(f => File.Exists(f.Destination)) is var existing and > 0)
+        {
+            overwrite = _dialogs.ConfirmRisky("Files already exist",
+                $"{existing} of the {files.Count} files already exist in the target folder. Replace them?", "Replace");
+            skip = !overwrite;
+        }
+
         foreach (var (source, destination) in files)
         {
-            if (!upload && !overwrite && File.Exists(destination)) continue;
             var job = NewJob(source, destination, upload);
             job.Overwrite = overwrite;
+            job.SkipExisting = skip;
             _queue.Enqueue(job);
         }
     }
@@ -397,7 +432,9 @@ public sealed partial class RdpTransferRowViewModel : ObservableObject, ITransfe
                 null => "Waiting to be started in the Remote Desktop session (Win+R, Ctrl+V, Enter)",
                 "running" => $"Copying file {Math.Min(Status.FilesDone + 1, Status.FilesTotal)} of {Status.FilesTotal}{size}",
                 "waiting" => $"{Status.Error ?? "Connection lost."} The copy continues where it stopped{size}",
-                "done" => $"Done · {Status.FilesTotal} file(s){size}",
+                "done" => Status.FilesSkipped > 0
+                    ? $"Done · {Status.FilesTotal - Status.FilesSkipped} file(s) copied, {Status.FilesSkipped} skipped (already there){size}"
+                    : $"Done · {Status.FilesTotal} file(s){size}",
                 "cancelled" => "Cancelled",
                 _ => $"Failed · {Status.Error} Run the start command again to retry",
             };
@@ -497,6 +534,7 @@ public sealed partial class TransferItemViewModel : ObservableObject, ITransferR
                 TransferState.Running => $"Copying · {size}",
                 TransferState.Retrying => $"Connection lost, retrying from {FormatSize(Job.BytesDone)} · {Job.Error}",
                 TransferState.Paused => $"Paused at {FormatSize(Job.BytesDone)}{(Job.Error is { } e ? $" · {e}" : "")}",
+                TransferState.Completed when Job.Skipped => "Skipped · already exists",
                 TransferState.Completed => $"Done · {FormatSize(Job.Length)}",
                 _ => $"Failed · {Job.Error}",
             };

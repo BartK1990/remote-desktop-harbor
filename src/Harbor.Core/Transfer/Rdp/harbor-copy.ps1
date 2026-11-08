@@ -66,7 +66,8 @@ function Test-Cancelled {
 }
 
 function Save-Status([string]$State, [string]$Message) {
-    $done = @($Journal.items | Where-Object { $_.state -eq 'done' }).Count
+    $done = @($Journal.items | Where-Object { $_.state -eq 'done' -or $_.state -eq 'skipped' }).Count
+    $skipped = @($Journal.items | Where-Object { $_.state -eq 'skipped' }).Count
     $bytesDone = 0; $bytesTotal = 0; $current = $null
     foreach ($i in $Journal.items) {
         if ($i.length -ge 0) { $bytesTotal += $i.length }
@@ -74,7 +75,7 @@ function Save-Status([string]$State, [string]$Message) {
         if ($null -eq $current -and $i.state -eq 'pending') { $current = Split-Path -Leaf $i.destination }
     }
     $status = [ordered]@{
-        state = $State; filesDone = $done; filesTotal = @($Journal.items).Count; bytesDone = $bytesDone; bytesTotal = $bytesTotal
+        state = $State; filesDone = $done; filesTotal = @($Journal.items).Count; filesSkipped = $skipped; bytesDone = $bytesDone; bytesTotal = $bytesTotal
         currentFile = $current; error = $Message; updatedUtc = [DateTime]::UtcNow.ToString('o')
     }
     $script:LastStatus = $status
@@ -132,6 +133,8 @@ else {
 $ChunkSize = [int]$PlanData.chunkSize
 if ($ChunkSize -le 0) { $ChunkSize = 4MB }
 $Overwrite = [bool]$PlanData.overwrite
+# SPEC FR-64: leave files that already exist alone. Plans written before this option have no such property.
+$SkipExisting = (-not $Overwrite) -and ($null -ne $PlanData.PSObject.Properties['skipExisting']) -and [bool]$PlanData.skipExisting
 
 # ---------------------------------------------------------------- copying
 
@@ -169,6 +172,12 @@ function Restore-Verified($Item, [IO.FileStream]$Partial, [byte[]]$Buffer) {
 
 function Copy-OneFile($Item) {
     $info = New-Object IO.FileInfo $Item.source
+    if ($SkipExisting -and [IO.File]::Exists($Item.destination)) {
+        $Item.state = 'skipped'
+        $Item.error = $null
+        Save-Journal
+        return 'skipped'
+    }
     if (-not $info.Exists) { throw (New-Object IO.FileNotFoundException "$($Item.source) no longer exists.") }
     if ($Item.length -ne $info.Length -or $Item.lastWriteTicks -ne $info.LastWriteTimeUtc.Ticks) { Reset-Item $Item $info }
     if (-not $Overwrite -and [IO.File]::Exists($Item.destination)) {
@@ -224,7 +233,7 @@ function Copy-OneFile($Item) {
     $Item.state = 'done'
     $Item.error = $null
     Save-Journal
-    return $true
+    return 'copied'
 }
 
 function Remove-Partials {
@@ -244,7 +253,9 @@ foreach ($item in $Journal.items) {
         if (Test-Cancelled) { $cancelled = $true; break }
         try {
             Save-Status 'running' $null
-            if (Copy-OneFile $item) { Write-Host "Copied $($item.destination)"; break }
+            $result = Copy-OneFile $item
+            if ($result -eq 'skipped') { Write-Host "Skipped $($item.destination): it already exists"; break }
+            if ($result -eq 'copied') { Write-Host "Copied $($item.destination)"; break }
             $cancelled = $true
             break
         }
@@ -287,7 +298,10 @@ $failed = @($Journal.items | Where-Object { $_.state -eq 'failed' })
 if ($failed.Count -eq 0) {
     [IO.File]::Delete($JournalPath)
     Save-Status 'done' $null
-    Write-Host "Done: $(@($Journal.items).Count) file(s) copied." -ForegroundColor Green
+    $skippedCount = @($Journal.items | Where-Object { $_.state -eq 'skipped' }).Count
+    $copiedCount = @($Journal.items).Count - $skippedCount
+    $skippedText = if ($skippedCount -gt 0) { ", $skippedCount skipped because they already exist" } else { '' }
+    Write-Host "Done: $copiedCount file(s) copied$skippedText." -ForegroundColor Green
     $code = 0
 }
 else {

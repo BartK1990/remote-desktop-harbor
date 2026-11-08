@@ -112,6 +112,26 @@ public sealed class FileTransferTests : IDisposable
     }
 
     [Fact]
+    public async Task Skip_leaves_an_existing_destination_and_copies_only_new_files()
+    {
+        // SPEC FR-64: same name and extension in the same folder = skipped; the rest is copied.
+        var existing = Job(Source(Chunk, seed: 1), "a.bin");
+        var fresh = Job(Source(2 * Chunk, seed: 2), Path.Combine("sub", "b.bin"));
+        Directory.CreateDirectory(Path.GetDirectoryName(existing.DestinationPath)!);
+        File.WriteAllText(existing.DestinationPath, "keep me");
+        existing.SkipExisting = fresh.SkipExisting = true;
+
+        await new ResumableFileCopier().CopyAsync(existing, _ => { });
+        await new ResumableFileCopier().CopyAsync(fresh, _ => { });
+
+        Assert.Equal((TransferState.Completed, true, 1.0), (existing.State, existing.Skipped, existing.Progress));
+        Assert.Equal("keep me", File.ReadAllText(existing.DestinationPath));
+        Assert.False(File.Exists(existing.PartialPath));
+        Assert.Equal((TransferState.Completed, false), (fresh.State, fresh.Skipped));
+        Assert.Equal(File.ReadAllBytes(fresh.SourcePath), File.ReadAllBytes(fresh.DestinationPath));
+    }
+
+    [Fact]
     public async Task The_queue_retries_dropped_connections_until_the_file_is_copied()
     {
         var flaky = new FlakyFileSystem { FailEveryBytes = 3 * Chunk + 1 };

@@ -126,6 +126,9 @@ public sealed class HarborSettings
     /// </summary>
     public string TransferServerFolder { get; set; } = @"%USERPROFILE%\Downloads";
 
+    /// <summary>What file transfers do with files that already exist at the destination; the last choice (SPEC FR-64).</summary>
+    public Transfer.ExistingFiles TransferExistingFiles { get; set; } = Transfer.ExistingFiles.Fail;
+
     /// <summary>
     /// Smart groups of this user (SPEC FR-62, ADR-0040): virtual tree groups listing the entries their rules match.
     /// Personal, like pins: never written to a shared database.
