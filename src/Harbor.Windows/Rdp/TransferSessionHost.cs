@@ -10,7 +10,7 @@ using Microsoft.Win32;
 namespace Harbor.Windows.Rdp;
 
 /// <summary>
-/// Harbor's own Remote Desktop window for file transfers (SPEC FR-64, ADR-0042). It hosts the Remote Desktop ActiveX
+/// Harbor's own Remote Desktop window for file transfers (SPEC FR-65, ADR-0042). It hosts the Remote Desktop ActiveX
 /// control that ships with Windows (mstscax.dll) on its own UI thread, connects with every drive of this PC and the
 /// clipboard shared, and once the user is signed in types Win+R, Ctrl+V (the start command) and Enter into the session,
 /// so the copy helper starts by itself. Everything else about copying stays as in FR-63.

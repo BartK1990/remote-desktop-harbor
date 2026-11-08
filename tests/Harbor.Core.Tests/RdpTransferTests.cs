@@ -70,7 +70,7 @@ public sealed class RdpTransferTests : IDisposable
         Assert.DoesNotContain("password", RdpTransferKit.Script.Split('\n').Where(l => !l.TrimStart().StartsWith('#')), StringComparer.OrdinalIgnoreCase);
     }
 
-    // SPEC FR-64, ADR-0042: Harbor's transfer window types the start command with /auto, so the helper's window closes at the end.
+    // SPEC FR-65, ADR-0042: Harbor's transfer window types the start command with /auto, so the helper's window closes at the end.
     [Fact]
     public void The_transfer_window_starts_the_helper_without_the_final_pause()
     {
@@ -85,7 +85,7 @@ public sealed class RdpTransferTests : IDisposable
     public void A_plan_remembers_the_account_to_connect_with()
     {
         var account = Guid.NewGuid();
-        var prepared = Kit.CreateUpload("SRV01", Guid.NewGuid(), [(File("a.txt", 1), "a.txt")], ServerFolder, overwrite: false, account);
+        var prepared = Kit.CreateUpload("SRV01", Guid.NewGuid(), [(File("a.txt", 1), "a.txt")], ServerFolder, ExistingFiles.Fail, account);
         Assert.Equal(account, Assert.Single(Kit.List()).AccountId);
         Assert.Equal(account, prepared.Plan.AccountId);
     }
@@ -158,7 +158,7 @@ public sealed class RdpTransferTests : IDisposable
         var onServer = Path.Combine(ServerFolder, "log.zip");
         System.IO.File.WriteAllBytes(onServer, new byte[3 * Chunk + 5]);
         var target = Path.Combine(_dir, "pc", "Downloads");
-        var prepared = Kit.CreateDownload("SRV01", null, ServerFolder, target, overwrite: false);
+        var prepared = Kit.CreateDownload("SRV01", null, ServerFolder, target, ExistingFiles.Fail);
         // In the session the files are picked in a dialog; a test lists them in the plan.
         prepared.Plan.Items = [new RdpTransferItem(onServer, "log.zip")];
         System.IO.File.WriteAllText(Path.Combine(prepared.PlanFolder, "plan.json"), JsonSerializer.Serialize(prepared.Plan,
@@ -210,7 +210,33 @@ public sealed class RdpTransferTests : IDisposable
         Assert.Empty(Directory.GetFiles(lockFolder)); // released when done
     }
 
-    private RdpTransferPrepared Upload(IReadOnlyList<(string, string)> files) => Kit.CreateUpload("SRV01", null, files, ServerFolder, overwrite: false);
+    [Fact]
+    public void Skip_copies_only_files_not_yet_in_the_folder_and_its_sub_folders()
+    {
+        // SPEC FR-64: a folder upload with sub-folders; files already on the server are left as they are.
+        var top = File(Path.Combine("folder", "top.txt"), 100, seed: 1);
+        var deep = File(Path.Combine("folder", "sub", "deep", "deep.bin"), 2 * Chunk + 3, seed: 2);
+        var same = File(Path.Combine("folder", "sub", "same.txt"), 50, seed: 3);
+        Directory.CreateDirectory(Path.Combine(ServerFolder, "folder", "sub"));
+        System.IO.File.WriteAllText(Path.Combine(ServerFolder, "folder", "sub", "same.txt"), "keep me");
+        System.IO.File.WriteAllText(Path.Combine(ServerFolder, "folder", "top.log"), "other extension"); // not the same file
+
+        var prepared = Kit.CreateUpload("SRV01", null,
+            [(top, @"folder\top.txt"), (deep, @"folder\sub\deep\deep.bin"), (same, @"folder\sub\same.txt")], ServerFolder, ExistingFiles.Skip);
+        Assert.True(prepared.Plan.SkipExisting);
+        Assert.False(prepared.Plan.Overwrite);
+        if (PowerShell is null) return;
+
+        Assert.Equal(0, Run(prepared));
+        Assert.Equal(System.IO.File.ReadAllBytes(top), System.IO.File.ReadAllBytes(Path.Combine(ServerFolder, "folder", "top.txt")));
+        Assert.Equal(System.IO.File.ReadAllBytes(deep), System.IO.File.ReadAllBytes(Path.Combine(ServerFolder, "folder", "sub", "deep", "deep.bin")));
+        Assert.Equal("keep me", System.IO.File.ReadAllText(Path.Combine(ServerFolder, "folder", "sub", "same.txt")));
+        var status = Kit.ReadStatus(prepared.Plan.Id)!;
+        Assert.Equal(("done", 3, 3, 1), (status.State, status.FilesDone, status.FilesTotal, status.FilesSkipped));
+        Assert.Equal(status.BytesTotal, status.BytesDone);
+    }
+
+    private RdpTransferPrepared Upload(IReadOnlyList<(string, string)> files) => Kit.CreateUpload("SRV01", null, files, ServerFolder, ExistingFiles.Fail);
 
     private string JournalFolder => Path.Combine(_dir, "server-local", "RemoteDesktopHarbor", "transfers");
 

@@ -18,7 +18,7 @@ namespace Harbor.App.ViewModels;
 /// host, download files from it, and follow every transfer, which survives dropped connections and restarts. Copies go
 /// either through the Remote Desktop connection (only port 3389 needed: a helper started in the session copies through the
 /// PC's shared drive) or over a network share (port 445, run here by the <see cref="TransferQueue"/>). Remote Desktop
-/// transfers connect in Harbor's own transfer window, which starts the helper in the session by itself (SPEC FR-64,
+/// transfers connect in Harbor's own transfer window, which starts the helper in the session by itself (SPEC FR-65,
 /// ADR-0042), or in mstsc with the start command to paste.
 /// </summary>
 public sealed partial class TransfersViewModel : ObservableObject
@@ -55,6 +55,7 @@ public sealed partial class TransfersViewModel : ObservableObject
         _saveSettings = saveSettings;
         _useRemoteDesktop = settings.TransferMethod != TransferMethod.NetworkShare;
         _serverFolder = settings.TransferServerFolder;
+        _existingFiles = settings.TransferExistingFiles;
         _autoStart = settings.TransferAutoStart && sessions.IsAvailable;
 
         foreach (var plan in kit.List()) Jobs.Add(NewRdpRow(plan));
@@ -103,7 +104,7 @@ public sealed partial class TransfersViewModel : ObservableObject
             : "Needs only the Remote Desktop port. Harbor connects with the needed drive of this PC shared into the session; you start the copy there with Win+R and Ctrl+V.";
 
     /// <summary>
-    /// Remote Desktop mode: connect in Harbor's own transfer window, which starts the copy in the session (SPEC FR-64);
+    /// Remote Desktop mode: connect in Harbor's own transfer window, which starts the copy in the session (SPEC FR-65);
     /// off: mstsc and the start command to paste (FR-63).
     /// </summary>
     [ObservableProperty]
@@ -130,8 +131,35 @@ public sealed partial class TransfersViewModel : ObservableObject
     [NotifyCanExecuteChangedFor(nameof(UploadFilesCommand), nameof(UploadFolderCommand), nameof(DownloadCommand))]
     private string _serverFolder;
 
-    /// <summary>Remote Desktop mode: replace files that already exist at the destination.</summary>
-    [ObservableProperty] private bool _replaceExisting;
+    /// <summary>What to do with files that already exist at the destination, either way of copying. SPEC FR-64</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SkipExisting), nameof(ReplaceExisting), nameof(FailExisting))]
+    private ExistingFiles _existingFiles;
+
+    partial void OnExistingFilesChanged(ExistingFiles value)
+    {
+        _settings.TransferExistingFiles = value;
+        _saveSettings();
+    }
+
+    /// <summary>Copy only the files that are not there yet (same name and extension, same sub-folder). SPEC FR-64</summary>
+    public bool SkipExisting
+    {
+        get => ExistingFiles == ExistingFiles.Skip;
+        set { if (value) ExistingFiles = ExistingFiles.Skip; }
+    }
+
+    public bool ReplaceExisting
+    {
+        get => ExistingFiles == ExistingFiles.Replace;
+        set { if (value) ExistingFiles = ExistingFiles.Replace; }
+    }
+
+    public bool FailExisting
+    {
+        get => ExistingFiles == ExistingFiles.Fail;
+        set { if (value) ExistingFiles = ExistingFiles.Fail; }
+    }
 
     /// <summary>What to do in the session to start the last Remote Desktop transfer; <c>null</c> until one was prepared.</summary>
     [ObservableProperty] private string? _startHint;
@@ -179,7 +207,7 @@ public sealed partial class TransfersViewModel : ObservableObject
         if (UseRemoteDesktop)
         {
             await StartRdpAsync(() => _kit.CreateUpload(Entry!.Name, Entry.Id, files.Select(f => (f, Path.GetFileName(f))).ToList(),
-                ServerFolder.Trim(), ReplaceExisting, AccountId));
+                ServerFolder.Trim(), ExistingFiles, AccountId));
             return;
         }
 
@@ -206,7 +234,7 @@ public sealed partial class TransfersViewModel : ObservableObject
         if (files.Count == 0) return;
         if (UseRemoteDesktop)
         {
-            await StartRdpAsync(() => _kit.CreateUpload(Entry!.Name, Entry.Id, files, ServerFolder.Trim(), ReplaceExisting, AccountId));
+            await StartRdpAsync(() => _kit.CreateUpload(Entry!.Name, Entry.Id, files, ServerFolder.Trim(), ExistingFiles, AccountId));
             return;
         }
 
@@ -223,7 +251,7 @@ public sealed partial class TransfersViewModel : ObservableObject
         if (UseRemoteDesktop)
         {
             if (_dialogs.PickFolder("Save the files to", Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)) is not { } local) return;
-            await StartRdpAsync(() => _kit.CreateDownload(Entry!.Name, Entry.Id, ServerFolder.Trim(), local, ReplaceExisting, AccountId));
+            await StartRdpAsync(() => _kit.CreateDownload(Entry!.Name, Entry.Id, ServerFolder.Trim(), local, ExistingFiles, AccountId));
             return;
         }
 
@@ -249,7 +277,7 @@ public sealed partial class TransfersViewModel : ObservableObject
 
     /// <summary>
     /// Writes the plan, then connects with the plan's drives shared into the session: in Harbor's transfer window, which
-    /// starts the helper there (SPEC FR-64, ADR-0042), or in mstsc with the start command on the clipboard for the user to
+    /// starts the helper there (SPEC FR-65, ADR-0042), or in mstsc with the start command on the clipboard for the user to
     /// run (Win+R, Ctrl+V, Enter). SPEC FR-63, ADR-0041
     /// </summary>
     private async Task StartRdpAsync(Func<RdpTransferPrepared> prepare)
@@ -319,7 +347,7 @@ public sealed partial class TransfersViewModel : ObservableObject
             : "Remote Desktop was not opened. Connect with the drive shared and run this command in the session (Win+R):";
     }
 
-    /// <summary>Reconnects an unfinished transfer in the transfer window (its row's Connect). SPEC FR-64</summary>
+    /// <summary>Reconnects an unfinished transfer in the transfer window (its row's Connect). SPEC FR-65</summary>
     private async Task ReconnectAsync(RdpTransferRowViewModel row)
     {
         if (row.Plan.ConnectionId is not { } id || IsBusy) return;
@@ -374,15 +402,22 @@ public sealed partial class TransfersViewModel : ObservableObject
         _settings.TransferRemoteFolder = RemoteFolder;
         _saveSettings();
 
-        // An existing destination file is only replaced after asking (SPEC FR-60); a remote one is checked when copying.
-        var existing = upload ? 0 : files.Count(f => File.Exists(f.Destination));
-        var overwrite = existing > 0 && _dialogs.ConfirmRisky("Files already exist",
-            $"{existing} of the {files.Count} files already exist in the target folder. Replace them?", "Replace");
+        // SPEC FR-60, FR-64: existing files are skipped, fail, or are replaced; a local one only after asking. A remote
+        // one is checked when copying.
+        var overwrite = ExistingFiles == ExistingFiles.Replace;
+        var skip = ExistingFiles == ExistingFiles.Skip;
+        if (overwrite && !upload && files.Count(f => File.Exists(f.Destination)) is var existing and > 0)
+        {
+            overwrite = _dialogs.ConfirmRisky("Files already exist",
+                $"{existing} of the {files.Count} files already exist in the target folder. Replace them?", "Replace");
+            skip = !overwrite;
+        }
+
         foreach (var (source, destination) in files)
         {
-            if (!upload && !overwrite && File.Exists(destination)) continue;
             var job = NewJob(source, destination, upload);
             job.Overwrite = overwrite;
+            job.SkipExisting = skip;
             _queue.Enqueue(job);
         }
     }
@@ -447,7 +482,7 @@ public interface ITransferRow
 /// <summary>
 /// A transfer through the Remote Desktop connection (SPEC FR-63, ADR-0041): one row per plan, showing what the helper in
 /// the session reports in <c>status.json</c>. Pausing is closing the helper's window; resuming is running the start
-/// command again, or Connect, which opens Harbor's transfer window and starts it there (SPEC FR-64, ADR-0042). That
+/// command again, or Connect, which opens Harbor's transfer window and starts it there (SPEC FR-65, ADR-0042). That
 /// window is closed when the copy is done.
 /// </summary>
 public sealed partial class RdpTransferRowViewModel : ObservableObject, ITransferRow
@@ -475,7 +510,7 @@ public sealed partial class RdpTransferRowViewModel : ObservableObject, ITransfe
         nameof(RemoveText), nameof(CanConnect))]
     private RdpTransferStatus? _status;
 
-    /// <summary>The transfer window's state while it is open (SPEC FR-64); <c>null</c> otherwise.</summary>
+    /// <summary>The transfer window's state while it is open (SPEC FR-65); <c>null</c> otherwise.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(StatusText), nameof(CanConnect), nameof(ConnectText))]
     private RdpTransferSessionState? _sessionState;
@@ -495,7 +530,7 @@ public sealed partial class RdpTransferRowViewModel : ObservableObject, ITransfe
     public bool IsDone => Status?.State == "done";
     public string RemoveText => Status is null or { IsFinished: true } ? "Remove" : "Cancel";
 
-    /// <summary>Show the open transfer window, or connect one for an unfinished transfer. SPEC FR-64</summary>
+    /// <summary>Show the open transfer window, or connect one for an unfinished transfer. SPEC FR-65</summary>
     public bool CanConnect => _reconnect is not null && !_cancelling && (SessionOpen || Status?.State is not ("done" or "cancelled"));
     public string ConnectText => SessionOpen ? "Show window" : "Connect";
     private bool SessionOpen => SessionState is { } state && state != RdpTransferSessionState.Closed;
@@ -509,7 +544,7 @@ public sealed partial class RdpTransferRowViewModel : ObservableObject, ITransfe
                 ? $" · {TransferItemViewModel.FormatSize(t.BytesDone)} of {TransferItemViewModel.FormatSize(t.BytesTotal)}" : "";
             if (Status is null or { State: "failed" } && SessionState is { } session && session != RdpTransferSessionState.Closed)
             {
-                // SPEC FR-64: the helper has not reported yet; say what the transfer window is doing.
+                // SPEC FR-65: the helper has not reported yet; say what the transfer window is doing.
                 return session switch
                 {
                     RdpTransferSessionState.Connecting => "Connecting in Harbor's transfer window…",
@@ -525,14 +560,16 @@ public sealed partial class RdpTransferRowViewModel : ObservableObject, ITransfe
                 null => "Waiting to be started in the Remote Desktop session (Win+R, Ctrl+V, Enter)",
                 "running" => $"Copying file {Math.Min(Status.FilesDone + 1, Status.FilesTotal)} of {Status.FilesTotal}{size}",
                 "waiting" => $"{Status.Error ?? "Connection lost."} The copy continues where it stopped{size}",
-                "done" => $"Done · {Status.FilesTotal} file(s){size}",
+                "done" => Status.FilesSkipped > 0
+                    ? $"Done · {Status.FilesTotal - Status.FilesSkipped} file(s) copied, {Status.FilesSkipped} skipped (already there){size}"
+                    : $"Done · {Status.FilesTotal} file(s){size}",
                 "cancelled" => "Cancelled",
                 _ => $"Failed · {Status.Error} Connect or run the start command again to retry",
             };
         }
     }
 
-    /// <summary>Follows the transfer window opened for this transfer. SPEC FR-64</summary>
+    /// <summary>Follows the transfer window opened for this transfer. SPEC FR-65</summary>
     public void Attach(IRdpTransferSession session)
     {
         if (_session is not null) _session.StateChanged -= OnSessionChanged;
@@ -564,7 +601,7 @@ public sealed partial class RdpTransferRowViewModel : ObservableObject, ITransfe
         var status = _kit.ReadStatus(Plan.Id);
         if (status is not null) Status = status;
         else OnPropertyChanged(nameof(StatusText));
-        // SPEC FR-64: the transfer window (with every drive of this PC shared) is closed as soon as the copy is done.
+        // SPEC FR-65: the transfer window (with every drive of this PC shared) is closed as soon as the copy is done.
         if (Status is { State: "done" or "cancelled" } && _session is { } session)
         {
             _session = null;
@@ -666,6 +703,7 @@ public sealed partial class TransferItemViewModel : ObservableObject, ITransferR
                 TransferState.Running => $"Copying · {size}",
                 TransferState.Retrying => $"Connection lost, retrying from {FormatSize(Job.BytesDone)} · {Job.Error}",
                 TransferState.Paused => $"Paused at {FormatSize(Job.BytesDone)}{(Job.Error is { } e ? $" · {e}" : "")}",
+                TransferState.Completed when Job.Skipped => "Skipped · already exists",
                 TransferState.Completed => $"Done · {FormatSize(Job.Length)}",
                 _ => $"Failed · {Job.Error}",
             };

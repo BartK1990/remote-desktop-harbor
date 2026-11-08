@@ -2,7 +2,7 @@
 
 * Status: Accepted
 * Date: 2026-11-08
-* Requirements: FR-64, FR-63, FR-61, FR-10, FR-33, NFR-12
+* Requirements: FR-65, FR-63, FR-61, FR-10, FR-33, NFR-12
 * Amends: ADR-0041 (adopts its option 3 for transfers only), ADR-0039 and ADR-0041 (chunk size)
 
 ## Context

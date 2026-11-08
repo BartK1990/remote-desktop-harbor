@@ -19,8 +19,20 @@ public sealed class ResumableFileCopier(ITransferFileSystem? fileSystem = null)
     /// written, so the next attempt resumes there.
     /// </summary>
     /// <exception cref="TransferFailedException">A problem retrying cannot fix (missing source, destination exists).</exception>
+    /// <remarks>With <see cref="TransferJob.SkipExisting"/> an existing destination completes the job as skipped. SPEC FR-64</remarks>
     public async Task CopyAsync(TransferJob job, Action<TransferJob> checkpoint, CancellationToken cancellationToken = default)
     {
+        // SPEC FR-64: a file already at the destination is left alone. Our own partial file is never the destination.
+        if (job.SkipExisting && !job.Overwrite && _fs.GetFile(job.DestinationPath) is not null)
+        {
+            job.State = TransferState.Completed;
+            job.Skipped = true;
+            job.Error = null;
+            job.UpdatedUtc = DateTimeOffset.UtcNow;
+            checkpoint(job);
+            return;
+        }
+
         var source = _fs.GetFile(job.SourcePath) ?? throw new TransferFailedException($"{job.SourcePath} no longer exists.");
         if (job.Length != source.Length || job.SourceLastWriteUtcTicks != source.LastWriteUtc.Ticks)
         {

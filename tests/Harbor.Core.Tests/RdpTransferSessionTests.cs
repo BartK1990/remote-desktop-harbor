@@ -3,7 +3,7 @@ using Harbor.Core.Transfer.Rdp;
 
 namespace Harbor.Core.Tests;
 
-// SPEC FR-64, ADR-0042: what Harbor's own transfer window connects with, and when it cannot be used.
+// SPEC FR-65, ADR-0042: what Harbor's own transfer window connects with, and when it cannot be used.
 public sealed class RdpTransferSessionTests
 {
     private static ConnectionEntry Entry(string? settings = null, string? user = "admin", string? domain = "CORP", int port = 3389) => new()

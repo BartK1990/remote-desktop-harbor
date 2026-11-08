@@ -88,6 +88,8 @@ Explorer.
 | (connecting) | `RecentEntryIds` | `[]` | Ids of the last 10 entries you connected to, most recent first. Personal. |
 | File transfer → Copy over | `TransferMethod` | `0` | `0` Remote Desktop (port 3389), `1` Network share (port 445). The last choice. |
 | File transfer → Folder on the server | `TransferServerFolder` | `%USERPROFILE%\Downloads` | Folder on the server for transfers through Remote Desktop, as the server sees it. The last one used. |
+| File transfer → Files that already exist | `TransferExistingFiles` | `0` | `0` Fail, `1` Replace, `2` Skip (copy only files not there yet). The last choice. |
+| File transfer → Start the copy for me | `TransferAutoStart` | `true` | Remote Desktop transfers connect in Harbor's transfer window, which starts the copy in the session; `false` opens Remote Desktop Connection and you start it. |
 | File transfer → Folder on the host | `TransferRemoteFolder` | `C$\Users\Public\Downloads` | Folder that [file transfers](../../guides/file-transfer/) start in: relative to `\\<host>\`, or a full UNC path. The last one used. |
 
 ## Validation

@@ -25,7 +25,7 @@ Not sure? Run `Test-NetConnection <server> -Port 445` in PowerShell: if `TcpTest
 ## Copying through Remote Desktop
 
 1. Type the **Folder on the server** as the server sees it — `%USERPROFILE%\Downloads` (the default), `D:\Install`…
-   Environment variables are expanded on the server. Tick **Replace files that already exist** if you want that.
+   Environment variables are expanded on the server. Choose what happens to [files that already exist](#files-that-already-exist).
 2. Click **Upload files…**, **Upload folder…** or **Download…** (for a download you pick the folder on this PC; the files
    themselves are picked on the server).
 3. Harbor opens its **transfer window**: a Remote Desktop window of its own, connected to the entry with the drives of
@@ -79,8 +79,20 @@ Harbor connects the share with the entry's user name and password through Window
 command line or in a file. An entry without a user name connects as your Windows account. If you are already
 connected to that server as another user, that connection is used.
 
-An existing file is not overwritten by surprise: a download asks before replacing local files, and an upload whose
-file already exists on the host fails with a message.
+Files that already exist are handled as described [below](#files-that-already-exist).
+
+## Files that already exist
+
+**Files that already exist** applies to both ways of copying:
+
+| Choice | What happens |
+| --- | --- |
+| **Fail** (default) | A file that is already there is not copied and shows as failed; the other files are copied. |
+| **Skip** | Only files that are not there yet are copied. A file with the same name and extension in the same sub-folder is left as it is. |
+| **Replace** | Files that are already there are replaced. Over a network share, files on this PC are replaced only after you confirm. |
+
+**Upload folder…** copies the folder with all its files and sub-folders, so with **Skip** you can upload the same
+folder again and only the new files are copied. Harbor remembers the choice.
 
 ## Following transfers
 
@@ -95,6 +107,7 @@ state:
 | Paused | Paused by you, by closing the app, or after 10 minutes of retrying. **Resume** continues where it stopped. |
 | Done | Copied completely; the file has its final name. |
 | Failed | A problem retrying cannot fix (source gone, file exists, access denied). **Resume** tries again. |
+| Skipped | The file was already there and **Skip** was chosen; it was left as it is. |
 
 **Pause** and **Resume** work on one transfer, **Resume all** on every paused one. **Cancel** stops a transfer and
 deletes the partly copied file; on a finished transfer the same button **Remove**s it from the list (the file

@@ -121,7 +121,7 @@ public class ViewSourceTests
         Assert.Equal(2, commands.Count(c => c == "{Binding CopyStartCommandCommand}"));
     }
 
-    // SPEC FR-64, ADR-0042: Harbor's own transfer window starts the copy (a setting), and each Remote Desktop transfer can
+    // SPEC FR-65, ADR-0042: Harbor's own transfer window starts the copy (a setting), and each Remote Desktop transfer can
     // show that window or connect it again.
     [Fact]
     public void Remote_desktop_transfers_can_be_started_by_harbors_transfer_window()

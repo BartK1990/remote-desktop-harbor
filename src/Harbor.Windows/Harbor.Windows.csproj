@@ -3,7 +3,7 @@
     <TargetFramework>net10.0-windows</TargetFramework>
     <RootNamespace>Harbor.Windows</RootNamespace>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <!-- SPEC FR-64, ADR-0042: the transfer window hosts the Remote Desktop ActiveX control (WinForms AxHost). -->
+    <!-- SPEC FR-65, ADR-0042: the transfer window hosts the Remote Desktop ActiveX control (WinForms AxHost). -->
     <UseWindowsForms>true</UseWindowsForms>
   </PropertyGroup>
   <ItemGroup>

@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 namespace Harbor.Windows.Interop;
 
 /// <summary>
-/// Types key combinations with <c>SendInput</c> into the window in front (SPEC FR-64, ADR-0042): the transfer window
+/// Types key combinations with <c>SendInput</c> into the window in front (SPEC FR-65, ADR-0042): the transfer window
 /// types Win+R, Ctrl+V and Enter into its Remote Desktop control. Callers check that their own window is in front first,
 /// so nothing is typed into another program.
 /// </summary>

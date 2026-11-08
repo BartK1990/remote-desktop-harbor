@@ -126,9 +126,12 @@ public sealed class HarborSettings
     /// </summary>
     public string TransferServerFolder { get; set; } = @"%USERPROFILE%\Downloads";
 
+    /// <summary>What file transfers do with files that already exist at the destination; the last choice (SPEC FR-64).</summary>
+    public Transfer.ExistingFiles TransferExistingFiles { get; set; } = Transfer.ExistingFiles.Fail;
+
     /// <summary>
     /// Remote Desktop transfers: connect in Harbor's own transfer window, which starts the copy in the session by itself,
-    /// instead of mstsc with the start command to paste (SPEC FR-64, ADR-0042).
+    /// instead of mstsc with the start command to paste (SPEC FR-65, ADR-0042).
     /// </summary>
     public bool TransferAutoStart { get; set; } = true;
 

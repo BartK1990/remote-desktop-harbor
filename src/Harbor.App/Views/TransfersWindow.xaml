@@ -39,8 +39,7 @@
           <TextBox Text="{Binding ServerFolder, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource Harbor.MonoFont}"
                    AutomationProperties.Name="Folder on the server"
                    ToolTip="As the server sees it, e.g. %USERPROFILE%\Downloads or D:\Install. Environment variables are expanded on the server." />
-          <CheckBox Content="Replace files that already exist" IsChecked="{Binding ReplaceExisting}" Margin="0,6,0,0" />
-          <!-- SPEC FR-64, ADR-0042: Harbor's own transfer window starts the copy in the session. -->
+          <!-- SPEC FR-65, ADR-0042: Harbor's own transfer window starts the copy in the session. -->
           <CheckBox Content="Start the copy for me (connect in Harbor's transfer window)" IsChecked="{Binding AutoStart}"
                     IsEnabled="{Binding CanAutoStart}" Margin="0,6,0,0"
                     ToolTip="Harbor connects in its own Remote Desktop window with this PC's drives shared and types Win+R, the start command and Enter in the session. Off: Remote Desktop Connection opens and you start the copy yourself." />
@@ -50,6 +49,16 @@
           <TextBox Text="{Binding RemoteFolder, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource Harbor.MonoFont}"
                    AutomationProperties.Name="Folder on the host"
                    ToolTip="A shared folder on the host, e.g. \\server\C$\Users\Public\Downloads. It is opened with the entry's account." />
+        </StackPanel>
+        <!-- SPEC FR-64: what to do with files that already exist at the destination, either way of copying. -->
+        <TextBlock Text="Files that already exist" Style="{StaticResource FieldLabel}" Margin="0,8,0,4" />
+        <StackPanel Orientation="Horizontal" AutomationProperties.Name="Files that already exist">
+          <RadioButton GroupName="Existing" Style="{StaticResource Harbor.Segment}" Content="Fail" IsChecked="{Binding FailExisting}"
+                       ToolTip="A file that is already there is not copied and shows as failed." />
+          <RadioButton GroupName="Existing" Style="{StaticResource Harbor.Segment}" Content="Skip" IsChecked="{Binding SkipExisting}"
+                       ToolTip="Copy only the files that are not there yet. A file with the same name and extension in the same sub-folder is left as it is." />
+          <RadioButton GroupName="Existing" Style="{StaticResource Harbor.Segment}" Content="Replace" IsChecked="{Binding ReplaceExisting}"
+                       ToolTip="Replace files that are already there. Over a network share, files on this PC are replaced only after you confirm." />
         </StackPanel>
         <WrapPanel Margin="0,10,0,0">
           <Button Content="Upload files…" Command="{Binding UploadFilesCommand}" Style="{DynamicResource AccentButtonStyle}" Margin="0,0,6,6" Padding="14,6" />

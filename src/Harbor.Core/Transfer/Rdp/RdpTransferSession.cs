@@ -4,7 +4,7 @@ using Harbor.Core.Rdp;
 namespace Harbor.Core.Transfer.Rdp;
 
 /// <summary>
-/// Opens Harbor's own Remote Desktop window for a transfer (SPEC FR-64, ADR-0042): it connects with the PC's drives
+/// Opens Harbor's own Remote Desktop window for a transfer (SPEC FR-65, ADR-0042): it connects with the PC's drives
 /// shared and, once signed in, starts the copy helper in the session itself (Win+R, the start command, Enter), so the
 /// user does not have to. Implemented on Windows with the Remote Desktop ActiveX control.
 /// </summary>
@@ -28,7 +28,7 @@ public interface IRdpTransferSessionHost
 /// </param>
 public sealed record RdpTransferSessionRequest(string Title, string StartCommand, Func<bool> ShouldStart);
 
-/// <summary>What the transfer window is doing. SPEC FR-64</summary>
+/// <summary>What the transfer window is doing. SPEC FR-65</summary>
 public enum RdpTransferSessionState
 {
     Connecting,
@@ -65,7 +65,7 @@ public interface IRdpTransferSession : IRdpSession
 }
 
 /// <summary>
-/// Connection settings for the transfer window, taken from an entry (SPEC FR-64, ADR-0042). The window does not use the
+/// Connection settings for the transfer window, taken from an entry (SPEC FR-65, ADR-0042). The window does not use the
 /// rest of the entry's <c>.rdp</c> settings: it always shares the drives and the clipboard and uses its own size.
 /// </summary>
 public sealed record RdpTransferSessionSettings(string Host, int Port, string? UserName, string? Domain, int AuthenticationLevel,

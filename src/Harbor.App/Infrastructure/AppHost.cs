@@ -45,7 +45,7 @@ public sealed class AppHost : IAsyncDisposable
     /// <summary>Transfers through the Remote Desktop connection, copied by a helper in the session (SPEC FR-63).</summary>
     public RdpTransferKit RdpTransfers { get; } = new(AppPaths.RdpTransfersDirectory);
 
-    /// <summary>Harbor's own Remote Desktop window that starts those transfers in the session (SPEC FR-64, ADR-0042).</summary>
+    /// <summary>Harbor's own Remote Desktop window that starts those transfers in the session (SPEC FR-65, ADR-0042).</summary>
     public IRdpTransferSessionHost RdpTransferSessions { get; } = new RdpTransferSessionHost();
 
     /// <summary>
