@@ -10,7 +10,6 @@
     <ProjectReference Include="..\Harbor.Core\Harbor.Core.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="System.Security.Cryptography.ProtectedData" />
     <PackageReference Include="System.DirectoryServices.AccountManagement" />
     <PackageReference Include="Microsoft.Identity.Client" />
     <PackageReference Include="Microsoft.Identity.Client.Broker" />
