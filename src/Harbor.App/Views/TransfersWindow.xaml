@@ -40,6 +40,10 @@
                    AutomationProperties.Name="Folder on the server"
                    ToolTip="As the server sees it, e.g. %USERPROFILE%\Downloads or D:\Install. Environment variables are expanded on the server." />
           <CheckBox Content="Replace files that already exist" IsChecked="{Binding ReplaceExisting}" Margin="0,6,0,0" />
+          <!-- SPEC FR-64, ADR-0042: Harbor's own transfer window starts the copy in the session. -->
+          <CheckBox Content="Start the copy for me (connect in Harbor's transfer window)" IsChecked="{Binding AutoStart}"
+                    IsEnabled="{Binding CanAutoStart}" Margin="0,6,0,0"
+                    ToolTip="Harbor connects in its own Remote Desktop window with this PC's drives shared and types Win+R, the start command and Enter in the session. Off: Remote Desktop Connection opens and you start the copy yourself." />
         </StackPanel>
         <StackPanel Visibility="{Binding UseNetworkShare, Converter={StaticResource BoolToVisibility}}">
           <TextBlock Text="Folder on the host" Style="{StaticResource FieldLabel}" />
@@ -119,6 +123,9 @@
                 <Button Content="Resume" Command="{Binding ResumeCommand}" Style="{StaticResource Harbor.SubtleButton}" Margin="0,0,4,0"
                         Visibility="{Binding CanResume, Converter={StaticResource BoolToVisibility}}"
                         ToolTip="Continue where the copy stopped" />
+                <Button Content="{Binding ConnectText}" Command="{Binding ConnectCommand}" Style="{StaticResource Harbor.SubtleButton}" Margin="0,0,4,0"
+                        Visibility="{Binding CanConnect, Converter={StaticResource BoolToVisibility}}"
+                        ToolTip="Show Harbor's transfer window, or connect it again: the copy continues or is started in the session" />
                 <Button Content="Copy command" Command="{Binding CopyStartCommandCommand}" Style="{StaticResource Harbor.SubtleButton}" Margin="0,0,4,0"
                         Visibility="{Binding HasStartCommand, Converter={StaticResource BoolToVisibility}}"
                         ToolTip="Copy the command that starts (or resumes) this transfer in the Remote Desktop session (Win+R, Ctrl+V)" />

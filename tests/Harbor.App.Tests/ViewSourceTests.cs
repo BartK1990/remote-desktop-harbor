@@ -121,6 +121,17 @@ public class ViewSourceTests
         Assert.Equal(2, commands.Count(c => c == "{Binding CopyStartCommandCommand}"));
     }
 
+    // SPEC FR-64, ADR-0042: Harbor's own transfer window starts the copy (a setting), and each Remote Desktop transfer can
+    // show that window or connect it again.
+    [Fact]
+    public void Remote_desktop_transfers_can_be_started_by_harbors_transfer_window()
+    {
+        var doc = XDocument.Load(Source("TransfersWindow.xaml"));
+        var autoStart = Assert.Single(doc.Descendants(Wpf + "CheckBox"), c => (string?)c.Attribute("IsChecked") == "{Binding AutoStart}");
+        Assert.Equal("{Binding CanAutoStart}", (string?)autoStart.Attribute("IsEnabled"));
+        Assert.Single(doc.Descendants(Wpf + "Button"), b => (string?)b.Attribute("Command") == "{Binding ConnectCommand}");
+    }
+
     // SPEC FR-60: the transfer list keeps a right gutter so the scroll bar never covers the Pause / Resume / Cancel buttons.
     [Fact]
     public void Transfer_rows_keep_a_gutter_for_the_scroll_bar()

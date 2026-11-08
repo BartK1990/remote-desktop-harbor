@@ -127,6 +127,12 @@ public sealed class HarborSettings
     public string TransferServerFolder { get; set; } = @"%USERPROFILE%\Downloads";
 
     /// <summary>
+    /// Remote Desktop transfers: connect in Harbor's own transfer window, which starts the copy in the session by itself,
+    /// instead of mstsc with the start command to paste (SPEC FR-64, ADR-0042).
+    /// </summary>
+    public bool TransferAutoStart { get; set; } = true;
+
+    /// <summary>
     /// Smart groups of this user (SPEC FR-62, ADR-0040): virtual tree groups listing the entries their rules match.
     /// Personal, like pins: never written to a shared database.
     /// </summary>

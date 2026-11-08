@@ -16,7 +16,7 @@ selected in the tree ([several accounts](../managing-entries/)).
 
 | Choice | Needs | How it works |
 |---|---|---|
-| **Remote Desktop (port 3389)** — default | Only what Remote Desktop needs | A helper started in the Remote Desktop session copies the files through your PC's drive shared into the session. |
+| **Remote Desktop (port 3389)** — default | Only what Remote Desktop needs | A helper in the Remote Desktop session copies the files through your PC's drive shared into the session. Harbor starts it for you. |
 | **Network share (port 445)** | Windows file sharing to the server | Harbor copies the files itself over a share such as `C$`. |
 
 Not sure? Run `Test-NetConnection <server> -Port 445` in PowerShell: if `TcpTestSucceeded` is `False`, use
@@ -28,11 +28,22 @@ Not sure? Run `Test-NetConnection <server> -Port 445` in PowerShell: if `TcpTest
    Environment variables are expanded on the server. Tick **Replace files that already exist** if you want that.
 2. Click **Upload files…**, **Upload folder…** or **Download…** (for a download you pick the folder on this PC; the files
    themselves are picked on the server).
-3. Harbor opens Remote Desktop for the entry with the needed drive of this PC shared into the session, and puts the
-   start command on the clipboard. If a session is already open with that account, it is reconnected with the drive.
-4. In the session press <kbd>Win</kbd>+<kbd>R</kbd>, paste with <kbd>Ctrl</kbd>+<kbd>V</kbd> and press
-   <kbd>Enter</kbd>. If Windows asks whether to run the file, choose **Run**. A window opens on the server and copies the
-   files; for a download it first asks which files to copy.
+3. Harbor opens its **transfer window**: a Remote Desktop window of its own, connected to the entry with the drives of
+   this PC shared into the session. If a session is already open with that account, it is reconnected.
+4. Once you are signed in, the window starts the copy by itself: it types <kbd>Win</kbd>+<kbd>R</kbd>, pastes the start
+   command and presses <kbd>Enter</kbd> in the session. Leave the window in front until a console window opens on the
+   server and copies the files; for a download it first asks which files to copy. If Windows asks whether to run the
+   file, choose **Run**.
+5. When the copy is done, Harbor closes the transfer window (it disconnects; the session stays open on the server).
+
+If the window was not in front when you signed in, nothing is typed: click **Start copy** at the top of the window. If
+nothing happens, press <kbd>Win</kbd>+<kbd>R</kbd>, <kbd>Ctrl</kbd>+<kbd>V</kbd>, <kbd>Enter</kbd> in it yourself — the
+command is on the clipboard.
+
+**Start the copy for me** in the File transfer window turns the transfer window on or off. Off — or for entries that go
+through a Remote Desktop Gateway — Harbor opens Remote Desktop Connection (`mstsc`) with the needed drive shared, puts
+the start command on the clipboard, and you press <kbd>Win</kbd>+<kbd>R</kbd>, <kbd>Ctrl</kbd>+<kbd>V</kbd> and
+<kbd>Enter</kbd> in the session.
 
 The command looks like `\\tsclient\C\Users\you\AppData\Local\RemoteDesktopHarbor\rdp-transfers\<id>\start.cmd`.
 **Copy command** in the window (and on each unfinished row) puts it on the clipboard again.
@@ -41,12 +52,14 @@ The File transfer window shows the progress the helper reports: file *n* of *m*,
 reconnect*, done or failed. **Cancel** asks the helper to stop and delete the partly copied files.
 
 **When the connection drops**, the remote session keeps running and so does the helper: it waits for Remote Desktop to
-reconnect — by itself or when you connect again — and continues where it stopped. Its journal is kept on the server.
-To resume a transfer whose window was closed, run the start command again.
+reconnect — by itself, with **Reconnect** in the transfer window, or **Connect** on the transfer's row — and continues
+where it stopped. Its journal is kept on the server. To resume a transfer whose console was closed, use **Connect** on
+its row (Harbor starts it again) or run the start command again. A transfer never runs twice at once.
 
 :::note
-While that session is connected, the shared drive of your PC (at least the drive of Harbor's data folder, usually
-`C:`) is visible to the server — that is how the files get there. The server must allow drive redirection; if a policy
+While the transfer window is connected, **every drive of your PC** is visible to the server — that is how the files get
+there; the window is closed as soon as the copy is done. With Remote Desktop Connection only the needed drives are
+shared (at least the drive of Harbor's data folder, usually `C:`). The server must allow drive redirection; if a policy
 turns it off, the command reports that `\\tsclient` cannot be found. No password is written to any file or command.
 :::
 
@@ -89,7 +102,7 @@ stays). **Clear done** removes all finished rows. The window can be closed while
 
 ## How resuming works over a network share
 
-- Each file is copied in 4 MB chunks into `<name>.harbor-part` next to its destination.
+- Each file is copied in 1 MB chunks into `<name>.harbor-part` next to its destination.
 - After every chunk is written and flushed, Harbor saves its position and a hash in a small journal
   (`transfers\<id>.json` in the [data folder](../../reference/data-and-files/)). So Harbor always knows exactly how
   much reached the destination — after a dropped connection, a closed app or a crash.
