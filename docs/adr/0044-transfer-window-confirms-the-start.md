@@ -1,4 +1,4 @@
-# ADR-0043: The transfer window confirms that the copy started in its own session
+# ADR-0044: The transfer window confirms that the copy started in its own session
 
 * Status: Accepted
 * Date: 2026-11-09
