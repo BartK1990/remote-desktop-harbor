@@ -3,11 +3,8 @@ name: Release
 on:
   push:
     tags: ["v*"]
+  # Manual run: releases the <Version> in Directory.Build.props of the chosen branch and creates tag v<version>.
   workflow_dispatch:
-    inputs:
-      version:
-        description: "Version without leading v (e.g. 0.2.0). Creates tag v<version>."
-        required: true
 
 permissions:
   contents: write
@@ -26,12 +23,20 @@ jobs:
         with:
           global-json-file: global.json
 
+      # The version lives in Directory.Build.props (ADR-0043); the tag must agree with it.
       - name: Determine version
         id: version
         shell: pwsh
         run: |
-          $v = if ("${{ github.event_name }}" -eq "workflow_dispatch") { "${{ inputs.version }}" } else { "${{ github.ref_name }}".TrimStart('v') }
-          if ($v -notmatch '^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$') { throw "Invalid version '$v'" }
+          $v = (dotnet msbuild src/Harbor.App/Harbor.App.csproj -getProperty:Version).Trim()
+          if ($LASTEXITCODE -ne 0) { throw "Could not read <Version> from the project" }
+          if ($v -notmatch '^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$') { throw "Invalid <Version> '$v' in Directory.Build.props" }
+          if ("${{ github.event_name }}" -eq "push") {
+            $tag = "${{ github.ref_name }}"
+            if ($tag -ne "v$v") { throw "Tag '$tag' does not match <Version> $v in Directory.Build.props; expected v$v" }
+          } elseif (git ls-remote --tags origin "refs/tags/v$v") {
+            throw "Tag v$v already exists; bump <Version> in Directory.Build.props first"
+          }
           "version=$v" >> $env:GITHUB_OUTPUT
 
       - name: Test
@@ -40,13 +45,12 @@ jobs:
       - name: Publish self-contained (no runtime needed)
         run: >
           dotnet publish src/Harbor.App/Harbor.App.csproj -p:PublishProfile=win-x64
-          -p:Version=${{ steps.version.outputs.version }} -o out/sc
+          -o out/sc
 
       - name: Publish framework-dependent (needs .NET 10 Desktop Runtime)
         run: >
           dotnet publish src/Harbor.App/Harbor.App.csproj -c Release -r win-x64 --self-contained false
-          -p:PublishSingleFile=true -p:PublishReadyToRun=true -p:DebugType=embedded
-          -p:Version=${{ steps.version.outputs.version }} -o out/fdd
+          -p:PublishSingleFile=true -p:PublishReadyToRun=true -p:DebugType=embedded -o out/fdd
 
       - name: Remove symbols
         shell: pwsh

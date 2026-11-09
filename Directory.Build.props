@@ -11,6 +11,8 @@
     <Product>Remote Desktop Harbor</Product>
     <Copyright>Copyright (c) 2026 Bartosz Kuriata</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <!-- The single source of the app version (SPEC FR-07, ADR-0043): bump it in the release commit, then tag
+         v<Version>. The release workflow refuses a tag that does not match. -->
     <Version>0.1.0</Version>
     <Deterministic>true</Deterministic>
     <!-- Symbols inside the binaries: release folders contain only the exe. -->
