@@ -49,3 +49,4 @@ Process: see [spec/README.md](../spec/README.md).
 | [0041](0041-file-transfer-through-remote-desktop.md) | File transfer through the Remote Desktop connection (port 3389 only) | Accepted |
 | [0042](0042-transfer-window-starts-the-copy.md) | Harbor's transfer window (Remote Desktop ActiveX) starts the copy in the session; 1 MiB chunks | Accepted |
 | [0043](0043-version-in-code.md) | The version lives in `Directory.Build.props`; the release tag must match it | Accepted |
+| [0044](0044-transfer-window-confirms-the-start.md) | The transfer window confirms that the copy started in its own session (nested full-screen Remote Desktop) | Accepted |

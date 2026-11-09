@@ -26,7 +26,15 @@ public interface IRdpTransferSessionHost
 /// Asked when the session is signed in: false when the helper already runs there (after a reconnect), so it is not
 /// started twice. Called on the window's thread.
 /// </param>
-public sealed record RdpTransferSessionRequest(string Title, string StartCommand, Func<bool> ShouldStart);
+/// <param name="ResetStarted">
+/// Called on the window's thread right before the start command is typed: forgets an earlier start (SPEC FR-66).
+/// </param>
+/// <param name="HasStarted">
+/// Polled on the window's thread after the start command was typed: true once it ran in this session (SPEC FR-66). When it
+/// stays false, the keys went somewhere else — for example a full-screen Remote Desktop window inside the session.
+/// </param>
+public sealed record RdpTransferSessionRequest(string Title, string StartCommand, Func<bool> ShouldStart, Action? ResetStarted = null,
+    Func<bool>? HasStarted = null);
 
 /// <summary>What the transfer window is doing. SPEC FR-65</summary>
 public enum RdpTransferSessionState
@@ -36,10 +44,16 @@ public enum RdpTransferSessionState
     /// <summary>Signed in; the start command is about to be typed.</summary>
     Starting,
 
-    /// <summary>The start command was typed (or was not needed).</summary>
+    /// <summary>The start command was typed and is waiting to be confirmed by the session (SPEC FR-66).</summary>
+    Checking,
+
+    /// <summary>The start command ran in the session (or was not needed).</summary>
     Started,
 
-    /// <summary>Signed in, but the window was not in front, so nothing was typed: the user clicks Start copy.</summary>
+    /// <summary>
+    /// Signed in, but nothing was typed (the window was not in front), or what was typed did not start the copy in this
+    /// session (SPEC FR-66): the user clicks Start copy.
+    /// </summary>
     NeedsClick,
 
     Disconnected,

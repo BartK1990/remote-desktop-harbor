@@ -25,6 +25,8 @@ public sealed class RdpTransferSessionHost : IRdpTransferSessionHost
         "8b918b82-7985-4c24-89df-c33ad2bbfbcd", // MsRdpClient9NotSafeForScripting
     ];
 
+    private static readonly TimeSpan OpenTimeout = TimeSpan.FromSeconds(15);
+
     private readonly Lazy<string?> _clsid = new(() => ControlClasses.FirstOrDefault(IsRegistered));
 
     public bool IsAvailable => _clsid.Value is not null;
@@ -41,7 +43,11 @@ public sealed class RdpTransferSessionHost : IRdpTransferSessionHost
             try
             {
                 using var form = new TransferSessionForm(clsid, settings, password, request, closed.Task);
-                form.HandleCreated += (_, _) => created.TrySetResult(form);
+                // The handle may already exist here (the control's EndInit creates it), so its HandleCreated event can have
+                // fired before anyone listened, which used to leave the app's UI thread waiting – every other window of the
+                // app froze while this one was open. Make sure it exists, then hand the window over at once.
+                _ = form.Handle;
+                created.TrySetResult(form);
                 Application.Run(form);
             }
             catch (Exception ex)
@@ -61,7 +67,13 @@ public sealed class RdpTransferSessionHost : IRdpTransferSessionHost
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
 
-        return created.Task.GetAwaiter().GetResult().Session;
+        // Called on the app's UI thread: wait only for the window to be created, never for longer than a few seconds.
+        if (!created.Task.Wait(OpenTimeout))
+        {
+            throw new InvalidOperationException("The Remote Desktop transfer window did not open.");
+        }
+
+        return created.Task.Result.Session;
     }
 
     private static bool IsRegistered(string clsid)
@@ -137,6 +149,8 @@ internal sealed class TransferSessionForm : Form
 {
     private static readonly TimeSpan SettleAfterLogin = TimeSpan.FromSeconds(4);
     private static readonly TimeSpan RunBoxDelay = TimeSpan.FromMilliseconds(1500);
+    private static readonly TimeSpan CheckInterval = TimeSpan.FromMilliseconds(500);
+    private static readonly TimeSpan StartTimeout = TimeSpan.FromSeconds(15);
 
     private readonly RdpTransferSessionSettings _settings;
     private readonly RdpTransferSessionRequest _request;
@@ -347,6 +361,7 @@ internal sealed class TransferSessionForm : Form
         }
 
         SetState(RdpTransferSessionState.Starting, "Starting the copy in the session…");
+        _request.ResetStarted?.Invoke(); // SPEC FR-66: what follows must prove the command ran in this session
         _rdp.Focus();
         // Win+R opens the session's Run box; after it shows, Ctrl+V pastes the start command and Enter runs it.
         KeyboardInput.Chord(KeyboardInput.VkLeftWindows, KeyboardInput.VkR);
@@ -361,9 +376,52 @@ internal sealed class TransferSessionForm : Form
             _rdp.Focus();
             KeyboardInput.Chord(KeyboardInput.VkControl, KeyboardInput.VkV);
             KeyboardInput.Press(KeyboardInput.VkReturn);
-            SetState(RdpTransferSessionState.Started,
-                "Copy started. If no progress shows in Harbor, click Start copy, or press Win+R, Ctrl+V and Enter in the session.");
+            if (_request.HasStarted is null)
+            {
+                SetState(RdpTransferSessionState.Started,
+                    "Copy started. If no progress shows in Harbor, click Start copy, or press Win+R, Ctrl+V and Enter in the session.");
+                return;
+            }
+
+            SetState(RdpTransferSessionState.Checking, "Checking that the copy started in the session…");
+            WaitForStart(DateTime.UtcNow + StartTimeout);
         });
+    }
+
+    /// <summary>
+    /// SPEC FR-66: the start command leaves a marker on this PC when it runs in the session. Without it, the keys went
+    /// somewhere else – typically a Remote Desktop window open full screen inside the session, which takes Win+R to the
+    /// computer it is connected to – so the window says so instead of claiming the copy started. Nothing is typed again.
+    /// </summary>
+    private void WaitForStart(DateTime until)
+    {
+        if (Started())
+        {
+            SetState(RdpTransferSessionState.Started, "Copy started in the session.");
+            return;
+        }
+
+        if (DateTime.UtcNow < until)
+        {
+            After(CheckInterval, () => WaitForStart(until));
+            return;
+        }
+
+        SetState(RdpTransferSessionState.NeedsClick,
+            "The copy did not start in this session. If a Remote Desktop window is open full screen in it, the keys went " +
+            "to it: minimize it (or leave full screen), then click Start copy.");
+    }
+
+    private bool Started()
+    {
+        try
+        {
+            return _request.HasStarted?.Invoke() != false;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return false;
+        }
     }
 
     /// <summary>True while this window is the one Windows sends keys to: only then is anything typed.</summary>

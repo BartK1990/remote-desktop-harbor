@@ -40,6 +40,11 @@ If the window was not in front when you signed in, nothing is typed: click **Sta
 nothing happens, press <kbd>Win</kbd>+<kbd>R</kbd>, <kbd>Ctrl</kbd>+<kbd>V</kbd>, <kbd>Enter</kbd> in it yourself — the
 command is on the clipboard.
 
+After typing, the window checks that the command really ran in *this* session. If you have a Remote Desktop window open
+**full screen inside the session** (a connection to a further computer), it takes <kbd>Win</kbd>+<kbd>R</kbd> and the
+pasted command to that computer instead, which then shows an error. The transfer window notices that the copy did not
+start and says so: minimize the inner window (or leave full screen) and click **Start copy**.
+
 **Start the copy for me** in the File transfer window turns the transfer window on or off. Off — or for entries that go
 through a Remote Desktop Gateway — Harbor opens Remote Desktop Connection (`mstsc`) with the needed drive shared, puts
 the start command on the clipboard, and you press <kbd>Win</kbd>+<kbd>R</kbd>, <kbd>Ctrl</kbd>+<kbd>V</kbd> and

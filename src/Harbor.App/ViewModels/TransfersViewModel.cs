@@ -320,7 +320,8 @@ public sealed partial class TransfersViewModel : ObservableObject
         if (AutoStart && RdpTransferSessionSettings.For(entry.ForAccount(account)) is not null)
         {
             var request = new RdpTransferSessionRequest(entry.Name, _kit.AutoStartCommand(plan.Id),
-                () => _kit.ReadStatus(plan.Id) is not { State: "done" or "cancelled" });
+                () => _kit.ReadStatus(plan.Id) is not { State: "done" or "cancelled" },
+                () => _kit.ClearStarted(plan.Id), () => _kit.HasStarted(plan.Id)); // SPEC FR-66
             Task<IRdpSession> Launch(ConnectionEntry e, string? password)
             {
                 var session = _sessions.Open(RdpTransferSessionSettings.For(e)!, password, request);
@@ -549,6 +550,7 @@ public sealed partial class RdpTransferRowViewModel : ObservableObject, ITransfe
                 {
                     RdpTransferSessionState.Connecting => "Connecting in Harbor's transfer window…",
                     RdpTransferSessionState.Starting => "Signed in; starting the copy in the session…",
+                    RdpTransferSessionState.Checking => "Checking that the copy started in the session…",
                     RdpTransferSessionState.NeedsClick => "Click Start copy in Harbor's transfer window",
                     RdpTransferSessionState.Disconnected => "Disconnected · click Reconnect in Harbor's transfer window",
                     _ => "Starting… if nothing happens, press Win+R, Ctrl+V and Enter in Harbor's transfer window",

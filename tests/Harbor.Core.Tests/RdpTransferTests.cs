@@ -81,6 +81,29 @@ public sealed class RdpTransferTests : IDisposable
         Assert.Contains("-Plan '\\\\tsclient\\C\\plan.json' %HARBOR_ARGS%\"", cmd, StringComparison.Ordinal);
     }
 
+    // SPEC FR-66: start.cmd first leaves a marker next to the plan, so the window knows the keys reached this session.
+    [Fact]
+    public void The_start_command_first_marks_that_it_ran_in_the_session()
+    {
+        var cmd = RdpTransferKit.StartScript(@"\\tsclient\C\h.ps1", @"\\tsclient\C\plan.json");
+        var marker = cmd.IndexOf("(echo %COMPUTERNAME%)>\"%~dp0started\" 2>nul", StringComparison.Ordinal);
+        Assert.True(marker > 0);
+        Assert.True(marker < cmd.IndexOf("powershell.exe", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void A_start_is_seen_only_after_the_marker_is_written_again()
+    {
+        var kit = Kit;
+        var prepared = kit.CreateUpload("SRV01", Guid.NewGuid(), [(File("a.txt", 1), "a.txt")], ServerFolder, ExistingFiles.Fail);
+        Assert.False(kit.HasStarted(prepared.Plan.Id));
+        System.IO.File.WriteAllText(Path.Combine(prepared.PlanFolder, RdpTransferKit.StartedMarker), "SRV01");
+        Assert.True(kit.HasStarted(prepared.Plan.Id));
+        kit.ClearStarted(prepared.Plan.Id);
+        Assert.False(kit.HasStarted(prepared.Plan.Id));
+        kit.ClearStarted(prepared.Plan.Id); // nothing to forget
+    }
+
     [Fact]
     public void A_plan_remembers_the_account_to_connect_with()
     {
