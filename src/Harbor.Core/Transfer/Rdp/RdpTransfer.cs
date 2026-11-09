@@ -200,7 +200,10 @@ public sealed class RdpTransferKit(string directory, Func<string, string>? clien
     {
         static string Quote(string s) => "'" + s.Replace("'", "''").Replace("%", "%%") + "'";
         // "start.cmd /auto" (started by Harbor's own transfer window, ADR-0042) closes when done: the app shows the result.
+        // SPEC FR-66: the first thing it does is leave a "started" marker next to the plan on this PC, so the transfer
+        // window can tell the keys reached this session (and not, say, a full-screen Remote Desktop window inside it).
         return "@echo off\r\nchcp 65001 >nul\r\ntitle Remote Desktop Harbor - file transfer\r\n" +
+               "(echo %COMPUTERNAME%)>\"%~dp0" + StartedMarker + "\" 2>nul\r\n" +
                "set \"HARBOR_ARGS=\"\r\nif /i \"%~1\"==\"" + AutoSwitch + "\" set \"HARBOR_ARGS=-NoPause\"\r\n" +
                "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \"& ([scriptblock]::Create([IO.File]::ReadAllText(" +
                Quote(scriptPath) + "))) -Plan " + Quote(planPath) + " %HARBOR_ARGS%\"\r\n";
@@ -252,6 +255,25 @@ public sealed class RdpTransferKit(string directory, Func<string, string>? clien
 
     /// <summary>Argument of <c>start.cmd</c> for a start by the app: no "Press Enter to close" at the end.</summary>
     public const string AutoSwitch = "/auto";
+
+    /// <summary>File <c>start.cmd</c> writes next to the plan as soon as it runs in the session. SPEC FR-66</summary>
+    public const string StartedMarker = "started";
+
+    /// <summary>Forgets an earlier start, before the transfer window types the start command again. SPEC FR-66</summary>
+    public void ClearStarted(string planId)
+    {
+        try
+        {
+            File.Delete(Path.Combine(directory, planId, StartedMarker));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // still being written by the session: it did start
+        }
+    }
+
+    /// <summary>True once <c>start.cmd</c> ran in the session after <see cref="ClearStarted"/>. SPEC FR-66</summary>
+    public bool HasStarted(string planId) => File.Exists(Path.Combine(directory, planId, StartedMarker));
 
     /// <summary>Asks a running helper to stop and delete its partial files.</summary>
     public void Cancel(string planId) => File.WriteAllText(Path.Combine(directory, planId, "cancel"), "");
