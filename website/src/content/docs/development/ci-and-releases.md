@@ -13,16 +13,21 @@ description: GitHub Actions workflows for building, testing, releasing and publi
 
 ## Releases
 
-`.github/workflows/release.yml` runs when a tag `v*` is pushed, or manually with a version number (which creates the
-tag `v<version>`):
+The version lives in the code: `<Version>` in `Directory.Build.props`. Local, CI and release builds of the same commit
+all report it, and the app shows it in the title bar and Settings → About.
 
-1. Validates the version (`1.2.3` or `1.2.3-beta.1`).
+`.github/workflows/release.yml` runs when a tag `v*` is pushed, or manually (**Run workflow**, which creates the tag
+`v<version>` from the chosen branch):
+
+1. Reads the version from the project and validates it (`1.2.3` or `1.2.3-beta.1`). A pushed tag must be exactly
+   `v<version>`; a manual run fails if that tag already exists.
 2. Runs the tests.
-3. Publishes the self-contained build and the framework-dependent (`-requires-dotnet10`) build with that version.
+3. Publishes the self-contained build and the framework-dependent (`-requires-dotnet10`) build.
 4. Zips both, writes `SHA256SUMS.txt`, and creates a GitHub Release with generated notes. Versions with a `-` suffix
    are marked as pre-releases.
 
-To release:
+To release, bump `<Version>` in `Directory.Build.props` (for example to `0.2.0`), merge that change, then tag the
+commit that contains it:
 
 ```bash
 git tag v0.2.0

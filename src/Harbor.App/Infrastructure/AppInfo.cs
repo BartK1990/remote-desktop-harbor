@@ -2,7 +2,7 @@ using System.Reflection;
 
 namespace Harbor.App.Infrastructure;
 
-/// <summary>Release version of the running app, set by the build (<c>-p:Version</c>). See SPEC FR-07.</summary>
+/// <summary>Release version of the running app, from <c>&lt;Version&gt;</c> in Directory.Build.props. See SPEC FR-07, ADR-0043.</summary>
 public static class AppInfo
 {
     public const string ProductName = "Remote Desktop Harbor";

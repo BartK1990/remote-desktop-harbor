@@ -48,3 +48,4 @@ Process: see [spec/README.md](../spec/README.md).
 | [0040](0040-smart-groups.md) | Smart groups: rule-based virtual groups in the entry tree, kept in personal settings | Accepted |
 | [0041](0041-file-transfer-through-remote-desktop.md) | File transfer through the Remote Desktop connection (port 3389 only) | Accepted |
 | [0042](0042-transfer-window-starts-the-copy.md) | Harbor's transfer window (Remote Desktop ActiveX) starts the copy in the session; 1 MiB chunks | Accepted |
+| [0043](0043-version-in-code.md) | The version lives in `Directory.Build.props`; the release tag must match it | Accepted |
