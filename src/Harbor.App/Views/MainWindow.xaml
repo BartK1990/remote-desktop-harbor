@@ -470,6 +470,8 @@
         <TreeView.ContextMenu>
           <ContextMenu>
             <MenuItem Header="Connect" Command="{Binding ConnectCommand}" InputGestureText="Enter" />
+            <!-- SPEC FR-67: the other way than Connect (Harbor's window or mstsc) -->
+            <MenuItem Header="{Binding ConnectOtherWayText}" Command="{Binding ConnectOtherWayCommand}" InputGestureText="Shift+Enter" />
             <MenuItem Header="Copy password" Command="{Binding CopyPasswordCommand}" InputGestureText="Ctrl+Shift+C" />
             <MenuItem Header="Copy user" Command="{Binding CopyUserNameCommand}" />
             <MenuItem Header="{Binding PinText}" Command="{Binding TogglePinCommand}" InputGestureText="Ctrl+D" />
@@ -583,7 +585,7 @@
               <!-- Connect names the account it uses; the arrow picks another account of the entry (SPEC FR-09). -->
               <StackPanel Orientation="Horizontal" Margin="0,0,6,6">
                 <Button Content="{Binding ConnectText}" Command="{Binding ConnectCommand}" Style="{DynamicResource AccentButtonStyle}"
-                        Padding="16,6" ToolTip="Open in Remote Desktop (Enter / double-click)" />
+                        Padding="16,6" ToolTip="Open in Remote Desktop (Enter / double-click; Shift+Enter: the other window, see Settings)" />
                 <Button x:Name="AccountsButton" Click="AccountsButton_Click" Padding="8,6" Margin="2,0,0,0" Style="{DynamicResource AccentButtonStyle}"
                         ToolTip="Connect with another account" AutomationProperties.Name="Choose account"
                         Visibility="{Binding Selected.HasAccounts, Converter={StaticResource BoolToVisibility}}">
@@ -612,6 +614,7 @@
                 <TextBlock Style="{StaticResource Harbor.Text.Icon}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Text="&#xE712;" />
                 <Button.ContextMenu>
                   <ContextMenu>
+                    <MenuItem Header="{Binding ConnectOtherWayText}" Command="{Binding ConnectOtherWayCommand}" InputGestureText="Shift+Enter" />
                     <MenuItem Header="Copy host" Command="{Binding CopyHostCommand}" InputGestureText="Ctrl+Shift+H" />
                     <MenuItem Header="Transfer files…" Command="{Binding TransferFilesCommand}" InputGestureText="Ctrl+Shift+T" />
                     <Separator />

@@ -12,6 +12,7 @@ description: Keyboard shortcuts in the main window.
 | <kbd>Esc</kbd> (in the search box) | Clear the search |
 | <kbd>↓</kbd> (in the search box) | Move into the tree |
 | <kbd>Enter</kbd> (in the tree) | Connect to the selected entry; on a folder, expand or collapse it |
+| <kbd>Shift</kbd>+<kbd>Enter</kbd> (in the tree) | Connect the other way: in [Harbor's window](../connecting/#harbors-remote-desktop-window), or in mstsc when Settings open connections in Harbor's window |
 | Double-click (in the tree) | Connect to the entry; on a folder, expand or collapse it |
 | <kbd>←</kbd> / <kbd>→</kbd> (in the tree) | Collapse / expand the folder; <kbd>←</kbd> on an entry jumps to its folder |
 | <kbd>↑</kbd> / <kbd>↓</kbd> (in the tree) | Previous / next visible row |

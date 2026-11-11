@@ -193,6 +193,11 @@ public partial class MainWindow : Window
             group.IsExpanded = !group.IsExpanded;
             e.Handled = true;
         }
+        else if (Keyboard.Modifiers == ModifierKeys.Shift && _viewModel.ConnectOtherWayCommand.CanExecute(null))
+        {
+            _viewModel.ConnectOtherWayCommand.Execute(null); // SPEC FR-67: Harbor's window or mstsc, the other way
+            e.Handled = true;
+        }
         else if (_viewModel.ConnectCommand.CanExecute(null))
         {
             _viewModel.ConnectCommand.Execute(null);

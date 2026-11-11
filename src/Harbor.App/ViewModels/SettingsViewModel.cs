@@ -36,6 +36,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         _presenceHeartbeatSeconds = settings.PresenceHeartbeatSeconds;
         _keepCredential = settings.KeepCredentialAfterLaunch;
         _confirmProductionConnect = settings.ConfirmProductionConnect;
+        _connectInHarborWindow = settings.ConnectInHarborWindow;
         _theme = settings.Theme;
         _openedConnectionString = EffectiveConnectionString;
         PropertyChanged += (_, e) =>
@@ -138,6 +139,9 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private int _presenceHeartbeatSeconds;
     [ObservableProperty] private bool _keepCredential;
     [ObservableProperty] private bool _confirmProductionConnect;
+
+    /// <summary>Connect opens Harbor's resizable Remote Desktop window instead of mstsc (SPEC FR-67).</summary>
+    [ObservableProperty] private bool _connectInHarborWindow;
     [ObservableProperty] private string? _testResult;
     [ObservableProperty] private string? _error;
 
@@ -356,6 +360,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         _settings.PresenceHeartbeatSeconds = PresenceHeartbeatSeconds;
         _settings.KeepCredentialAfterLaunch = KeepCredential;
         _settings.ConfirmProductionConnect = ConfirmProductionConnect;
+        _settings.ConnectInHarborWindow = ConnectInHarborWindow;
         return SnapshotWithoutTheme() != before;
     }
 

@@ -5,7 +5,6 @@ using System.Runtime.Versioning;
 using System.Windows.Forms;
 using Harbor.Core.Transfer.Rdp;
 using Harbor.Windows.Interop;
-using Microsoft.Win32;
 
 namespace Harbor.Windows.Rdp;
 
@@ -18,134 +17,21 @@ namespace Harbor.Windows.Rdp;
 [SupportedOSPlatform("windows")]
 public sealed class RdpTransferSessionHost : IRdpTransferSessionHost
 {
-    // Remote Desktop client classes that are not "safe for scripting" (so the password can be set), newest first.
-    private static readonly string[] ControlClasses =
-    [
-        "a0c63c30-f08d-4ab4-907c-34905d770c7d", // MsRdpClient10NotSafeForScripting
-        "8b918b82-7985-4c24-89df-c33ad2bbfbcd", // MsRdpClient9NotSafeForScripting
-    ];
-
-    private static readonly TimeSpan OpenTimeout = TimeSpan.FromSeconds(15);
-
-    private readonly Lazy<string?> _clsid = new(() => ControlClasses.FirstOrDefault(IsRegistered));
+    private readonly Lazy<string?> _clsid = new(RdpControl.FindClass);
 
     public bool IsAvailable => _clsid.Value is not null;
 
     public IRdpTransferSession Open(RdpTransferSessionSettings settings, string? password, RdpTransferSessionRequest request)
     {
         var clsid = _clsid.Value ?? throw new InvalidOperationException("The Remote Desktop control is not installed on this PC.");
-        var created = new TaskCompletionSource<TransferSessionForm>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var closed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        // Own STA thread with its own message loop: the ActiveX control needs one, and the WPF window stays independent.
-        var thread = new Thread(() =>
-        {
-            try
-            {
-                using var form = new TransferSessionForm(clsid, settings, password, request, closed.Task);
-                // The handle may already exist here (the control's EndInit creates it), so its HandleCreated event can have
-                // fired before anyone listened, which used to leave the app's UI thread waiting – every other window of the
-                // app froze while this one was open. Make sure it exists, then hand the window over at once.
-                _ = form.Handle;
-                created.TrySetResult(form);
-                Application.Run(form);
-            }
-            catch (Exception ex)
-            {
-                created.TrySetException(ex);
-            }
-            finally
-            {
-                created.TrySetException(new InvalidOperationException("The Remote Desktop transfer window did not open."));
-                closed.TrySetResult();
-            }
-        })
-        {
-            IsBackground = true,
-            Name = "Remote Desktop transfer window",
-        };
-        thread.SetApartmentState(ApartmentState.STA);
-        thread.Start();
-
-        // Called on the app's UI thread: wait only for the window to be created, never for longer than a few seconds.
-        if (!created.Task.Wait(OpenTimeout))
-        {
-            throw new InvalidOperationException("The Remote Desktop transfer window did not open.");
-        }
-
-        return created.Task.Result.Session;
-    }
-
-    private static bool IsRegistered(string clsid)
-    {
-        try
-        {
-            using var key = Registry.ClassesRoot.OpenSubKey($@"CLSID\{{{clsid}}}\InprocServer32");
-            return key is not null;
-        }
-        catch (Exception ex) when (ex is System.Security.SecurityException or UnauthorizedAccessException or IOException)
-        {
-            return false;
-        }
-    }
-}
-
-/// <summary>Events of the Remote Desktop control (dispinterface <c>IMsTscAxEvents</c>), the ones the window uses.</summary>
-[ComImport]
-[Guid("336d5562-efa8-482e-8cb3-c5c0fc7a7db6")]
-[InterfaceType(ComInterfaceType.InterfaceIsIDispatch)]
-internal interface IMsTscAxEvents
-{
-    [DispId(1)] void OnConnecting();
-    [DispId(2)] void OnConnected();
-    [DispId(3)] void OnLoginComplete();
-    [DispId(4)] void OnDisconnected(int discReason);
-    [DispId(10)] void OnFatalError(int errorCode);
-}
-
-/// <summary>Receives the control's events; members it does not declare are ignored by the control.</summary>
-[ComVisible(true)]
-[ClassInterface(ClassInterfaceType.None)]
-internal sealed class RdpEventSink(TransferSessionForm form) : IMsTscAxEvents
-{
-    public void OnConnecting() => form.OnControlConnecting();
-    public void OnConnected() { }
-    public void OnLoginComplete() => form.OnControlLoginComplete();
-    public void OnDisconnected(int discReason) => form.OnControlDisconnected(discReason);
-    public void OnFatalError(int errorCode) => form.OnControlDisconnected(-errorCode);
-}
-
-/// <summary>The ActiveX control, created from its class id; its events go to <see cref="RdpEventSink"/>.</summary>
-internal sealed class RdpControlHost(string clsid, TransferSessionForm form) : AxHost(clsid)
-{
-    private ConnectionPointCookie? _events;
-
-    public dynamic Control => GetOcx() ?? throw new InvalidOperationException("The Remote Desktop control did not start.");
-
-    public bool HasEvents => _events is not null;
-
-    protected override void CreateSink()
-    {
-        try
-        {
-            _events = new ConnectionPointCookie(GetOcx()!, new RdpEventSink(form), typeof(IMsTscAxEvents));
-        }
-        catch (Exception ex) when (ex is InvalidCastException or COMException or ArgumentException)
-        {
-            _events = null; // without events the window still connects; the user then starts the copy with the button
-        }
-    }
-
-    protected override void DetachSink()
-    {
-        _events?.Disconnect();
-        _events = null;
+        return RdpControl.OpenWindow("Remote Desktop transfer window",
+            closed => new TransferSessionForm(clsid, settings, password, request, closed), form => form.Session);
     }
 }
 
 /// <summary>The transfer window: a status bar with Start copy / Reconnect, and the remote desktop below it.</summary>
 [SupportedOSPlatform("windows")]
-internal sealed class TransferSessionForm : Form
+internal sealed class TransferSessionForm : Form, IRdpControlEvents
 {
     private static readonly TimeSpan SettleAfterLogin = TimeSpan.FromSeconds(4);
     private static readonly TimeSpan RunBoxDelay = TimeSpan.FromMilliseconds(1500);
@@ -232,45 +118,20 @@ internal sealed class TransferSessionForm : Form
         rdp.DesktopWidth = Math.Clamp(_rdp.Width, 640, 4096);
         rdp.DesktopHeight = Math.Clamp(_rdp.Height, 480, 2048);
 
-        var advanced = Advanced(rdp);
+        var advanced = RdpControl.Advanced(rdp);
         advanced.RDPPort = _settings.Port;
         // Drives can only be shared all or nothing here; the window is disconnected when the copy is done (ADR-0042).
         advanced.RedirectDrives = true;
         // The start command reaches the session's Run box through the clipboard.
-        Try(() => advanced.RedirectClipboard = true);
-        Try(() => advanced.EnableCredSspSupport = true);
-        Try(() => advanced.AuthenticationLevel = (uint)_settings.AuthenticationLevel);
-        Try(() => advanced.EnableAutoReconnect = true);
-        Try(() => advanced.SmartSizing = true);
-        Try(() => advanced.ConnectToAdministerServer = _settings.AdministrativeSession);
+        RdpControl.Try(() => advanced.RedirectClipboard = true);
+        RdpControl.Try(() => advanced.EnableCredSspSupport = true);
+        RdpControl.Try(() => advanced.AuthenticationLevel = (uint)_settings.AuthenticationLevel);
+        RdpControl.Try(() => advanced.EnableAutoReconnect = true);
+        RdpControl.Try(() => advanced.SmartSizing = true);
+        RdpControl.Try(() => advanced.ConnectToAdministerServer = _settings.AdministrativeSession);
 
         // Windows key combinations go to the session while the control has the focus: Win+R opens its Run box.
-        Try(() => rdp.SecuredSettings2.KeyboardHookMode = 1);
-    }
-
-    /// <summary>The newest advanced settings the control offers (each version adds settings to the one before).</summary>
-    private static dynamic Advanced(dynamic rdp)
-    {
-        try
-        {
-            return rdp.AdvancedSettings9;
-        }
-        catch (Exception ex) when (ex is COMException or Microsoft.CSharp.RuntimeBinder.RuntimeBinderException)
-        {
-            return rdp.AdvancedSettings2;
-        }
-    }
-
-    private static void Try(Action action)
-    {
-        try
-        {
-            action();
-        }
-        catch (Exception ex) when (ex is COMException or Microsoft.CSharp.RuntimeBinder.RuntimeBinderException or ArgumentException)
-        {
-            // An older control without this setting: connect without it.
-        }
+        RdpControl.Try(() => rdp.SecuredSettings2.KeyboardHookMode = 1);
     }
 
     private void Connect()
@@ -282,7 +143,7 @@ internal sealed class TransferSessionForm : Form
         if (!string.IsNullOrEmpty(_password))
         {
             // In memory only, never in a file or on a command line (NFR-12). Set for every attempt: Reconnect needs it too.
-            Advanced(rdp).ClearTextPassword = _password;
+            RdpControl.Advanced(rdp).ClearTextPassword = _password;
         }
 
         rdp.Connect();
@@ -311,26 +172,12 @@ internal sealed class TransferSessionForm : Form
         {
             1 or 2 or 3 => null, // closed here, signed out or disconnected in the session, or by the server
             < 0 => $"The Remote Desktop control failed (error {-reason}).",
-            _ => Describe(reason),
+            _ => RdpControl.Describe(_rdp, reason),
         };
         _reconnect.Visible = true;
         SetState(RdpTransferSessionState.Disconnected, Error is null
             ? "Disconnected. A copy that was running waits in the session; Reconnect to let it continue."
             : $"Disconnected: {Error}");
-    }
-
-    private string Describe(int reason)
-    {
-        try
-        {
-            var rdp = _rdp.Control;
-            string text = rdp.GetErrorDescription((uint)reason, (uint)rdp.ExtendedDisconnectReason);
-            return string.IsNullOrWhiteSpace(text) ? $"reason {reason}" : text;
-        }
-        catch (Exception ex) when (ex is COMException or Microsoft.CSharp.RuntimeBinder.RuntimeBinderException or InvalidOperationException)
-        {
-            return $"reason {reason}";
-        }
     }
 
     /// <summary>

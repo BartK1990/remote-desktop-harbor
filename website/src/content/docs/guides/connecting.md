@@ -6,9 +6,40 @@ description: What happens when you launch an entry, and how credentials reach Re
 Activate an entry with **Connect as &lt;account&gt;**, a double-click, or <kbd>Enter</kbd> in the list. The button
 names the account it connects with. For an entry with
 [several accounts](../managing-entries/#several-accounts-per-entry), activate an account row — or pick the account
-from the arrow next to the button — to connect as that account; the entry row connects with the default account. The standard Windows Remote
-Desktop client (`mstsc.exe`) opens as **its own normal window** — it is not embedded in Harbor, so you can move,
-full-screen or close it like any other Remote Desktop session.
+from the arrow next to the button — to connect as that account; the entry row connects with the default account. By
+default the standard Windows Remote Desktop client (`mstsc.exe`) opens as **its own normal window**, so you can move,
+full-screen or close it like any other Remote Desktop session. Connections can also open in
+[Harbor's own window](#harbors-remote-desktop-window), which you can maximize without full screen.
+
+## Harbor's Remote Desktop window
+
+Harbor can open a connection in a window of its own, like the one used for
+[file transfers](../file-transfer/): a normal window you can resize, snap or **maximize without going full screen**
+(the taskbar and your other windows stay where they are). The **remote resolution follows the window**: when you resize
+or maximize it, the remote desktop is resized to exactly the window's size a moment later, and moving the window to
+a screen with another scale keeps text the same size.
+
+- **Shift+Enter** in the list, or **Connect in Harbor window** in the right-click menu or the **More** menu, opens the
+  selected entry there once.
+- To use it for every connection, turn on **Settings → Remote Desktop → Open connections in a Harbor window**. Connect,
+  double-click and <kbd>Enter</kbd> then open Harbor's window, and the same menu item reads
+  **Connect in Remote Desktop Connection** for when you want mstsc.
+
+The window uses the entry's host, port, account and password (handed to the Remote Desktop control in memory only;
+no credential is written to Credential Manager), and these of its RDP settings: fixed desktop size, dynamic
+resolution, smart sizing, colour depth, audio and recording, clipboard, printers, smart cards, *all* drives, where
+Windows key combinations apply, automatic reconnection, server authentication and administrative session. Full screen
+and multiple monitors are ignored — it is always a window. A selection of single drives is not shared in this window;
+use mstsc for that.
+
+- With **dynamic resolution off** and a fixed size in the entry, the desktop keeps that size (scaled to the window if
+  the entry turns smart sizing on).
+- Servers older than Windows 8.1 / Server 2012 R2 cannot change the size of a session: the picture is scaled to the
+  window instead, and the next connection starts at the window's size.
+- Closing the window disconnects; the session stays on the server, as with mstsc. Signing out in the session closes
+  the window. After a dropped connection the window shows the reason and a **Reconnect** button.
+- Entries behind a **Remote Desktop Gateway**, and PCs without the Remote Desktop control, always open in mstsc.
+- Presence and the takeover and production questions work as for mstsc.
 
 ## Quick connect
 

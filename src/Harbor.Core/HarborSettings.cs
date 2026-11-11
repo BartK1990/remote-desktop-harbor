@@ -136,6 +136,12 @@ public sealed class HarborSettings
     public bool TransferAutoStart { get; set; } = true;
 
     /// <summary>
+    /// Connect opens entries in Harbor's own resizable Remote Desktop window, whose remote desktop size follows the window,
+    /// instead of mstsc (SPEC FR-67, ADR-0045). Off by default; the other way is always one menu item away.
+    /// </summary>
+    public bool ConnectInHarborWindow { get; set; }
+
+    /// <summary>
     /// Smart groups of this user (SPEC FR-62, ADR-0040): virtual tree groups listing the entries their rules match.
     /// Personal, like pins: never written to a shared database.
     /// </summary>

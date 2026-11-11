@@ -12,7 +12,8 @@ who is currently connected where.
 * **Local or shared** — local SQLite vault, or a shared SQL Server / Azure SQL database (other SQL engines pluggable)
   with an automatic local offline copy.
 * **One-click connect** — launches `mstsc.exe` as a normal window; the password is handed over through Windows
-  Credential Manager (never on a command line or in a file) and removed afterwards.
+  Credential Manager (never on a command line or in a file) and removed afterwards. Or open it in Harbor's own
+  resizable window: maximize without full screen, and the remote resolution follows the window.
 * **Team presence** — "In use by Jane Doe <jane@contoso.com> on PC-42 since 10:31", kept alive by heartbeats with
   an expiry so crashed clients disappear automatically.
 * **Sign-in** — Windows account (automatic SSO) or Microsoft Entra ID via the Windows broker.

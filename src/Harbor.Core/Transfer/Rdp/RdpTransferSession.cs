@@ -102,17 +102,10 @@ public sealed record RdpTransferSessionSettings(string Host, int Port, string? U
         string? Value(string key) => values.TryGetValue(key, out var v) && v.Length > 0 ? v : null;
         int? Number(string key) => int.TryParse(Value(key), out var n) ? n : null;
 
-        // 1 = always, 2 = when the server is not local, 4 = detect: each can route through a gateway the window does not set up.
-        if (Value("gatewayhostname") is not null && Number("gatewayusagemethod") is 1 or 2 or 4) return null;
+        // Each gateway usage can route through a gateway the window does not set up.
+        if (RdpWindowSettings.UsesGateway(entry)) return null;
 
-        var user = entry.UserName is { Length: > 0 } u ? u : null;
-        var domain = entry.Domain is { Length: > 0 } d ? d : null;
-        if (user is not null && domain is null && user.Contains('\\', StringComparison.Ordinal))
-        {
-            domain = user[..user.IndexOf('\\', StringComparison.Ordinal)];
-            user = user[(user.IndexOf('\\', StringComparison.Ordinal) + 1)..];
-        }
-
+        var (user, domain) = RdpWindowSettings.Account(entry);
         return new RdpTransferSessionSettings(entry.Host.Trim(), entry.Port, user, domain,
             Number("authentication level") is { } level and >= 0 and <= 3 ? level : 2,
             Number("administrative session") == 1 || Number("connect to console") == 1);

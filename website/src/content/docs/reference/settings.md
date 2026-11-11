@@ -58,6 +58,7 @@ Used with a shared database only; disabled while *Local vault* is chosen.
 | UI | JSON property | Default | Description |
 |---|---|---|---|
 | Keep the password in Windows Credential Manager after connecting | `KeepCredentialAfterLaunch` | `false` | Off: credential removed ~30 s after launch and never survives logoff. On: kept, so reconnects work without the app. |
+| Open connections in a Harbor window | `ConnectInHarborWindow` | `false` | On: Connect opens [Harbor's resizable Remote Desktop window](../../guides/connecting/#harbors-remote-desktop-window), whose resolution follows the window. Off: Remote Desktop Connection (mstsc). |
 | Ask before connecting to a production (PROD) entry | `ConfirmProductionConnect` | `true` | Connecting to an entry in a *Production*/*Prod*/*PRD*/*Live* folder asks first. See [Production entries](../../guides/connecting/#production-entries). |
 
 ## Appearance
@@ -124,6 +125,7 @@ The dialog refuses to save when:
   "PresenceHeartbeatSeconds": 45,
   "KeepCredentialAfterLaunch": false,
   "ConfirmProductionConnect": true,
+  "ConnectInHarborWindow": false,
   "Theme": "System",
   "CollapsedFolders": [ "Lab" ],
   "TreeZoom": 1.0,

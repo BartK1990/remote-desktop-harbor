@@ -255,15 +255,15 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(ConnectCommand), nameof(EditCommand), nameof(DeleteCommand), nameof(CopyPasswordCommand), nameof(CopyUserNameCommand),
-        nameof(CopyHostCommand), nameof(ConnectAsCommand),
+        nameof(CopyHostCommand), nameof(ConnectAsCommand), nameof(ConnectOtherWayCommand),
         nameof(TogglePinCommand), nameof(MoveToLocalCommand), nameof(MoveToSharedCommand), nameof(TransferFilesCommand))]
     [NotifyPropertyChangedFor(nameof(PinText))]
     private EntryViewModel? _selected;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(AddCommand), nameof(EditCommand), nameof(DeleteCommand), nameof(ImportRdpCommand), nameof(ImportRdmCommand),
-        nameof(ConnectCommand), nameof(ConnectAsCommand), nameof(MoveToLocalCommand), nameof(MoveToSharedCommand), nameof(TransferFilesCommand),
-        nameof(NewSmartGroupCommand), nameof(EditSmartGroupCommand), nameof(DeleteSmartGroupCommand))]
+        nameof(ConnectCommand), nameof(ConnectAsCommand), nameof(ConnectOtherWayCommand), nameof(MoveToLocalCommand), nameof(MoveToSharedCommand),
+        nameof(TransferFilesCommand), nameof(NewSmartGroupCommand), nameof(EditSmartGroupCommand), nameof(DeleteSmartGroupCommand))]
     private bool _isReady;
 
     [ObservableProperty]
@@ -695,9 +695,37 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     private bool CanConnectSelection => HasSelection && Selected!.CanLaunch;
 
     [RelayCommand(CanExecute = nameof(CanConnectSelection))]
-    private async Task ConnectAsync()
+    private Task ConnectAsync() => ConnectSelectedAsync(Settings.ConnectInHarborWindow);
+
+    /// <summary>
+    /// Connect the other way than the Settings choose: in Harbor's window when Connect opens mstsc, and in mstsc when
+    /// Connect opens Harbor's window (Shift+Enter, menus). SPEC FR-67
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanConnectSelection))]
+    private Task ConnectOtherWayAsync() => ConnectSelectedAsync(!Settings.ConnectInHarborWindow);
+
+    /// <summary>"Connect in Harbor window" or "Connect in Remote Desktop Connection": the other way (SPEC FR-67).</summary>
+    public string ConnectOtherWayText => Settings.ConnectInHarborWindow ? "Connect in Remote Desktop Connection" : "Connect in Harbor window";
+
+    private async Task ConnectSelectedAsync(bool inHarborWindow)
     {
-        if (Selected is { } vm && SelectedAccount is { } accountVm) await ConnectEntryAsync(vm, accountVm.AccountId, null);
+        if (Selected is { } vm && SelectedAccount is { } accountVm)
+            await ConnectEntryAsync(vm, accountVm.AccountId, null, inHarborWindow ? LaunchInHarborWindowAsync : null);
+    }
+
+    /// <summary>
+    /// Opens Harbor's resizable Remote Desktop window (SPEC FR-67, ADR-0045). Entries it cannot connect like mstsc
+    /// (a Remote Desktop Gateway), or a PC without the Remote Desktop control, open in mstsc instead.
+    /// </summary>
+    private async Task<Core.Rdp.IRdpSession> LaunchInHarborWindowAsync(ConnectionEntry entry, string? password)
+    {
+        if (_host!.RdpWindows.IsAvailable && Core.Rdp.RdpWindowSettings.For(entry) is { } settings)
+        {
+            return _host.RdpWindows.Open(settings, password);
+        }
+
+        Log.Info($"Harbor window not available for {entry.Id}; opening mstsc");
+        return await _host.Launcher.LaunchAsync(entry, password);
     }
 
     /// <summary>
@@ -1167,6 +1195,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
 
         var restart = vm.Apply();
         SettingsStore.Save(Settings);
+        OnPropertyChanged(nameof(ConnectOtherWayText)); // SPEC FR-67: Connect may now open the other way
         if (restart && _dialogs.Confirm("Restart required", "Settings were saved. Restart Remote Desktop Harbor now to apply them?"))
         {
             System.Diagnostics.Process.Start(Environment.ProcessPath!);
