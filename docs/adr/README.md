@@ -13,7 +13,7 @@ Process: see [spec/README.md](../spec/README.md).
 | [0005](0005-secret-encryption-envelope.md) | Secret encryption: AES-GCM envelope, DEK bound to user + machine with DPAPI | Accepted |
 | [0006](0006-shared-vault-key-protection.md) | Shared vault key: DPAPI-NG to an AD group, passphrase fallback | Accepted, amended by 0016 |
 | [0007](0007-remote-store-with-offline-cache.md) | Remote store as source of truth with local read-only offline cache | Accepted |
-| [0008](0008-launch-mstsc-with-credential-manager.md) | Launch mstsc.exe, hand credentials over via Credential Manager | Accepted (amended by 0035) |
+| [0008](0008-launch-mstsc-with-credential-manager.md) | Launch mstsc.exe, hand credentials over via Credential Manager | Accepted (amended by 0035, 0045) |
 | [0009](0009-identity-windows-and-entra-id.md) | Identity: Windows account by default, Entra ID via WAM broker | Accepted |
 | [0010](0010-session-presence-heartbeat-ttl.md) | Session presence: heartbeat records with server-clock TTL | Accepted |
 | [0011](0011-ci-release-pipeline.md) | CI and release on GitHub Actions, win-x64 | Accepted (signing added by 0036) |
@@ -50,3 +50,4 @@ Process: see [spec/README.md](../spec/README.md).
 | [0042](0042-transfer-window-starts-the-copy.md) | Harbor's transfer window (Remote Desktop ActiveX) starts the copy in the session; 1 MiB chunks | Accepted |
 | [0043](0043-version-in-code.md) | The version lives in `Directory.Build.props`; the release tag must match it | Accepted |
 | [0044](0044-transfer-window-confirms-the-start.md) | The transfer window confirms that the copy started in its own session (nested full-screen Remote Desktop) | Accepted |
+| [0045](0045-resizable-harbor-rdp-window.md) | Connections can open in Harbor's resizable Remote Desktop window; resolution follows the window | Accepted |
