@@ -110,9 +110,10 @@ and host. Entries with
   *Test*/*QA*, *Dev* or *Lab*/*Sandbox* gets a **PROD**, **STG**, **TEST**, **DEV** or **LAB** tag; entries in it
   show the tag in the details pane and in quick connect. Rename a folder to change its tag — nothing else to set up.
 - **All / In use / Pinned / Recent** above the tree show every entry, only entries someone is connected to, only
-  your pinned entries, or the last 10 you connected to. Pin the selected entry with the star in the details pane,
+  your pinned (favourite) entries, or the last 10 you connected to. Pin the selected entry with the star in the details pane,
   the context menu or <kbd>Ctrl</kbd>+<kbd>D</kbd>; pinned entries get a small star in the list. Pins and the recent
-  list are personal (kept in your settings, not in a shared database).
+  list are personal (kept in your settings, not in a shared database); pins are included in a
+  [backup](../backup-and-restore/).
 - **Smart groups.** Right-click the tree and choose **New smart group…** for a group that lists every entry
   matching your rules (e.g. *host starts with `sql-`* and *environment is PROD*), like smart groups in RDCMan.
   Entries stay in their folders. See [Smart groups](../smart-groups/).

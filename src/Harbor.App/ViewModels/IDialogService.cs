@@ -20,6 +20,19 @@ public interface IDialogService
     /// <summary>Picks a Remote Desktop Manager CSV export to import (SPEC FR-54).</summary>
     string? PickRdmCsvFile();
 
+    /// <summary>Where to write a backup of the catalog (SPEC FR-68); <paramref name="suggestedName"/> is the default file name.</summary>
+    string? PickBackupFileToSave(string suggestedName);
+
+    /// <summary>A backup file to restore (SPEC FR-68).</summary>
+    string? PickBackupFileToOpen();
+
+    /// <summary>
+    /// Asks for the passphrase of a backup (SPEC FR-68): a new one, typed twice and at least
+    /// <see cref="Harbor.Core.Backup.BackupFile.MinPassphraseLength"/> characters (<paramref name="isNew"/>), or the one
+    /// the backup was written with. <c>null</c> when cancelled.
+    /// </summary>
+    string? AskBackupPassphrase(bool isNew);
+
     /// <summary>Files to upload to an entry's host (SPEC FR-60).</summary>
     string[]? PickFilesToUpload();
 

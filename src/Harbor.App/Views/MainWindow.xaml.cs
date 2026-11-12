@@ -234,10 +234,16 @@ public partial class MainWindow : Window
         menu.IsOpen = true;
     }
 
-    private void MoreButton_Click(object sender, RoutedEventArgs e)
+    private void MoreButton_Click(object sender, RoutedEventArgs e) => OpenButtonMenu(MoreButton);
+
+    // SPEC FR-68: Export backup… / Restore backup…
+    private void BackupButton_Click(object sender, RoutedEventArgs e) => OpenButtonMenu(BackupButton);
+
+    /// <summary>Opens the context menu of <paramref name="button"/> below it, as a drop-down.</summary>
+    private void OpenButtonMenu(Button button)
     {
-        if (MoreButton.ContextMenu is not { } menu) return;
-        menu.PlacementTarget = MoreButton;
+        if (button.ContextMenu is not { } menu) return;
+        menu.PlacementTarget = button;
         menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
         menu.DataContext = DataContext;
         menu.IsOpen = true;
