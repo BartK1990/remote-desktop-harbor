@@ -57,10 +57,17 @@ always ask; so does connecting without a user name. In that question **Cancel** 
 
 Lower values make crashed sessions disappear faster at the cost of more database writes.
 
+## Your own sessions
+
+The sessions you start from Harbor always show as in use on your PC — also in a **local vault**, for entries kept on
+**this PC only** and while the shared database is **offline**. They appear as soon as you connect and disappear when
+the Remote Desktop window closes. Harbor keeps them in memory only: in those cases nothing is written to a database and
+nobody else sees them.
+
 ## Limitations
 
 - Only sessions **started from Harbor** are visible — not ones opened directly with `mstsc.exe`.
-- Presence needs the shared database; there is no presence in a local vault.
+- Sharing presence needs the shared database; in a local vault only your own sessions are shown.
 - On hosts that allow only one session (e.g. Windows 10/11), connecting with another account still disconnects the
   other person, without asking.
-- While your client is offline it shows no presence at all, rather than stale data.
+- While your client is offline it shows only your own sessions, rather than stale data about others.

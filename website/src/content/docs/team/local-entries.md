@@ -23,7 +23,8 @@ Private entries show a small PC mark next to their name in the tree and **This P
 work like any other entry: connect, copy, pin, search. Two differences:
 
 - They can be edited and deleted **also while the shared database is offline**.
-- Connecting publishes **no [presence](../session-presence/)**: nobody else knows the entry exists.
+- Connecting publishes **no [presence](../session-presence/)**: nobody else knows the entry exists. Your own open
+  sessions still show as in use on your PC.
 
 ## Moving entries
 
