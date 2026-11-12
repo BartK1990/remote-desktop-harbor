@@ -35,7 +35,9 @@ It is removed ~30 s later unless **Keep the password in Windows Credential Manag
 
 ## Backups
 
+- **Moving to another PC:** use **Backup → Export backup…** — one `.harborbackup` file with your entries, passwords,
+  pins and smart groups, encrypted with a passphrase you choose. See [Backup and restore](../../guides/backup-and-restore/).
 - **Local vault:** the passwords in `harbor.db` can only be decrypted by the same Windows user on the same machine.
-  A backup restored to another machine (or after a Windows profile reset) cannot decrypt them. Keep an independent
-  backup of important passwords, or use a [shared database](../../team/shared-database/).
+  A copy of the file restored to another machine (or after a Windows profile reset) cannot decrypt them; use a backup
+  file instead, or a [shared database](../../team/shared-database/).
 - **Shared database:** back up the SQL database as usual. The cache files can always be rebuilt and need no backup.

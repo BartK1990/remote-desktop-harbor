@@ -263,12 +263,13 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(AddCommand), nameof(EditCommand), nameof(DeleteCommand), nameof(ImportRdpCommand), nameof(ImportRdmCommand),
         nameof(ConnectCommand), nameof(ConnectAsCommand), nameof(ConnectOtherWayCommand), nameof(MoveToLocalCommand), nameof(MoveToSharedCommand),
-        nameof(TransferFilesCommand), nameof(NewSmartGroupCommand), nameof(EditSmartGroupCommand), nameof(DeleteSmartGroupCommand))]
+        nameof(TransferFilesCommand), nameof(NewSmartGroupCommand), nameof(EditSmartGroupCommand), nameof(DeleteSmartGroupCommand),
+        nameof(ExportBackupCommand), nameof(RestoreBackupCommand))]
     private bool _isReady;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(AddCommand), nameof(EditCommand), nameof(DeleteCommand), nameof(ImportRdpCommand), nameof(ImportRdmCommand),
-        nameof(MoveToLocalCommand), nameof(MoveToSharedCommand))]
+        nameof(MoveToLocalCommand), nameof(MoveToSharedCommand), nameof(RestoreBackupCommand))]
     private bool _canWrite;
 
     /// <summary>Shared-database mode with this PC's vault: entries can be kept on this PC only (SPEC FR-29, ADR-0038).</summary>
@@ -890,6 +891,156 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         }
 
         sb.Append("\n\nThe CSV file holds passwords in plain text: delete it once the import is done.");
+        return sb.ToString();
+    }
+
+    // ------------------------------------------------------------------ backup (SPEC FR-68, ADR-0046)
+
+    /// <summary>
+    /// Writes every entry — with accounts and passwords — and the user's pins and smart groups to a backup file encrypted
+    /// with a passphrase the user chooses, so the list can be moved to another PC. Works offline too (from the local copy).
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(IsReady))]
+    private async Task ExportBackupAsync()
+    {
+        if (_host is null) return;
+        var ws = _host.Workspace;
+        var entries = await ws.ListAsync();
+        if (entries.Count == 0)
+        {
+            _dialogs.ShowError("Nothing to export", "The catalog has no entries yet.");
+            return;
+        }
+
+        var name = $"Harbor backup {DateTime.Now:yyyy-MM-dd}{Core.Backup.BackupFile.Extension}";
+        if (_dialogs.PickBackupFileToSave(name) is not { } path) return;
+        if (_dialogs.AskBackupPassphrase(isNew: true) is not { } passphrase) return;
+
+        try
+        {
+            var pinned = _pinned.ToList();
+            var groups = Settings.SmartGroups.ToList();
+            // PBKDF2 takes a moment; the plaintext passwords only live in memory until they are encrypted (NFR-12).
+            var bytes = await Task.Run(() => Core.Backup.BackupFile.Encrypt(
+                Core.Backup.HarborBackup.Create(entries, (e, a) => ws.RevealPassword(e, a), pinned, groups, AppInfo.Version, DateTimeOffset.UtcNow),
+                passphrase));
+            await System.IO.File.WriteAllBytesAsync(path, bytes);
+        }
+        catch (Exception ex)
+        {
+            Log.Error("Backup export failed", ex);
+            _dialogs.ShowError("Backup not saved", ex.Message);
+            return;
+        }
+
+        Log.Info($"Exported a backup of {entries.Count} entries");
+        StatusText = $"Exported {entries.Count} {(entries.Count == 1 ? "entry" : "entries")} to {System.IO.Path.GetFileName(path)}";
+    }
+
+    /// <summary>
+    /// Restores a backup file: adds the entries that are not in the catalog yet (passwords encrypted with this PC's key on
+    /// save), pins what the backup pins and adds its smart groups, after one confirmation that says what will change.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanImport))]
+    private async Task RestoreBackupAsync()
+    {
+        if (_host is null || _dialogs.PickBackupFileToOpen() is not { } path) return;
+
+        byte[] file;
+        try
+        {
+            file = await System.IO.File.ReadAllBytesAsync(path);
+        }
+        catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException)
+        {
+            _dialogs.ShowError("Cannot restore", ex.Message);
+            return;
+        }
+
+        Core.Backup.BackupContent content;
+        while (true)
+        {
+            if (_dialogs.AskBackupPassphrase(isNew: false) is not { } passphrase) return;
+            try
+            {
+                content = await Task.Run(() => Core.Backup.BackupFile.Decrypt(file, passphrase));
+                break;
+            }
+            catch (Core.Backup.BackupPassphraseException ex)
+            {
+                _dialogs.ShowError("Wrong passphrase", ex.Message);
+            }
+            catch (FormatException ex)
+            {
+                _dialogs.ShowError("Cannot restore", ex.Message);
+                return;
+            }
+        }
+
+        var plan = Core.Backup.HarborBackup.PlanRestore(content, Entries.Select(e => e.Model).ToList(), Settings.SmartGroups, SupportsLocalEntries);
+        var message = RestoreSummary(content, plan);
+        if (plan.IsEmpty)
+        {
+            _dialogs.ShowError("Nothing to restore", message);
+            return;
+        }
+
+        if (!_dialogs.ConfirmRisky("Restore backup", message, "Restore")) return; // SPEC FR-53: bulk write, Cancel is the default
+
+        var restored = 0;
+        try
+        {
+            foreach (var item in plan.ToAdd)
+            {
+                var import = item.Import;
+                var saved = await _host.Workspace.SaveAsync(import.Entry,
+                    import.Password is { Length: > 0 } pw ? SecretUpdate.Set(pw) : SecretUpdate.Keep,
+                    import.AccountPasswords?.ToDictionary(p => p.Key, p => SecretUpdate.Set(p.Value)));
+                if (item.Pinned) _pinned.Add(saved.Id);
+                restored++;
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"Backup restore stopped after {restored} of {plan.ToAdd.Count} entries", ex);
+            _dialogs.ShowError("Restore stopped", $"{restored} of {plan.ToAdd.Count} entries were restored before an error: {ex.Message}");
+        }
+        finally
+        {
+            // Pins and smart groups are personal settings (SPEC FR-50, FR-62); kept for what was restored so far.
+            _pinned.UnionWith(plan.PinExisting);
+            Settings.PinnedEntryIds = [.. _pinned];
+            if (plan.SmartGroupsToAdd.Count > 0) Settings.SmartGroups = [.. Settings.SmartGroups, .. plan.SmartGroupsToAdd];
+            SaveSettingsQuietly("Restored pins and smart groups");
+            await ReloadAsync();
+        }
+
+        Log.Info($"Restored {restored} entries from a backup");
+        StatusText = $"Restored {restored} {(restored == 1 ? "entry" : "entries")} from {System.IO.Path.GetFileName(path)}";
+    }
+
+    private string RestoreSummary(Core.Backup.BackupContent content, Core.Backup.RestorePlan plan)
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.Append(CultureInfo.CurrentCulture,
+            $"The backup from {content.CreatedUtc.ToLocalTime():g} holds {content.Entries.Count} entries and {content.SmartGroups.Count} smart groups.");
+        sb.Append(CultureInfo.CurrentCulture, $"\n\n{plan.ToAdd.Count} entries will be added");
+        var local = plan.ToAdd.Count(i => i.Import.Entry.IsLocalOnly);
+        if (_host?.Workspace.IsRemote == true)
+        {
+            sb.Append(local > 0
+                ? $" ({local} kept on this PC only, the others shared with everyone using the shared database)."
+                : ", shared with everyone using the shared database.");
+        }
+        else
+        {
+            sb.Append('.');
+        }
+
+        if (plan.AlreadyPresent > 0) sb.Append(CultureInfo.CurrentCulture, $"\n\n{plan.AlreadyPresent} entries are already in the catalog and are left out.");
+        if (plan.PinExisting.Count > 0) sb.Append(CultureInfo.CurrentCulture, $" {plan.PinExisting.Count} of them will be pinned.");
+        if (plan.SmartGroupsToAdd.Count > 0) sb.Append(CultureInfo.CurrentCulture, $"\n\n{plan.SmartGroupsToAdd.Count} smart groups will be added.");
+        if (plan.SmartGroupsPresent > 0) sb.Append(CultureInfo.CurrentCulture, $"\n\n{plan.SmartGroupsPresent} smart groups with the same name already exist and are left out.");
         return sb.ToString();
     }
 

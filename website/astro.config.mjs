@@ -38,6 +38,7 @@ export default defineConfig({
 						'guides/smart-groups',
 						'guides/importing-rdp-files',
 						'guides/importing-from-rdm',
+						'guides/backup-and-restore',
 						'guides/connecting',
 						'guides/file-transfer',
 						'guides/keyboard-shortcuts',

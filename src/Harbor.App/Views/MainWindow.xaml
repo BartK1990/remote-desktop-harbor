@@ -172,6 +172,21 @@
             <TextBlock Text="Import RDM…" />
           </StackPanel>
         </Button>
+        <!-- SPEC FR-68, ADR-0046: export the catalog to an encrypted backup file and restore it, e.g. on a new PC. -->
+        <Button x:Name="BackupButton" Style="{StaticResource Harbor.Button}" Click="BackupButton_Click"
+                ToolTip="Export your entries to an encrypted backup file, or restore one" AutomationProperties.Name="Backup">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Style="{StaticResource Harbor.Text.Icon}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Text="&#xE74E;" Margin="0,0,6,0" />
+            <TextBlock Text="Backup" />
+            <TextBlock Style="{StaticResource Harbor.Text.Icon}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Text="&#xE70D;" FontSize="9" Margin="6,0,0,0" />
+          </StackPanel>
+          <Button.ContextMenu>
+            <ContextMenu>
+              <MenuItem Header="Export backup…" Command="{Binding ExportBackupCommand}" />
+              <MenuItem Header="Restore backup…" Command="{Binding RestoreBackupCommand}" />
+            </ContextMenu>
+          </Button.ContextMenu>
+        </Button>
         <Button Style="{StaticResource Harbor.Button}" Command="{Binding RefreshCommand}" ToolTip="Sync and refresh presence (F5)">
           <StackPanel Orientation="Horizontal">
             <TextBlock Style="{StaticResource Harbor.Text.Icon}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" Text="&#xE72C;" Margin="0,0,6,0" />

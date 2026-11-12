@@ -1,5 +1,6 @@
 using System.Windows;
 using Harbor.App.ViewModels;
+using Harbor.Core.Backup;
 using Microsoft.Win32;
 
 namespace Harbor.App.Views;
@@ -37,6 +38,36 @@ public sealed class DialogService : IDialogService
         };
         return dialog.ShowDialog(Owner) == true ? dialog.FileName : null;
     }
+
+    // SPEC FR-68, ADR-0046
+    public string? PickBackupFileToSave(string suggestedName)
+    {
+        var dialog = new SaveFileDialog
+        {
+            Filter = BackupFilter,
+            Title = "Export backup",
+            FileName = suggestedName,
+            DefaultExt = BackupFile.Extension,
+            AddExtension = true,
+            OverwritePrompt = true,
+        };
+        return dialog.ShowDialog(Owner) == true ? dialog.FileName : null;
+    }
+
+    public string? PickBackupFileToOpen()
+    {
+        var dialog = new OpenFileDialog { Filter = BackupFilter, Title = "Restore backup" };
+        return dialog.ShowDialog(Owner) == true ? dialog.FileName : null;
+    }
+
+    public string? AskBackupPassphrase(bool isNew)
+    {
+        var dialog = PassphraseWindow.ForBackup(isNew);
+        dialog.Owner = Owner;
+        return dialog.ShowDialog() == true ? dialog.Passphrase : null;
+    }
+
+    private const string BackupFilter = "Remote Desktop Harbor backup (*" + BackupFile.Extension + ")|*" + BackupFile.Extension + "|All files (*.*)|*.*";
 
     public string[]? PickFilesToUpload()
     {

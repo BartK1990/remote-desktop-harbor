@@ -161,7 +161,8 @@ public static class RdmCsvImport
         return entries.Where(e => !known.Contains(Key(e.Entry))).ToList();
     }
 
-    private static string Key(ConnectionEntry e) =>
+    /// <summary>What makes two entries the same for imports and restores (SPEC FR-54, FR-68).</summary>
+    internal static string Key(ConnectionEntry e) =>
         string.Join('\u001f', (int)e.Kind, e.Name, FolderTree.Normalize(e.Folder), e.Host, e.Port, e.QualifiedUserName);
 
     private static bool IsYes(string value) =>

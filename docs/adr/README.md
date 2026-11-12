@@ -51,3 +51,4 @@ Process: see [spec/README.md](../spec/README.md).
 | [0043](0043-version-in-code.md) | The version lives in `Directory.Build.props`; the release tag must match it | Accepted |
 | [0044](0044-transfer-window-confirms-the-start.md) | The transfer window confirms that the copy started in its own session (nested full-screen Remote Desktop) | Accepted |
 | [0045](0045-resizable-harbor-rdp-window.md) | Connections can open in Harbor's resizable Remote Desktop window; resolution follows the window | Accepted |
+| [0046](0046-encrypted-backup-file.md) | Backups are one passphrase-encrypted file (PBKDF2 + AES-256-GCM), restored like an import | Accepted |
