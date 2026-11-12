@@ -95,6 +95,66 @@ public class PresenceTests
         Assert.Single(await service.ListActiveAsync());
     }
 
+    // SPEC FR-37
+    [Fact]
+    public async Task Local_mode_lists_own_sessions_until_they_end()
+    {
+        var service = new SessionPresenceService(null, PresenceOptions.Default, "PC-04");
+        var connectionId = Guid.NewGuid();
+        Assert.False(service.IsShared);
+
+        var lease = await service.BeginAsync(connectionId, "CONTOSO\\admin", Users.Alice);
+        Assert.False(lease.IsShared);
+        Assert.False(lease.IsPublished);
+        Assert.Equal(1, service.OpenCount);
+        var s = Assert.Single(await service.ListActiveAsync());
+        Assert.Equal(lease.SessionId, s.Id);
+        Assert.Equal(connectionId, s.ConnectionId);
+        Assert.Equal("CONTOSO\\alice", s.UserName);
+        Assert.Equal("PC-04", s.MachineName);
+        Assert.Equal("CONTOSO\\admin", s.AccountName);
+
+        await lease.DisposeAsync();
+        Assert.Equal(0, service.OpenCount);
+        Assert.Empty(await service.ListActiveAsync());
+    }
+
+    // SPEC FR-29, FR-37
+    [Fact]
+    public async Task Unpublished_lease_is_listed_here_but_not_written_to_the_shared_database()
+    {
+        using var db = new TempDb();
+        await db.Store.InitializeAsync();
+        var service = new SessionPresenceService(db.Store, PresenceOptions.Default, "PC");
+
+        await using var shared = await service.BeginAsync(Guid.NewGuid(), null, Users.Alice);
+        await using var local = await service.BeginAsync(Guid.NewGuid(), null, Users.Alice, publish: false);
+
+        Assert.Single(await db.Store.ListActiveAsync()); // only the shared one is published
+        var listed = await service.ListActiveAsync();
+        Assert.Equal(2, listed.Count); // the published record is not listed twice
+        Assert.Contains(listed, s => s.Id == shared.SessionId);
+        Assert.Contains(listed, s => s.Id == local.SessionId);
+    }
+
+    // SPEC FR-37
+    [Fact]
+    public async Task Own_sessions_are_listed_while_the_shared_database_is_offline()
+    {
+        using var db = new TempDb();
+        await db.Store.InitializeAsync();
+        var remote = new SwitchableStore(db.Store);
+        var service = new SessionPresenceService(remote, PresenceOptions.Default, "PC");
+        await using var lease = await service.BeginAsync(Guid.NewGuid(), null, Users.Alice);
+        await db.Store.StartSessionAsync(Guid.NewGuid(), Guid.NewGuid(), null, Users.Bob, "PC-B", TimeSpan.FromMinutes(2));
+
+        Assert.Equal(2, (await service.ListActiveAsync()).Count);
+        Assert.Equal(lease.SessionId, Assert.Single(await service.ListActiveAsync(includeShared: false)).Id);
+
+        remote.Offline = true;
+        Assert.Equal(lease.SessionId, Assert.Single(await service.ListActiveAsync()).Id);
+    }
+
     private static async Task<bool> WaitUntilAsync(Func<bool> condition, TimeSpan timeout)
     {
         var deadline = DateTime.UtcNow + timeout;

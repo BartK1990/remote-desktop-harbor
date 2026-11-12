@@ -58,6 +58,9 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
 
     public HarborSettings Settings { get; }
     public int ActiveLaunchCount => _leases.Count;
+
+    /// <summary>True when some open session is published to the shared database, so other users see it. SPEC FR-34</summary>
+    public bool PublishesPresence => _leases.Any(l => l.IsShared);
     public ObservableCollection<EntryViewModel> Entries { get; } = [];
 
     /// <summary>Top level of the entry tree: folders, then entries without a folder. Only entries matching <see cref="SearchText"/>.</summary>
@@ -664,9 +667,10 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
 
     private async Task RefreshPresenceAsync()
     {
-        if (_host is null || !_host.Presence.IsEnabled) return;
-        // While offline nobody's presence can be known; show none rather than stale data.
-        var sessions = IsOffline ? [] : await _host.Presence.ListActiveAsync();
+        if (_host is null) return;
+        // While offline nobody else's presence can be known; show only this app's own sessions rather than stale data.
+        // In local mode and for entries kept on this PC those are the only ones (SPEC FR-37).
+        var sessions = await _host.Presence.ListActiveAsync(includeShared: !IsOffline);
         var byConnection = sessions.ToLookup(s => s.ConnectionId);
         foreach (var e in Entries)
         {
@@ -773,10 +777,9 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
             RememberRecent(entry.Id);
             Log.Info($"Launched {entry.Id}");
 
-            // SPEC FR-29: an entry kept on this PC is private, so no presence is published for it.
-            if (entry.IsLocalOnly) return true;
-
-            var lease = await _host.Presence.BeginAsync(entry.Id, accountName, _host.User);
+            // SPEC FR-29: an entry kept on this PC is private, so no presence is published for it; it is still
+            // shown as in use on this PC (SPEC FR-37).
+            var lease = await _host.Presence.BeginAsync(entry.Id, accountName, _host.User, publish: !entry.IsLocalOnly);
             _leases.Add(lease);
             await RefreshPresenceAsync();
             _ = TrackSessionAsync(session, lease);

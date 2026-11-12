@@ -282,10 +282,12 @@ public partial class MainWindow : Window
         base.OnClosing(e);
         if (_disposed) return;
 
-        // Presence is published by this app; closing it ends the "in use" records (SPEC FR-34).
+        // Presence is published by this app; closing it ends the "in use" records (SPEC FR-34, FR-37).
         if (_viewModel.ActiveLaunchCount > 0 && !MessageWindow.Show(this, "Sessions still open",
                 $"{_viewModel.ActiveLaunchCount} Remote Desktop session(s) started from this app are still open. " +
-                "After closing, other users will no longer see them as in use. Close anyway?",
+                (_viewModel.PublishesPresence
+                    ? "After closing, other users will no longer see them as in use. Close anyway?"
+                    : "After closing, they will no longer be shown as in use. Close anyway?"),
                 MessageKind.Risky, "Close anyway", "Cancel"))
         {
             e.Cancel = true;

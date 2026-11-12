@@ -133,7 +133,7 @@ public sealed class AppHost : IAsyncDisposable
         var launcher = new MstscLauncher(AppPaths.TempDirectory, settings.KeepCredentialAfterLaunch,
             ex => Log.Error("RDP launch cleanup failed", ex));
 
-        if (presence.IsEnabled)
+        if (presence.IsShared)
         {
             _ = presence.PurgeAsync(CancellationToken.None);
         }
