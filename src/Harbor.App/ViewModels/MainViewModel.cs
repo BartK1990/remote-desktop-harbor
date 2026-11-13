@@ -291,7 +291,9 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     [ObservableProperty] private string _userText = "Signing in…";
     [ObservableProperty] private string _storeText = "";
     [ObservableProperty] private bool _isOffline;
-    [ObservableProperty] private bool _isRemote;
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(DeleteShownCommand))]
+    private bool _isRemote;
     [ObservableProperty] private string _statusText = "Starting…";
 
     /// <summary>"Connect as svc-admin": the account Connect uses, so nobody connects with the wrong one. SPEC FR-47</summary>
@@ -1139,48 +1141,54 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
-    // ------------------------------------------------------------------ delete shown entries (SPEC FR-69, ADR-0048)
+    // ------------------------------------------------------------------ delete shown entries (SPEC FR-69, ADR-0048, ADR-0049)
 
     /// <summary>The entries the tree shows now (search and filter applied), each once, also when a smart group lists it.</summary>
     private List<EntryViewModel> _shown = [];
 
-    /// <summary>Only while the search or a filter narrows the list, so one click never empties the whole catalog. SPEC FR-69</summary>
-    private bool CanDeleteShown => IsReady && (IsSearching || TreeFilter != TreeFilter.All) && _shown.Count > 0;
+    /// <summary>
+    /// Shown entries this action may delete: never one in the shared database (ADR-0049), so in shared mode only entries kept
+    /// on this PC; in local mode every shown entry.
+    /// </summary>
+    private IEnumerable<EntryViewModel> DeletableShown => _shown.Where(e => !IsRemote || e.IsLocalOnly);
+
+    /// <summary>
+    /// Only while the search or a filter narrows the list (so one click never empties the whole catalog) and it shows an entry
+    /// that may be deleted this way. SPEC FR-69
+    /// </summary>
+    private bool CanDeleteShown => IsReady && (IsSearching || TreeFilter != TreeFilter.All) && DeletableShown.Any();
 
     [RelayCommand(CanExecute = nameof(CanDeleteShown))]
     private async Task DeleteShownAsync()
     {
         if (_host is null) return;
-        var entries = _shown.Select(e => e.Model).ToList();
-        var writable = entries.Where(_host.Workspace.CanWriteEntry).ToList();
-        var skipped = entries.Count - writable.Count;
-        if (writable.Count == 0)
+        var targets = DeletableShown.Select(e => e.Model).ToList();
+        if (targets.Count == 0) return;
+        var keptShared = _shown.Count - targets.Count;
+
+        var message = IsRemote
+            ? $"Delete {Plural(targets.Count, "entry", "entries")} kept on this PC? They are removed from this PC only."
+            : $"Delete {Plural(targets.Count, "shown entry", "shown entries")}?";
+        if (keptShared > 0)
         {
-            _dialogs.ShowError("Not deleted", "None of the shown entries can be changed while the shared database is offline.");
+            message += $" {Plural(keptShared, "shown entry is", "shown entries are")} in the shared database and will be kept: " +
+                       "shared entries can only be deleted one at a time.";
+        }
+
+        if (!_dialogs.ConfirmRisky("Delete shown entries", message, $"Delete {targets.Count}")) return;
+
+        BulkDeleteResult result;
+        try
+        {
+            StatusText = $"Deleting {targets.Count} entries…";
+            result = await _host.Workspace.DeleteManyAsync(targets);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _dialogs.ShowError("Not deleted", ex.Message);
             return;
         }
 
-        var shared = _host.Workspace.IsRemote ? writable.Count(e => !e.IsLocalOnly) : 0;
-        var message = $"Delete {Plural(writable.Count, "shown entry", "shown entries")}?";
-        if (shared > 0)
-        {
-            message += $" {Plural(shared, "entry", "entries")} will be removed for everyone using the shared database.";
-        }
-
-        if (_host.Workspace.IsRemote && writable.Count > shared)
-        {
-            message += $" {Plural(writable.Count - shared, "entry", "entries")} kept on this PC will be removed from this PC.";
-        }
-
-        if (skipped > 0)
-        {
-            message += $" {Plural(skipped, "shared entry", "shared entries")} cannot be changed while offline and will be kept.";
-        }
-
-        if (!_dialogs.ConfirmRisky("Delete shown entries", message, $"Delete {writable.Count}")) return;
-
-        StatusText = $"Deleting {writable.Count} entries…";
-        var result = await _host.Workspace.DeleteManyAsync(writable);
         Log.Info($"Deleted {result.Deleted.Count} shown entries, {result.Failed.Count} not deleted");
         if (Selected is { } selected && result.Deleted.Any(e => e.Id == selected.Model.Id)) Selected = null;
         await ReloadAsync();
@@ -1188,7 +1196,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         {
             var first = result.Failed[0];
             _dialogs.ShowError("Some entries were not deleted",
-                $"Deleted {result.Deleted.Count} of {writable.Count}. {Plural(result.Failed.Count, "entry was", "entries were")} not deleted, " +
+                $"Deleted {result.Deleted.Count} of {targets.Count}. {Plural(result.Failed.Count, "entry was", "entries were")} not deleted, " +
                 $"e.g. '{first.Entry.Name}': {first.Error.Message} Refresh (F5) and try again.");
         }
         else

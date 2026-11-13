@@ -119,4 +119,20 @@ public class QuickConnectViewModelTests
         vm.SearchText = "sql01";
         Assert.True(vm.DeleteShownCommand.CanExecute(null));
     }
+
+    // SPEC FR-69, ADR-0049: with a shared database only entries kept on this PC can be deleted this way
+    [Fact]
+    public void Delete_shown_entries_in_shared_mode_needs_an_entry_kept_on_this_pc()
+    {
+        var vm = CreateMain(out _, out _);
+        vm.IsReady = true;
+        vm.IsRemote = true;
+        vm.SearchText = "01"; // shows APP01 and SQL01, both shared
+        Assert.False(vm.DeleteShownCommand.CanExecute(null));
+
+        vm.Entries.Add(new EntryViewModel(ConnectionEntry.CreateNew("LAB01") with { Host = "lab01", IsLocalOnly = true }));
+        vm.SearchText = "";
+        vm.SearchText = "01";
+        Assert.True(vm.DeleteShownCommand.CanExecute(null));
+    }
 }

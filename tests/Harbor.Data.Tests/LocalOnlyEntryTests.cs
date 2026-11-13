@@ -156,9 +156,27 @@ public class LocalOnlyEntryTests
         Assert.NotNull(ws.LocalVaultError);
     }
 
-    // SPEC FR-69, ADR-0048
+    // SPEC FR-69, ADR-0048, ADR-0049: a bulk delete never touches the shared database.
     [Fact]
-    public async Task Delete_many_removes_local_and_shared_entries_and_reports_the_ones_it_could_not_delete()
+    public async Task Delete_many_refuses_shared_entries_and_deletes_nothing()
+    {
+        using var s = new Setup();
+        using var ws = s.Alice();
+        await ws.OpenAsync();
+        await ws.SaveAsync(ConnectionEntry.CreateNew("mine") with { Host = "lab", IsLocalOnly = true }, SecretUpdate.Keep);
+        await ws.SaveAsync(ConnectionEntry.CreateNew("ours") with { Host = "srv" }, SecretUpdate.Keep);
+        var all = await ws.ListAsync();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => ws.DeleteManyAsync(all));
+
+        Assert.Contains("ours", ex.Message);
+        Assert.Equal(["mine", "ours"], (await ws.ListAsync()).Select(e => e.Name).Order());
+        Assert.Equal(["ours"], (await s.RemoteDb.Store.ListAsync()).Select(e => e.Name));
+    }
+
+    // SPEC FR-69, ADR-0049
+    [Fact]
+    public async Task Delete_many_removes_entries_kept_on_this_pc_and_reports_a_stale_one()
     {
         using var s = new Setup();
         using var ws = s.Alice();
@@ -168,41 +186,39 @@ public class LocalOnlyEntryTests
             await ws.SaveAsync(ConnectionEntry.CreateNew($"lab{i}") with { Host = "lab", IsLocalOnly = true }, SecretUpdate.Set("pw"));
         }
 
-        await ws.SaveAsync(ConnectionEntry.CreateNew("ours") with { Host = "srv" }, SecretUpdate.Set("team"));
-        var stale = await ws.SaveAsync(ConnectionEntry.CreateNew("stale") with { Host = "old" }, SecretUpdate.Keep);
-        await ws.SaveAsync(stale with { Notes = "changed by someone else" }, SecretUpdate.Keep); // `stale` is now an old version
+        var stale = await ws.SaveAsync(ConnectionEntry.CreateNew("stale") with { Host = "old", IsLocalOnly = true }, SecretUpdate.Keep);
+        await ws.SaveAsync(stale with { Notes = "changed meanwhile" }, SecretUpdate.Keep); // `stale` is now an old version
+        await ws.SaveAsync(ConnectionEntry.CreateNew("ours") with { Host = "srv" }, SecretUpdate.Keep);
 
-        var all = await ws.ListAsync();
-        var result = await ws.DeleteManyAsync([.. all.Where(e => e.Name != "stale"), stale]);
+        var local = (await ws.ListAsync()).Where(e => e.IsLocalOnly && e.Name != "stale").Append(stale).ToList();
+        var result = await ws.DeleteManyAsync(local);
 
-        Assert.Equal(["lab0", "lab1", "lab2", "ours"], result.Deleted.Select(e => e.Name).Order());
+        Assert.Equal(["lab0", "lab1", "lab2"], result.Deleted.Select(e => e.Name).Order());
         var failed = Assert.Single(result.Failed);
         Assert.Equal("stale", failed.Entry.Name);
         Assert.IsType<ConcurrencyConflictException>(failed.Error);
-        Assert.Equal(["stale"], (await ws.ListAsync()).Select(e => e.Name));
-        Assert.Empty(await s.Vault.Store.ListAsync());
+        Assert.Equal(["ours", "stale"], (await ws.ListAsync()).Select(e => e.Name).Order());
+        Assert.Equal(["ours"], (await s.RemoteDb.Store.ListAsync()).Select(e => e.Name));
     }
 
-    // SPEC FR-69: offline, entries kept on this PC are still deleted; shared ones are kept and reported.
+    // SPEC FR-69: entries kept on this PC can be deleted also while the shared database is offline.
     [Fact]
-    public async Task Delete_many_while_offline_deletes_only_entries_kept_on_this_pc()
+    public async Task Delete_many_works_offline_for_entries_kept_on_this_pc()
     {
         using var s = new Setup();
         using var ws = s.Alice();
         await ws.OpenAsync();
         await ws.SaveAsync(ConnectionEntry.CreateNew("mine") with { Host = "lab", IsLocalOnly = true }, SecretUpdate.Keep);
         await ws.SaveAsync(ConnectionEntry.CreateNew("ours") with { Host = "srv" }, SecretUpdate.Keep);
-        var all = await ws.ListAsync();
+        var local = (await ws.ListAsync()).Where(e => e.IsLocalOnly).ToList();
 
         s.Remote.Offline = true;
         await ws.SyncAsync();
         Assert.False(ws.IsOnline);
-        var result = await ws.DeleteManyAsync(all);
+        var result = await ws.DeleteManyAsync(local);
 
         Assert.Equal("mine", Assert.Single(result.Deleted).Name);
-        var failed = Assert.Single(result.Failed);
-        Assert.Equal("ours", failed.Entry.Name);
-        Assert.IsType<WorkspaceOfflineException>(failed.Error);
+        Assert.Empty(result.Failed);
         Assert.Equal(["ours"], (await ws.ListAsync()).Select(e => e.Name));
     }
 }
