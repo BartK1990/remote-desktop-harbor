@@ -150,6 +150,13 @@ re-apply your edit.
 Select an entry and choose **⋯ → Delete…** in the details pane (or press <kbd>Del</kbd> in the tree), then
 confirm. In a shared database the entry is removed for everyone.
 
+To delete **many entries at once**, narrow the list first — type a search or pick a filter such as **This PC** —
+then right-click the tree and choose **Delete shown entries…**. Every entry the tree shows is deleted after one
+confirmation, which says how many go and how many of them are removed for everyone in the shared database. The action
+is disabled while the tree shows everything, so the whole catalog is never deleted by accident. If some entries cannot
+be deleted (changed by someone else meanwhile, or shared while [offline](../../team/offline-mode/)), the rest are
+still deleted and the app tells you which were kept.
+
 ## Search
 
 Type in the search box (<kbd>Ctrl</kbd>+<kbd>K</kbd> or <kbd>Ctrl</kbd>+<kbd>F</kbd>). The tree is filtered as you type, by **name, host, user

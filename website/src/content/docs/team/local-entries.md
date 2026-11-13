@@ -21,7 +21,9 @@ shared database later.
 
 Private entries show a small PC mark next to their name in the tree and **This PC only** in the details pane. The
 **This PC** filter above the tree lists only them — handy for spotting entries that are also in the shared database
-(for example after switching from local mode and restoring or importing the same list there). They
+(for example after switching from local mode and restoring or importing the same list there). To remove such
+duplicates in one go, pick **This PC**, right-click the tree and choose **Delete shown entries…** — only the copies on
+this PC are deleted; the shared database is not touched. They
 work like any other entry: connect, copy, pin, search. Two differences:
 
 - They can be edited and deleted **also while the shared database is offline**.

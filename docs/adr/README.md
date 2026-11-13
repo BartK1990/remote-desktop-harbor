@@ -53,3 +53,4 @@ Process: see [spec/README.md](../spec/README.md).
 | [0045](0045-resizable-harbor-rdp-window.md) | Connections can open in Harbor's resizable Remote Desktop window; resolution follows the window | Accepted |
 | [0046](0046-encrypted-backup-file.md) | Backups are one passphrase-encrypted file (PBKDF2 + AES-256-GCM), restored like an import | Accepted |
 | [0047](0047-own-sessions-always-listed.md) | The app always lists its own Remote Desktop sessions as active, also in local mode and offline | Accepted |
+| [0048](0048-delete-shown-entries.md) | Several entries are deleted by deleting the entries the tree shows (search and filter), not by multi-selection | Accepted |

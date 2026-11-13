@@ -310,6 +310,38 @@ public sealed class HarborWorkspace : IDisposable
     }
 
     /// <summary>
+    /// Deletes several entries one by one, as <see cref="DeleteAsync"/> does (SPEC FR-69, ADR-0048). An entry that cannot be
+    /// changed now (<see cref="CanWriteEntry"/>, e.g. a shared one while offline) is skipped; a stale version or a lost
+    /// connection fails only that entry, and the rest are still deleted. Never throws for a single entry.
+    /// </summary>
+    public async Task<BulkDeleteResult> DeleteManyAsync(IReadOnlyList<ConnectionEntry> entries, CancellationToken cancellationToken = default)
+    {
+        var deleted = new List<ConnectionEntry>();
+        var failed = new List<(ConnectionEntry Entry, Exception Error)>();
+        foreach (var entry in entries)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!CanWriteEntry(entry))
+            {
+                failed.Add((entry, new WorkspaceOfflineException("The shared database is offline.", LastRemoteError)));
+                continue;
+            }
+
+            try
+            {
+                await DeleteAsync(entry, cancellationToken).ConfigureAwait(false);
+                deleted.Add(entry);
+            }
+            catch (Exception ex) when (ex is ConcurrencyConflictException or WorkspaceOfflineException)
+            {
+                failed.Add((entry, ex));
+            }
+        }
+
+        return new BulkDeleteResult(deleted, failed);
+    }
+
+    /// <summary>
     /// Decrypts the password of the entry's default account, or of its additional account <paramref name="accountId"/>.
     /// Only call right before use (launch / copy).
     /// </summary>
@@ -503,5 +535,10 @@ public sealed class HarborWorkspace : IDisposable
         _remoteLock.Dispose();
     }
 }
+
+/// <summary>Outcome of <see cref="HarborWorkspace.DeleteManyAsync"/>. SPEC FR-69</summary>
+public sealed record BulkDeleteResult(
+    IReadOnlyList<ConnectionEntry> Deleted,
+    IReadOnlyList<(ConnectionEntry Entry, Exception Error)> Failed);
 
 public class WorkspaceOfflineException(string message, Exception? inner = null) : Exception(message, inner);

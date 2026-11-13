@@ -98,4 +98,25 @@ public class QuickConnectViewModelTests
         Assert.Equal(TreeFilter.All, vm.TreeFilter);
         Assert.Equal(3, vm.Tree.Count);
     }
+
+    // SPEC FR-69, ADR-0048: never on the whole, unfiltered catalog
+    [Fact]
+    public void Delete_shown_entries_needs_a_search_or_filter_that_shows_something()
+    {
+        var vm = CreateMain(out var app01, out _);
+        vm.IsReady = true;
+        vm.TreeFilter = TreeFilter.Pinned; // rebuilds the tree: nothing pinned yet
+        Assert.False(vm.DeleteShownCommand.CanExecute(null));
+
+        app01.IsPinned = true;
+        vm.TreeFilter = TreeFilter.All;
+        Assert.False(vm.DeleteShownCommand.CanExecute(null));
+
+        vm.TreeFilter = TreeFilter.Pinned;
+        Assert.True(vm.DeleteShownCommand.CanExecute(null));
+
+        vm.TreeFilter = TreeFilter.All;
+        vm.SearchText = "sql01";
+        Assert.True(vm.DeleteShownCommand.CanExecute(null));
+    }
 }

@@ -513,6 +513,9 @@
             <MenuItem Header="{Binding PinText}" Command="{Binding TogglePinCommand}" InputGestureText="Ctrl+D" />
             <MenuItem Header="Edit" Command="{Binding EditCommand}" InputGestureText="F2" />
             <MenuItem Header="Delete" Command="{Binding DeleteCommand}" />
+            <!-- SPEC FR-69, ADR-0048: every entry the search and filter show; only while something narrows the list -->
+            <MenuItem Header="Delete shown entries…" Command="{Binding DeleteShownCommand}"
+                      ToolTip="Search or pick a filter first; deletes every entry the list shows" ToolTipService.ShowOnDisabled="True" />
             <Separator />
             <MenuItem Header="Transfer files…" Command="{Binding TransferFilesCommand}" InputGestureText="Ctrl+Shift+T" />
             <MenuItem Header="Move to this PC only…" Command="{Binding MoveToLocalCommand}"
