@@ -309,13 +309,24 @@ public sealed class HarborWorkspace : IDisposable
         }
     }
 
+    /// <summary>Whether <paramref name="entry"/> lives in the shared database (remote mode, not kept on this PC). SPEC FR-29</summary>
+    public bool IsShared(ConnectionEntry entry) => IsRemote && !entry.IsLocalOnly;
+
     /// <summary>
-    /// Deletes several entries one by one, as <see cref="DeleteAsync"/> does (SPEC FR-69, ADR-0048). An entry that cannot be
-    /// changed now (<see cref="CanWriteEntry"/>, e.g. a shared one while offline) is skipped; a stale version or a lost
-    /// connection fails only that entry, and the rest are still deleted. Never throws for a single entry.
+    /// Deletes several entries one by one, as <see cref="DeleteAsync"/> does (SPEC FR-69, ADR-0048, ADR-0049). Never deletes
+    /// from the shared database: in remote mode only entries kept on this PC are accepted, so a mistake cannot empty the
+    /// team's catalog. An entry that cannot be changed now (<see cref="CanWriteEntry"/>) or has a stale version fails only
+    /// itself; the rest are still deleted.
     /// </summary>
+    /// <exception cref="InvalidOperationException">An entry is in the shared database; nothing was deleted.</exception>
     public async Task<BulkDeleteResult> DeleteManyAsync(IReadOnlyList<ConnectionEntry> entries, CancellationToken cancellationToken = default)
     {
+        if (entries.FirstOrDefault(IsShared) is { } shared)
+        {
+            throw new InvalidOperationException(
+                $"'{shared.Name}' is in the shared database. Shared entries can only be deleted one at a time.");
+        }
+
         var deleted = new List<ConnectionEntry>();
         var failed = new List<(ConnectionEntry Entry, Exception Error)>();
         foreach (var entry in entries)
@@ -323,7 +334,7 @@ public sealed class HarborWorkspace : IDisposable
             cancellationToken.ThrowIfCancellationRequested();
             if (!CanWriteEntry(entry))
             {
-                failed.Add((entry, new WorkspaceOfflineException("The shared database is offline.", LastRemoteError)));
+                failed.Add((entry, new InvalidOperationException("Entries kept on this PC are unavailable.", LocalVaultError)));
                 continue;
             }
 
@@ -332,7 +343,7 @@ public sealed class HarborWorkspace : IDisposable
                 await DeleteAsync(entry, cancellationToken).ConfigureAwait(false);
                 deleted.Add(entry);
             }
-            catch (Exception ex) when (ex is ConcurrencyConflictException or WorkspaceOfflineException)
+            catch (ConcurrencyConflictException ex)
             {
                 failed.Add((entry, ex));
             }

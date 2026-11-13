@@ -151,11 +151,14 @@ Select an entry and choose **⋯ → Delete…** in the details pane (or press <
 confirm. In a shared database the entry is removed for everyone.
 
 To delete **many entries at once**, narrow the list first — type a search or pick a filter such as **This PC** —
-then right-click the tree and choose **Delete shown entries…**. Every entry the tree shows is deleted after one
-confirmation, which says how many go and how many of them are removed for everyone in the shared database. The action
-is disabled while the tree shows everything, so the whole catalog is never deleted by accident. If some entries cannot
-be deleted (changed by someone else meanwhile, or shared while [offline](../../team/offline-mode/)), the rest are
-still deleted and the app tells you which were kept.
+then right-click the tree and choose **Delete shown entries…**, and confirm once. The action is disabled while the
+tree shows everything, so the whole catalog is never deleted by accident.
+
+With a [shared database](../../team/shared-database/) it **never deletes shared entries**: only the shown
+[entries kept on this PC](../../team/local-entries/) are deleted, and the confirmation says how many shared entries
+are kept. Shared entries are removed for everyone, so they can only be deleted one at a time. In local mode every
+shown entry is deleted. If an entry was changed meanwhile, the rest are still deleted and the app tells you which
+were kept.
 
 ## Search
 

@@ -1,6 +1,6 @@
 # ADR-0048: Delete the entries the tree shows instead of multi-selection
 
-* Status: Accepted
+* Status: Accepted; amended by [ADR-0049](0049-bulk-delete-never-shared.md) (never deletes shared entries)
 * Date: 2026-11-13
 * Requirements: FR-69, FR-50, FR-29, FR-22, FR-23, FR-24, FR-53
 
