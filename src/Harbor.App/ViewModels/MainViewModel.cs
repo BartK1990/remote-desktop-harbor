@@ -68,7 +68,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
 
     [ObservableProperty] private string _searchText = "";
 
-    /// <summary>All entries, or only those in use, pinned or recently connected (SPEC FR-50).</summary>
+    /// <summary>All entries, or only those in use, pinned, recently connected (SPEC FR-50) or kept on this PC (FR-29).</summary>
     [ObservableProperty] private TreeFilter _treeFilter;
 
     partial void OnTreeFilterChanged(TreeFilter value)
@@ -82,6 +82,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         TreeFilter.InUse => e.IsInUse,
         TreeFilter.Pinned => e.IsPinned,
         TreeFilter.Recent => Settings.RecentEntryIds.Contains(e.Model.Id),
+        TreeFilter.ThisPc => e.IsLocalOnly, // SPEC FR-29
         _ => true,
     };
 
@@ -267,7 +268,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     [NotifyCanExecuteChangedFor(nameof(AddCommand), nameof(EditCommand), nameof(DeleteCommand), nameof(ImportRdpCommand), nameof(ImportRdmCommand),
         nameof(ConnectCommand), nameof(ConnectAsCommand), nameof(ConnectOtherWayCommand), nameof(MoveToLocalCommand), nameof(MoveToSharedCommand),
         nameof(TransferFilesCommand), nameof(NewSmartGroupCommand), nameof(EditSmartGroupCommand), nameof(DeleteSmartGroupCommand),
-        nameof(ExportBackupCommand), nameof(RestoreBackupCommand))]
+        nameof(ExportBackupCommand), nameof(RestoreBackupCommand), nameof(DeleteShownCommand))]
     private bool _isReady;
 
     [ObservableProperty]
@@ -280,6 +281,12 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     [NotifyCanExecuteChangedFor(nameof(AddCommand), nameof(EditCommand), nameof(DeleteCommand), nameof(ImportRdpCommand),
         nameof(MoveToLocalCommand), nameof(MoveToSharedCommand))]
     private bool _supportsLocalEntries;
+
+    // The "This PC" filter is hidden without local-only entries; never leave the tree filtered by it then. SPEC FR-29
+    partial void OnSupportsLocalEntriesChanged(bool value)
+    {
+        if (!value && TreeFilter == TreeFilter.ThisPc) TreeFilter = TreeFilter.All;
+    }
 
     [ObservableProperty] private string _userText = "Signing in…";
     [ObservableProperty] private string _storeText = "";
@@ -467,6 +474,8 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     private void RebuildTree()
     {
         var visible = Entries.Where(e => e.Matches(SearchText) && PassesFilter(e)).ToList();
+        _shown = visible;
+        DeleteShownCommand.NotifyCanExecuteChanged();
         var root = FolderTree.Build(visible, e => e.Model.Folder, e => e.Name);
         var previous = _folders;
         _folders = new Dictionary<string, FolderViewModel>(StringComparer.CurrentCultureIgnoreCase);
@@ -1129,6 +1138,67 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
             _dialogs.ShowError("Not deleted", ex.Message);
         }
     }
+
+    // ------------------------------------------------------------------ delete shown entries (SPEC FR-69, ADR-0048)
+
+    /// <summary>The entries the tree shows now (search and filter applied), each once, also when a smart group lists it.</summary>
+    private List<EntryViewModel> _shown = [];
+
+    /// <summary>Only while the search or a filter narrows the list, so one click never empties the whole catalog. SPEC FR-69</summary>
+    private bool CanDeleteShown => IsReady && (IsSearching || TreeFilter != TreeFilter.All) && _shown.Count > 0;
+
+    [RelayCommand(CanExecute = nameof(CanDeleteShown))]
+    private async Task DeleteShownAsync()
+    {
+        if (_host is null) return;
+        var entries = _shown.Select(e => e.Model).ToList();
+        var writable = entries.Where(_host.Workspace.CanWriteEntry).ToList();
+        var skipped = entries.Count - writable.Count;
+        if (writable.Count == 0)
+        {
+            _dialogs.ShowError("Not deleted", "None of the shown entries can be changed while the shared database is offline.");
+            return;
+        }
+
+        var shared = _host.Workspace.IsRemote ? writable.Count(e => !e.IsLocalOnly) : 0;
+        var message = $"Delete {Plural(writable.Count, "shown entry", "shown entries")}?";
+        if (shared > 0)
+        {
+            message += $" {Plural(shared, "entry", "entries")} will be removed for everyone using the shared database.";
+        }
+
+        if (_host.Workspace.IsRemote && writable.Count > shared)
+        {
+            message += $" {Plural(writable.Count - shared, "entry", "entries")} kept on this PC will be removed from this PC.";
+        }
+
+        if (skipped > 0)
+        {
+            message += $" {Plural(skipped, "shared entry", "shared entries")} cannot be changed while offline and will be kept.";
+        }
+
+        if (!_dialogs.ConfirmRisky("Delete shown entries", message, $"Delete {writable.Count}")) return;
+
+        StatusText = $"Deleting {writable.Count} entries…";
+        var result = await _host.Workspace.DeleteManyAsync(writable);
+        Log.Info($"Deleted {result.Deleted.Count} shown entries, {result.Failed.Count} not deleted");
+        if (Selected is { } selected && result.Deleted.Any(e => e.Id == selected.Model.Id)) Selected = null;
+        await ReloadAsync();
+        if (result.Failed.Count > 0)
+        {
+            var first = result.Failed[0];
+            _dialogs.ShowError("Some entries were not deleted",
+                $"Deleted {result.Deleted.Count} of {writable.Count}. {Plural(result.Failed.Count, "entry was", "entries were")} not deleted, " +
+                $"e.g. '{first.Entry.Name}': {first.Error.Message} Refresh (F5) and try again.");
+        }
+        else
+        {
+            StatusText = $"Deleted {Plural(result.Deleted.Count, "entry", "entries")}.";
+        }
+    }
+
+    private static string Plural(int count, string one, string many) =>
+        string.Create(System.Globalization.CultureInfo.CurrentCulture, $"{count} {(count == 1 ? one : many)}");
 
     // ------------------------------------------------------------------ this PC only / shared (SPEC FR-29, ADR-0038)
 

@@ -109,8 +109,9 @@ and host. Entries with
 - **Environment tags.** A folder whose name contains *Production*/*Prod*/*Live*, *Staging*/*UAT*/*PreProd*,
   *Test*/*QA*, *Dev* or *Lab*/*Sandbox* gets a **PROD**, **STG**, **TEST**, **DEV** or **LAB** tag; entries in it
   show the tag in the details pane and in quick connect. Rename a folder to change its tag — nothing else to set up.
-- **All / In use / Pinned / Recent** above the tree show every entry, only entries someone is connected to, only
-  your pinned (favourite) entries, or the last 10 you connected to. Pin the selected entry with the star in the details pane,
+- **All / In use / ★ Pinned / Recent** above the tree show every entry, only entries someone is connected to, only
+  your pinned (favourite) entries, or the last 10 you connected to. With a shared database, **This PC** shows only the
+  [entries kept on this PC](../../team/local-entries/). Pin the selected entry with the star in the details pane,
   the context menu or <kbd>Ctrl</kbd>+<kbd>D</kbd>; pinned entries get a small star in the list. Pins and the recent
   list are personal (kept in your settings, not in a shared database); pins are included in a
   [backup](../backup-and-restore/).
@@ -148,6 +149,13 @@ re-apply your edit.
 
 Select an entry and choose **⋯ → Delete…** in the details pane (or press <kbd>Del</kbd> in the tree), then
 confirm. In a shared database the entry is removed for everyone.
+
+To delete **many entries at once**, narrow the list first — type a search or pick a filter such as **This PC** —
+then right-click the tree and choose **Delete shown entries…**. Every entry the tree shows is deleted after one
+confirmation, which says how many go and how many of them are removed for everyone in the shared database. The action
+is disabled while the tree shows everything, so the whole catalog is never deleted by accident. If some entries cannot
+be deleted (changed by someone else meanwhile, or shared while [offline](../../team/offline-mode/)), the rest are
+still deleted and the app tells you which were kept.
 
 ## Search
 

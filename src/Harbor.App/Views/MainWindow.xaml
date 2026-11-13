@@ -69,6 +69,13 @@
         <Setter Property="Foreground" Value="{DynamicResource AccentTextFillColorPrimaryBrush}" />
         <Setter Property="ToolTip" Value="Pinned" />
       </Style>
+      <!-- Icon in a tree filter chip (SPEC FR-50, FR-29): the same glyph as in the tree, in the chip's own text colour so it
+           stays readable when the chip is checked. -->
+      <Style x:Key="FilterChipIcon" TargetType="TextBlock" BasedOn="{StaticResource Harbor.Text.Icon}">
+        <Setter Property="FontSize" Value="10" />
+        <Setter Property="Margin" Value="0,0,5,0" />
+        <Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" />
+      </Style>
     </ResourceDictionary>
   </Window.Resources>
   <!-- Keyboard first (SPEC FR-47, ADR-0026): every action has a shortcut, shown next to it or in its tooltip. -->
@@ -262,16 +269,30 @@
         <Button Style="{StaticResource Harbor.TreeZoomButton}" Command="{Binding ZoomTreeInCommand}" Content="&#xE710;"
                 ToolTip="Larger rows (Ctrl+Plus)" AutomationProperties.Name="Larger rows" />
       </StackPanel>
-      <!-- Show all entries, or only those in use, pinned or recently connected (SPEC FR-50). -->
+      <!-- Show all entries, or only those in use, pinned, recently connected (SPEC FR-50) or kept on this PC (FR-29). -->
       <StackPanel Orientation="Horizontal" AutomationProperties.Name="Show">
         <RadioButton GroupName="TreeFilter" Style="{StaticResource Harbor.Chip}" Content="All"
                      IsChecked="{Binding TreeFilter, Converter={StaticResource EnumToBool}, ConverterParameter={x:Static vm:TreeFilter.All}}" />
         <RadioButton GroupName="TreeFilter" Style="{StaticResource Harbor.Chip}" Content="In use"
                      IsChecked="{Binding TreeFilter, Converter={StaticResource EnumToBool}, ConverterParameter={x:Static vm:TreeFilter.InUse}}" />
-        <RadioButton GroupName="TreeFilter" Style="{StaticResource Harbor.Chip}" Content="Pinned"
-                     IsChecked="{Binding TreeFilter, Converter={StaticResource EnumToBool}, ConverterParameter={x:Static vm:TreeFilter.Pinned}}" />
+        <RadioButton GroupName="TreeFilter" Style="{StaticResource Harbor.Chip}" AutomationProperties.Name="Pinned"
+                     IsChecked="{Binding TreeFilter, Converter={StaticResource EnumToBool}, ConverterParameter={x:Static vm:TreeFilter.Pinned}}">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Style="{StaticResource FilterChipIcon}" Text="&#xE735;" />
+            <TextBlock Text="Pinned" />
+          </StackPanel>
+        </RadioButton>
         <RadioButton GroupName="TreeFilter" Style="{StaticResource Harbor.Chip}" Content="Recent"
                      IsChecked="{Binding TreeFilter, Converter={StaticResource EnumToBool}, ConverterParameter={x:Static vm:TreeFilter.Recent}}" />
+        <RadioButton GroupName="TreeFilter" Style="{StaticResource Harbor.Chip}" AutomationProperties.Name="This PC"
+                     ToolTip="Only entries kept on this PC, never in the shared database"
+                     Visibility="{Binding SupportsLocalEntries, Converter={StaticResource BoolToVisibility}}"
+                     IsChecked="{Binding TreeFilter, Converter={StaticResource EnumToBool}, ConverterParameter={x:Static vm:TreeFilter.ThisPc}}">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Style="{StaticResource FilterChipIcon}" Text="&#xE977;" />
+            <TextBlock Text="This PC" />
+          </StackPanel>
+        </RadioButton>
       </StackPanel>
       </DockPanel>
       <TreeView x:Name="EntryTree" ItemsSource="{Binding Tree}" Background="Transparent" BorderThickness="0"
@@ -492,6 +513,9 @@
             <MenuItem Header="{Binding PinText}" Command="{Binding TogglePinCommand}" InputGestureText="Ctrl+D" />
             <MenuItem Header="Edit" Command="{Binding EditCommand}" InputGestureText="F2" />
             <MenuItem Header="Delete" Command="{Binding DeleteCommand}" />
+            <!-- SPEC FR-69, ADR-0048: every entry the search and filter show; only while something narrows the list -->
+            <MenuItem Header="Delete shown entries…" Command="{Binding DeleteShownCommand}"
+                      ToolTip="Search or pick a filter first; deletes every entry the list shows" ToolTipService.ShowOnDisabled="True" />
             <Separator />
             <MenuItem Header="Transfer files…" Command="{Binding TransferFilesCommand}" InputGestureText="Ctrl+Shift+T" />
             <MenuItem Header="Move to this PC only…" Command="{Binding MoveToLocalCommand}"
