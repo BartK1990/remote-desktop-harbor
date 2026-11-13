@@ -81,4 +81,21 @@ public class QuickConnectViewModelTests
         vm.TreeFilter = TreeFilter.All;
         Assert.Equal(2, vm.Tree.Count);
     }
+
+    // SPEC FR-29, FR-50
+    [Fact]
+    public void Tree_filter_shows_only_entries_kept_on_this_pc_and_resets_when_they_are_unavailable()
+    {
+        var vm = CreateMain(out _, out _);
+        var lab = new EntryViewModel(ConnectionEntry.CreateNew("LAB01") with { Host = "lab01", IsLocalOnly = true });
+        vm.Entries.Add(lab);
+        vm.SupportsLocalEntries = true;
+
+        vm.TreeFilter = TreeFilter.ThisPc;
+        Assert.Same(lab, Assert.Single(vm.Tree));
+
+        vm.SupportsLocalEntries = false; // e.g. the local vault cannot be opened: the chip is hidden
+        Assert.Equal(TreeFilter.All, vm.TreeFilter);
+        Assert.Equal(3, vm.Tree.Count);
+    }
 }

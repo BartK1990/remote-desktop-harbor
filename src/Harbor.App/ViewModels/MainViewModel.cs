@@ -68,7 +68,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
 
     [ObservableProperty] private string _searchText = "";
 
-    /// <summary>All entries, or only those in use, pinned or recently connected (SPEC FR-50).</summary>
+    /// <summary>All entries, or only those in use, pinned, recently connected (SPEC FR-50) or kept on this PC (FR-29).</summary>
     [ObservableProperty] private TreeFilter _treeFilter;
 
     partial void OnTreeFilterChanged(TreeFilter value)
@@ -82,6 +82,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         TreeFilter.InUse => e.IsInUse,
         TreeFilter.Pinned => e.IsPinned,
         TreeFilter.Recent => Settings.RecentEntryIds.Contains(e.Model.Id),
+        TreeFilter.ThisPc => e.IsLocalOnly, // SPEC FR-29
         _ => true,
     };
 
@@ -280,6 +281,12 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     [NotifyCanExecuteChangedFor(nameof(AddCommand), nameof(EditCommand), nameof(DeleteCommand), nameof(ImportRdpCommand),
         nameof(MoveToLocalCommand), nameof(MoveToSharedCommand))]
     private bool _supportsLocalEntries;
+
+    // The "This PC" filter is hidden without local-only entries; never leave the tree filtered by it then. SPEC FR-29
+    partial void OnSupportsLocalEntriesChanged(bool value)
+    {
+        if (!value && TreeFilter == TreeFilter.ThisPc) TreeFilter = TreeFilter.All;
+    }
 
     [ObservableProperty] private string _userText = "Signing in…";
     [ObservableProperty] private string _storeText = "";

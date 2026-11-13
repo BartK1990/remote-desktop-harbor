@@ -109,8 +109,9 @@ and host. Entries with
 - **Environment tags.** A folder whose name contains *Production*/*Prod*/*Live*, *Staging*/*UAT*/*PreProd*,
   *Test*/*QA*, *Dev* or *Lab*/*Sandbox* gets a **PROD**, **STG**, **TEST**, **DEV** or **LAB** tag; entries in it
   show the tag in the details pane and in quick connect. Rename a folder to change its tag — nothing else to set up.
-- **All / In use / Pinned / Recent** above the tree show every entry, only entries someone is connected to, only
-  your pinned (favourite) entries, or the last 10 you connected to. Pin the selected entry with the star in the details pane,
+- **All / In use / ★ Pinned / Recent** above the tree show every entry, only entries someone is connected to, only
+  your pinned (favourite) entries, or the last 10 you connected to. With a shared database, **This PC** shows only the
+  [entries kept on this PC](../../team/local-entries/). Pin the selected entry with the star in the details pane,
   the context menu or <kbd>Ctrl</kbd>+<kbd>D</kbd>; pinned entries get a small star in the list. Pins and the recent
   list are personal (kept in your settings, not in a shared database); pins are included in a
   [backup](../backup-and-restore/).

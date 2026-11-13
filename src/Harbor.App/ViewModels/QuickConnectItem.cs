@@ -7,6 +7,8 @@ public enum TreeFilter
     InUse,
     Pinned,
     Recent,
+    /// <summary>Only entries kept on this PC (shared mode with a local vault). SPEC FR-29</summary>
+    ThisPc,
 }
 
 /// <summary>What a shortcut in the quick connect palette does with the highlighted result. SPEC FR-48</summary>
