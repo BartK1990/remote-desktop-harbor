@@ -25,7 +25,7 @@ Not sure? Run `Test-NetConnection <server> -Port 445` in PowerShell: if `TcpTest
 ## Copying through Remote Desktop
 
 1. Type the **Folder on the server** as the server sees it — `%USERPROFILE%\Downloads` (the default), `D:\Install`…
-   Environment variables are expanded on the server. Choose what happens to [files that already exist](#files-that-already-exist).
+   Environment variables are expanded on the server; **Default** puts `%USERPROFILE%\Downloads` back. Choose what happens to [files that already exist](#files-that-already-exist).
 2. Click **Upload files…**, **Upload folder…** or **Download…** (for a download you pick the folder on this PC; the files
    themselves are picked on the server).
 3. Harbor opens its **transfer window**: a Remote Desktop window of its own, connected to the entry with the drives of
@@ -62,6 +62,16 @@ reconnect — by itself, with **Reconnect** in the transfer window, or **Connect
 where it stopped. Its journal is kept on the server. To resume a transfer whose console was closed, use **Connect** on
 its row (Harbor starts it again) or run the start command again. A transfer never runs twice at once.
 
+**Chunk size** (in the File transfer window, both ways of copying) is how much is read and recorded at a time:
+8–16 MB is usually faster over slow or distant connections but copies more again after a dropped connection and uses
+more memory; 1–2 MB loses little on a drop but is usually slower over Remote Desktop. A transfer keeps the size it
+started with.
+
+**Speed.** The copy goes through your PC's drive shared into the session (`\\tsclient`), which answers one request at
+a time, so the helper keeps several chunks (4 MB each by default) being read at once, saves its progress on the server every couple of seconds and tells Harbor on your PC every 10 seconds (so the numbers there move in steps). Copying
+and pasting a file in the session uses a different channel of the same connection and can still be somewhat faster,
+but it cannot resume after a dropped connection.
+
 :::note
 While the transfer window is connected, **every drive of your PC** is visible to the server — that is how the files get
 there; the window is closed as soon as the copy is done. With Remote Desktop Connection only the needed drives are
@@ -73,7 +83,8 @@ turns it off, the command reports that `\\tsclient` cannot be found. No password
 
 **Folder on the host** is a shared folder on the host as a UNC path. It starts as
 `\\<host>\C$\Users\Public\Downloads`; type another one (any share, e.g. `\\<host>\Transfer` or `\\fileserver\drop`)
-and Harbor remembers it for next time. The administrative share `C$` needs an administrator account on the host.
+and Harbor remembers it for next time. **Browse…** opens the share with the entry's account and lets you pick the folder
+there, starting in the folder in the box (or the default one); **Default** puts `\\<host>\C$\Users\Public\Downloads` back. The administrative share `C$` needs an administrator account on the host.
 
 | Button | What it does |
 |---|---|
@@ -104,7 +115,7 @@ folder again and only the new files are copied. Harbor remembers the choice.
 
 Transfers run one after another. Each row shows the file, the direction, the destination, a progress bar and the
 state. When you upload a folder or pick several files, they are **one row**: the bar and *1.2 GB of 4.5 GB (27%)* are of
-all the files together, followed by the **average speed** and **time left**, and a second line names the file being
+all the files together, followed by the **average speed**, the **time elapsed** and the **time left**, and a second line names the file being
 copied now (with its sub-folder) and how far it is. **Pause**, **Resume** and **Cancel** on that row act on all its
 files; files already copied stay when you cancel.
 
@@ -114,7 +125,7 @@ files; files already copied stay when you cancel.
 | Copying | Copying now: file *n* of *m*, bytes done of the total with the percentage, average speed and time left. |
 | Connection lost, retrying | The connection dropped; Harbor retries automatically from where it stopped. |
 | Paused | Paused by you, by closing the app, or after 10 minutes of retrying. **Resume** continues where it stopped. |
-| Done | Copied completely; the file has its final name. |
+| Done | Copied completely; the file has its final name. It says how long the copy took and its average speed, e.g. *4.5 GB in 12 min 30 s (6.1 MB/s average)*, counted from the first start, pauses included. |
 | Failed | A problem retrying cannot fix (source gone, file exists, access denied). **Resume** tries again. |
 | Skipped | The file was already there and **Skip** was chosen; it was left as it is. |
 
@@ -124,10 +135,11 @@ stays). **Clear done** removes all finished rows. The window can be closed while
 
 ## How resuming works over a network share
 
-- Each file is copied in 1 MB chunks into `<name>.harbor-part` next to its destination.
-- After every chunk is written and flushed, Harbor saves its position and a hash in a small journal
-  (`transfers\<id>.json` in the [data folder](../../reference/data-and-files/)). So Harbor always knows exactly how
-  much reached the destination — after a dropped connection, a closed app or a crash.
+- Each file is copied in chunks (4 MB by default) into `<name>.harbor-part` next to its destination.
+- After every chunk is written and flushed, Harbor records its position and a hash in a small journal
+  (`transfers\<id>.json` in the [data folder](../../reference/data-and-files/)), saved at most once a second while
+  copying. So Harbor knows how much reached the destination — after a dropped connection, a closed app or a crash
+  (at most about a second of copying is done again). The next chunk is read while the current one is written.
 - Before continuing it checks the partial file against the journal (its length and the last chunk's hash) and copies
   again anything that did not really arrive. If the source file changed in the meantime the copy starts over.
 - When all bytes are in, the partial file is renamed to its real name.

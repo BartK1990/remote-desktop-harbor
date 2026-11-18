@@ -113,13 +113,22 @@ public sealed class RdpTransferTests : IDisposable
         Assert.Equal(account, prepared.Plan.AccountId);
     }
 
-    // ADR-0042: 1 MiB chunks, so a dropped slow link loses little and progress moves often.
+    // ADR-0051: 4 MiB chunks by default (progress is saved on a timer, so bigger chunks cost little on a drop); the
+    // File transfer window offers 1-16 MiB, and a plan keeps the size it was made with.
     [Fact]
-    public void Chunks_are_one_mebibyte()
+    public void Chunks_are_four_mebibytes_by_default_and_can_be_chosen()
     {
-        Assert.Equal(1024 * 1024, TransferJob.DefaultChunkSize);
-        Assert.Equal(1024 * 1024, new RdpTransferKit(_dir).ChunkSize);
-        Assert.Contains("$ChunkSize = 1MB", RdpTransferKit.Script, StringComparison.Ordinal);
+        Assert.Equal(4 * 1024 * 1024, TransferJob.DefaultChunkSize);
+        Assert.Equal(4 * 1024 * 1024, new RdpTransferKit(_dir).ChunkSize);
+        Assert.Equal(4, new HarborSettings().TransferChunkSizeMiB);
+        Assert.Contains("$ChunkSize = 4MB", RdpTransferKit.Script, StringComparison.Ordinal);
+        Assert.Equal([1, 2, 4, 8, 16], TransferJob.ChunkSizesMiB);
+        Assert.Equal((1, 8, 16, 2), (TransferJob.NormalizeChunkSizeMiB(0), TransferJob.NormalizeChunkSizeMiB(7),
+            TransferJob.NormalizeChunkSizeMiB(500), TransferJob.NormalizeChunkSizeMiB(2)));
+
+        var kit = new RdpTransferKit(Path.Combine(_dir, "pc", "rdp-transfers"), p => p) { ChunkSize = 8 * 1024 * 1024 };
+        var prepared = kit.CreateUpload("SRV01", null, [(File("c.txt", 1), "c.txt")], ServerFolder, ExistingFiles.Fail);
+        Assert.Equal(8 * 1024 * 1024, prepared.Plan.ChunkSize);
     }
 
     // ---------------------------------------------------------------- the helper itself (needs PowerShell)
@@ -187,6 +196,8 @@ public sealed class RdpTransferTests : IDisposable
         var status = Kit.ReadStatus(prepared.Plan.Id)!;
         Assert.Equal((8L * Chunk, 1L * Chunk), (status.BytesTotal, status.BytesDone)); // the second file counts already
         Assert.Equal(Path.Combine("folder", "first.bin"), status.CurrentFile);
+        var started = Assert.NotNull(status.StartedUtc);
+        Assert.Null(status.FinishedUtc);
 
         Assert.Equal(3, Run(prepared, "-TestExitAfterChunks 3")); // resumed, stopped in the second file
         status = Kit.ReadStatus(prepared.Plan.Id)!;
@@ -198,6 +209,43 @@ public sealed class RdpTransferTests : IDisposable
         status = Kit.ReadStatus(prepared.Plan.Id)!;
         Assert.Equal(("done", 8L * Chunk), (status.State, status.BytesDone));
         Assert.Equal(status.BytesTotal, status.BytesDone);
+        // The start is the first run's, so the time it took covers every run.
+        Assert.Equal(started, status.StartedUtc);
+        Assert.NotNull(status.FinishedUtc);
+        Assert.True(status.Took >= TimeSpan.Zero);
+    }
+
+    // ADR-0051: a finished file is recorded in an append-only list, not by rewriting the journal; ending right after a
+    // file got its final name must not make it fail as "already exists" when the transfer resumes.
+    [Fact]
+    public void A_file_finished_just_before_the_session_ended_is_not_copied_again()
+    {
+        if (PowerShell is null) return;
+        var first = File("first.bin", 3 * Chunk + 5, seed: 1);
+        var second = File("second.bin", 2 * Chunk, seed: 2);
+        var prepared = Upload([(first, "first.bin"), (second, "second.bin")]); // Fail on existing files
+
+        Assert.Equal(3, Run(prepared, "-TestExitAfterFiles 1"));
+        Assert.True(System.IO.File.Exists(Path.Combine(ServerFolder, "first.bin")));
+
+        Assert.Equal(0, Run(prepared));
+        Assert.Equal(System.IO.File.ReadAllBytes(first), System.IO.File.ReadAllBytes(Path.Combine(ServerFolder, "first.bin")));
+        Assert.Equal(System.IO.File.ReadAllBytes(second), System.IO.File.ReadAllBytes(Path.Combine(ServerFolder, "second.bin")));
+        var status = Kit.ReadStatus(prepared.Plan.Id)!;
+        Assert.Equal(("done", 2, 0), (status.State, status.FilesDone, status.FilesSkipped));
+        Assert.Empty(Directory.GetFiles(JournalFolder)); // journal and finished list removed once done
+    }
+
+    // ADR-0051: several chunks are read at once; a big file still arrives byte for byte, also after a dropped connection.
+    [Fact]
+    public void Reading_ahead_copies_every_byte_in_order()
+    {
+        if (PowerShell is null) return;
+        var big = File("ahead.bin", 23 * Chunk + 7, seed: 9);
+        var prepared = Upload([(big, "ahead.bin")]);
+
+        Assert.Equal(0, Run(prepared, "-TestFailAfterChunks 9"));
+        Assert.Equal(System.IO.File.ReadAllBytes(big), System.IO.File.ReadAllBytes(Path.Combine(ServerFolder, "ahead.bin")));
     }
 
     [Fact]

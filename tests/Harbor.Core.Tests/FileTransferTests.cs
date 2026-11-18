@@ -171,6 +171,8 @@ public sealed class FileTransferTests : IDisposable
 
         var stopped = Assert.Single(journal.LoadAll());
         Assert.Equal(TransferState.Paused, stopped.State);
+        Assert.NotNull(stopped.StartedUtc);
+        Assert.Null(stopped.CompletedUtc);
         // The chunk in flight is either dropped or finished and recorded; nothing after it is copied.
         Assert.InRange(stopped.BytesDone, 3L * Chunk, 4L * Chunk);
 
@@ -181,8 +183,41 @@ public sealed class FileTransferTests : IDisposable
         Assert.NotNull(paused.Error);
 
         second.Resume(paused.Id);
-        await WaitAsync(second, paused.Id, TransferState.Completed);
+        var done = await WaitAsync(second, paused.Id, TransferState.Completed);
         Assert.Equal(File.ReadAllBytes(job.SourcePath), File.ReadAllBytes(job.DestinationPath));
+
+        // SPEC FR-70: the start is the first one, before the restart, so the time it took covers the whole copy.
+        Assert.Equal(stopped.StartedUtc, done.StartedUtc);
+        Assert.NotNull(done.CompletedUtc);
+        Assert.True(done.CompletedUtc >= done.StartedUtc);
+    }
+
+    // SPEC FR-60: Cancel runs on the UI thread; deleting the partial file on a share that cannot be reached must not hold it.
+    [Fact]
+    public async Task Cancel_returns_at_once_and_deletes_the_partial_file_in_the_background()
+    {
+        var journal = new TransferJournal(Path.Combine(_dir, "journal"));
+        var fs = new FlakyFileSystem { HoldDelete = true };
+        await using var queue = new TransferQueue(journal, fs);
+        var job = Job(Source(2 * Chunk));
+        job.State = TransferState.Paused; // copied part of it before
+        job.StartedUtc = DateTimeOffset.UtcNow;
+        Directory.CreateDirectory(Path.GetDirectoryName(job.PartialPath)!);
+        File.WriteAllBytes(job.PartialPath, new byte[Chunk]);
+        queue.Enqueue(job);
+        var removed = new TaskCompletionSource();
+        queue.JobRemoved += (_, id) => { if (id == job.Id) removed.TrySetResult(); };
+
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        queue.Cancel(job.Id); // the delete is held, as on an unreachable share
+        Assert.True(clock.Elapsed < TimeSpan.FromSeconds(2), clock.Elapsed.ToString());
+        Assert.True(removed.Task.IsCompleted); // the row goes away at once
+        Assert.Empty(journal.LoadAll());
+        Assert.True(File.Exists(job.PartialPath));
+
+        fs.ReleaseDelete();
+        await queue.PendingDeletes.WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.False(File.Exists(job.PartialPath));
     }
 
     [Fact]
@@ -280,7 +315,16 @@ public sealed class FileTransferTests : IDisposable
         public Stream OpenWrite(string path) => new FlakyStream(this, LocalTransferFileSystem.Instance.OpenWrite(path));
         public void CreateDirectory(string path) => LocalTransferFileSystem.Instance.CreateDirectory(path);
         public void Move(string source, string destination, bool overwrite) => LocalTransferFileSystem.Instance.Move(source, destination, overwrite);
-        public void Delete(string path) => LocalTransferFileSystem.Instance.Delete(path);
+        /// <summary>Delete waits until <see cref="ReleaseDelete"/>, like a check on a share that cannot be reached.</summary>
+        public bool HoldDelete { get; set; }
+        private readonly ManualResetEventSlim _deleteGate = new(false);
+        public void ReleaseDelete() => _deleteGate.Set();
+
+        public void Delete(string path)
+        {
+            if (HoldDelete && !_deleteGate.Wait(TimeSpan.FromSeconds(20))) throw new TimeoutException("delete never released");
+            LocalTransferFileSystem.Instance.Delete(path);
+        }
 
         private void BeforeWrite(int count)
         {

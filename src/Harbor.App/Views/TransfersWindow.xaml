@@ -36,9 +36,13 @@
 
         <StackPanel Visibility="{Binding UseRemoteDesktop, Converter={StaticResource BoolToVisibility}}">
           <TextBlock Text="Folder on the server" Style="{StaticResource FieldLabel}" />
-          <TextBox Text="{Binding ServerFolder, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource Harbor.MonoFont}"
-                   AutomationProperties.Name="Folder on the server"
-                   ToolTip="As the server sees it, e.g. %USERPROFILE%\Downloads or D:\Install. Environment variables are expanded on the server." />
+          <DockPanel>
+            <Button DockPanel.Dock="Right" Content="Default" Command="{Binding UseDefaultServerFolderCommand}" Style="{StaticResource Harbor.SubtleButton}"
+                    Margin="6,0,0,0" ToolTip="Use the default folder again: %USERPROFILE%\Downloads (your Downloads folder on the server)" />
+            <TextBox Text="{Binding ServerFolder, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource Harbor.MonoFont}"
+                     AutomationProperties.Name="Folder on the server"
+                     ToolTip="As the server sees it, e.g. %USERPROFILE%\Downloads or D:\Install. Environment variables are expanded on the server." />
+          </DockPanel>
           <!-- SPEC FR-65, ADR-0042: Harbor's own transfer window starts the copy in the session. -->
           <CheckBox Content="Start the copy for me (connect in Harbor's transfer window)" IsChecked="{Binding AutoStart}"
                     IsEnabled="{Binding CanAutoStart}" Margin="0,6,0,0"
@@ -46,9 +50,15 @@
         </StackPanel>
         <StackPanel Visibility="{Binding UseNetworkShare, Converter={StaticResource BoolToVisibility}}">
           <TextBlock Text="Folder on the host" Style="{StaticResource FieldLabel}" />
-          <TextBox Text="{Binding RemoteFolder, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource Harbor.MonoFont}"
-                   AutomationProperties.Name="Folder on the host"
-                   ToolTip="A shared folder on the host, e.g. \\server\C$\Users\Public\Downloads. It is opened with the entry's account." />
+          <DockPanel>
+            <Button DockPanel.Dock="Right" Content="Default" Command="{Binding UseDefaultRemoteFolderCommand}" Style="{StaticResource Harbor.SubtleButton}"
+                    Margin="6,0,0,0" ToolTip="Use the default folder again: \\host\C$\Users\Public\Downloads" />
+            <Button DockPanel.Dock="Right" Content="Browse…" Command="{Binding BrowseRemoteFolderCommand}" Style="{StaticResource Harbor.Button}"
+                    Margin="6,0,0,0" ToolTip="Pick the folder on the host: the share is opened with the entry's account, starting in the folder above (or the default one)" />
+            <TextBox Text="{Binding RemoteFolder, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource Harbor.MonoFont}"
+                     AutomationProperties.Name="Folder on the host"
+                     ToolTip="A shared folder on the host, e.g. \\server\C$\Users\Public\Downloads. It is opened with the entry's account." />
+          </DockPanel>
         </StackPanel>
         <!-- SPEC FR-64: what to do with files that already exist at the destination, either way of copying. -->
         <TextBlock Text="Files that already exist" Style="{StaticResource FieldLabel}" Margin="0,8,0,4" />
@@ -59,6 +69,16 @@
                        ToolTip="Copy only the files that are not there yet. A file with the same name and extension in the same sub-folder is left as it is." />
           <RadioButton GroupName="Existing" Style="{StaticResource Harbor.Segment}" Content="Replace" IsChecked="{Binding ReplaceExisting}"
                        ToolTip="Replace files that are already there. Over a network share, files on this PC are replaced only after you confirm." />
+        </StackPanel>
+        <!-- SPEC FR-61, ADR-0051: the chunk size of new transfers. -->
+        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+          <TextBlock Text="Chunk size" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0.8" />
+          <ComboBox ItemsSource="{Binding ChunkSizes}" SelectedItem="{Binding ChunkSizeMiB}" ItemStringFormat="{}{0} MB" MinWidth="90"
+                    AutomationProperties.Name="Chunk size">
+            <ComboBox.ToolTip>
+              <TextBlock MaxWidth="420" TextWrapping="Wrap"><Run FontWeight="SemiBold" Text="How much is read and recorded at a time (default 4 MB)." /><LineBreak /><LineBreak /><Run Text="Higher (8–16 MB): fewer round trips and less work per MB, usually faster on slow or distant connections; more is copied again after a dropped connection, and more memory is used (four chunks are read at once)." /><LineBreak /><LineBreak /><Run Text="Lower (1–2 MB): little is copied again when the connection drops and the progress of each file moves in smaller steps; usually slower over Remote Desktop." /><LineBreak /><LineBreak /><Run Text="Applies to new transfers; a transfer keeps the size it started with." /></TextBlock>
+            </ComboBox.ToolTip>
+          </ComboBox>
         </StackPanel>
         <WrapPanel Margin="0,10,0,0">
           <Button Content="Upload files…" Command="{Binding UploadFilesCommand}" Style="{DynamicResource AccentButtonStyle}" Margin="0,0,6,6" Padding="14,6" />
@@ -87,7 +107,7 @@
           </StackPanel>
         </Border>
         <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,2,0,8"
-                   Text="Each file is copied in chunks and its progress is saved after every chunk: when the connection drops the copy waits or retries and continues where it stopped." />
+                   Text="Each file is copied in chunks and its progress is saved as it goes: when the connection drops the copy waits or retries and continues where it stopped." />
       </StackPanel>
 
       <DockPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">

@@ -37,3 +37,7 @@ shared by both ways of copying and tested on any OS.
 * Speed is measured by the app while the window is open, so it starts again when the window is reopened.
 * Journals written before this change have no batch and still show one row per file.
 * Per-file Pause/Resume inside a batch is gone; the batch's buttons act on all files.
+* The time elapsed and the time a transfer took are measured from the first start (`TransferJob.StartedUtc`, the
+  helper's `startedTicks`) to the end, so they survive a closed window, an app restart and a dropped connection, and
+  include pauses. The helper stores its start as ticks because Windows PowerShell and PowerShell 7 write dates to JSON
+  differently.

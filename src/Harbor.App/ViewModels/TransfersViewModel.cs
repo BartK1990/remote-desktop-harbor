@@ -56,6 +56,7 @@ public sealed partial class TransfersViewModel : ObservableObject
         _useRemoteDesktop = settings.TransferMethod != TransferMethod.NetworkShare;
         _serverFolder = settings.TransferServerFolder;
         _existingFiles = settings.TransferExistingFiles;
+        _chunkSizeMiB = TransferJob.NormalizeChunkSizeMiB(settings.TransferChunkSizeMiB);
         _autoStart = settings.TransferAutoStart && sessions.IsAvailable;
 
         foreach (var plan in kit.List()) Jobs.Add(NewRdpRow(plan));
@@ -72,7 +73,8 @@ public sealed partial class TransfersViewModel : ObservableObject
     /// <summary>The entry whose host and account the next transfer uses.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(TargetText))]
-    [NotifyCanExecuteChangedFor(nameof(UploadFilesCommand), nameof(UploadFolderCommand), nameof(DownloadCommand))]
+    [NotifyCanExecuteChangedFor(nameof(UploadFilesCommand), nameof(UploadFolderCommand), nameof(DownloadCommand), nameof(UseDefaultRemoteFolderCommand),
+        nameof(BrowseRemoteFolderCommand))]
     private ConnectionEntry? _entry;
 
     [ObservableProperty]
@@ -123,13 +125,69 @@ public sealed partial class TransfersViewModel : ObservableObject
 
     /// <summary>Network share mode: folder on the host as a UNC path (<c>\\host\C$\Users\Public\Downloads</c>).</summary>
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(UploadFilesCommand), nameof(UploadFolderCommand), nameof(DownloadCommand))]
+    [NotifyCanExecuteChangedFor(nameof(UploadFilesCommand), nameof(UploadFolderCommand), nameof(DownloadCommand), nameof(UseDefaultRemoteFolderCommand))]
     private string _remoteFolder = "";
 
     /// <summary>Remote Desktop mode: folder on the server as the server sees it (<c>%USERPROFILE%\Downloads</c>).</summary>
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(UploadFilesCommand), nameof(UploadFolderCommand), nameof(DownloadCommand))]
+    [NotifyCanExecuteChangedFor(nameof(UploadFilesCommand), nameof(UploadFolderCommand), nameof(DownloadCommand), nameof(UseDefaultServerFolderCommand))]
     private string _serverFolder;
+
+    /// <summary>Puts the default folder on the server back (<c>%USERPROFILE%\Downloads</c>). SPEC FR-63</summary>
+    [RelayCommand(CanExecute = nameof(CanUseDefaultServerFolder))]
+    private void UseDefaultServerFolder() => ServerFolder = HarborSettings.DefaultTransferServerFolder;
+
+    private bool CanUseDefaultServerFolder() =>
+        !string.Equals(ServerFolder.Trim(), HarborSettings.DefaultTransferServerFolder, StringComparison.OrdinalIgnoreCase);
+
+    private string DefaultRemoteFolder => UncPath.ForHost(Entry?.Host ?? "", HarborSettings.DefaultTransferRemoteFolder);
+
+    /// <summary>Puts the default shared folder on the host back (<c>\\host\C$\Users\Public\Downloads</c>). SPEC FR-60</summary>
+    [RelayCommand(CanExecute = nameof(CanUseDefaultRemoteFolder))]
+    private void UseDefaultRemoteFolder() => RemoteFolder = DefaultRemoteFolder;
+
+    /// <summary>
+    /// Picks the folder on the host in a folder dialog (SPEC FR-60): connects the share with the entry's account first,
+    /// then opens the dialog in the folder typed in the box, or the default one when the box is empty or not a share.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanBrowseRemoteFolder))]
+    private async Task BrowseRemoteFolderAsync()
+    {
+        var folder = UncPath.ShareRoot(RemoteFolder.Trim()) is not null ? RemoteFolder.Trim().TrimEnd('\\', '/') : DefaultRemoteFolder;
+        string start;
+        IsBusy = true;
+        try
+        {
+            await _connectShares(NewJob(folder, folder, upload: false), CancellationToken.None);
+            // Start where the folder is, or at the share when the folder is not there (yet).
+            start = await Task.Run(() => Directory.Exists(folder)) ? folder : UncPath.ShareRoot(folder)!;
+        }
+        catch (Exception ex)
+        {
+            _dialogs.ShowError("Cannot open the folder on the host", ex.Message);
+            return;
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+
+        if (_dialogs.PickFolder("Folder on the host", start) is not { } picked) return;
+        if (UncPath.ShareRoot(picked) is null)
+        {
+            _dialogs.ShowError("Pick a folder on the host", $"{picked} is not a shared folder on a host. Pick a folder under {UncPath.ShareRoot(folder)}.");
+            return;
+        }
+
+        RemoteFolder = picked;
+        _settings.TransferRemoteFolder = picked;
+        _saveSettings();
+    }
+
+    private bool CanBrowseRemoteFolder() => !IsBusy && Entry is { Host.Length: > 0 };
+
+    private bool CanUseDefaultRemoteFolder() =>
+        Entry is { Host.Length: > 0 } && !string.Equals(RemoteFolder.Trim(), DefaultRemoteFolder, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>What to do with files that already exist at the destination, either way of copying. SPEC FR-64</summary>
     [ObservableProperty]
@@ -141,6 +199,19 @@ public sealed partial class TransfersViewModel : ObservableObject
         _settings.TransferExistingFiles = value;
         _saveSettings();
     }
+
+    /// <summary>Chunk size of the next transfers in MiB, either way of copying (SPEC FR-61, ADR-0051).</summary>
+    [ObservableProperty] private int _chunkSizeMiB;
+
+    public IReadOnlyList<int> ChunkSizes => TransferJob.ChunkSizesMiB;
+
+    partial void OnChunkSizeMiBChanged(int value)
+    {
+        _settings.TransferChunkSizeMiB = TransferJob.NormalizeChunkSizeMiB(value);
+        _saveSettings();
+    }
+
+    private int ChunkBytes => TransferJob.NormalizeChunkSizeMiB(ChunkSizeMiB) * 1024 * 1024;
 
     /// <summary>Copy only the files that are not there yet (same name and extension, same sub-folder). SPEC FR-64</summary>
     public bool SkipExisting
@@ -198,6 +269,7 @@ public sealed partial class TransfersViewModel : ObservableObject
         UploadFilesCommand.NotifyCanExecuteChanged();
         UploadFolderCommand.NotifyCanExecuteChanged();
         DownloadCommand.NotifyCanExecuteChanged();
+        BrowseRemoteFolderCommand.NotifyCanExecuteChanged();
     }
 
     [RelayCommand(CanExecute = nameof(CanTransfer))]
@@ -288,6 +360,7 @@ public sealed partial class TransfersViewModel : ObservableObject
         RdpTransferPrepared prepared;
         try
         {
+            _kit.ChunkSize = ChunkBytes;
             prepared = prepare();
         }
         catch (Exception ex) when (ex is ArgumentException or IOException or UnauthorizedAccessException)
@@ -458,6 +531,7 @@ public sealed partial class TransfersViewModel : ObservableObject
         IsUpload = upload,
         SourcePath = source,
         DestinationPath = destination,
+        ChunkSize = ChunkBytes,
     };
 
     [RelayCommand]
@@ -650,11 +724,13 @@ public sealed partial class RdpTransferRowViewModel : ObservableObject, ITransfe
             {
                 null => "Waiting to be started in the Remote Desktop session (Win+R, Ctrl+V, Enter)",
                 "running" => $"Copying file {Math.Min(Status.FilesDone + 1, Status.FilesTotal)} of {Status.FilesTotal} · " +
-                             TransferText.Progress(Status.BytesDone, Status.BytesTotal, _rate, copying: true),
+                             TransferText.Progress(Status.BytesDone, Status.BytesTotal, _rate, copying: true,
+                                 DateTimeOffset.UtcNow - Status.StartedUtc),
                 "waiting" => $"{Status.Error ?? "Connection lost."} The copy continues where it stopped{size}",
                 "done" => Status.FilesSkipped > 0
-                    ? $"Done · {Status.FilesTotal - Status.FilesSkipped} file(s) copied, {Status.FilesSkipped} skipped (already there){size}"
-                    : $"Done · {Status.FilesTotal} file(s){size}",
+                    ? $"Done · {Status.FilesTotal - Status.FilesSkipped} file(s) copied, {Status.FilesSkipped} skipped (already there) · " +
+                      TransferText.Finished(Status.BytesTotal, Status.Took)
+                    : $"Done · {Status.FilesTotal} file(s) · {TransferText.Finished(Status.BytesTotal, Status.Took)}",
                 "cancelled" => "Cancelled",
                 _ => $"Failed · {Status.Error} Connect or run the start command again to retry",
             };
@@ -796,11 +872,12 @@ public sealed partial class TransferItemViewModel : ObservableObject, ITransferR
             {
                 TransferState.Queued => "Waiting",
                 TransferState.Running => Job.Length >= 0
-                    ? $"Copying · {TransferText.Progress(Job.BytesDone, Job.Length, _rate, copying: true)}" : "Copying",
+                    ? $"Copying · {TransferText.Progress(Job.BytesDone, Job.Length, _rate, copying: true, DateTimeOffset.UtcNow - Job.StartedUtc)}"
+                    : "Copying",
                 TransferState.Retrying => $"Connection lost, retrying from {FormatSize(Job.BytesDone)} · {Job.Error}",
                 TransferState.Paused => $"Paused at {FormatSize(Job.BytesDone)}{(Job.Error is { } e ? $" · {e}" : "")}",
                 TransferState.Completed when Job.Skipped => "Skipped · already exists",
-                TransferState.Completed => $"Done · {FormatSize(Job.Length)}",
+                TransferState.Completed => $"Done · {TransferText.Finished(Job.Length, Job.CompletedUtc - Job.StartedUtc)}",
                 _ => $"Failed · {Job.Error}",
             };
         }
@@ -885,7 +962,8 @@ public sealed partial class TransferBatchRowViewModel : ObservableObject, ITrans
         get
         {
             var p = Progress;
-            var bytes = TransferText.Progress(p.BytesDone, p.BytesTotal, _rate, Copying);
+            var bytes = TransferText.Progress(p.BytesDone, p.BytesTotal, _rate, Copying,
+                Copying ? DateTimeOffset.UtcNow - p.StartedUtc : null);
             var failed = p.FilesFailed > 0 ? $" · {p.FilesFailed} failed" : "";
             return p.State switch
             {
@@ -896,8 +974,8 @@ public sealed partial class TransferBatchRowViewModel : ObservableObject, ITrans
                 TransferState.Paused => $"Paused · {p.FilesDone} of {p.FilesTotal} files · {bytes}{failed}",
                 TransferState.Failed => $"{p.FilesFailed} of {p.FilesTotal} files failed · {p.Error} · Resume retries them",
                 _ when p.FilesSkipped > 0 =>
-                    $"Done · {p.FilesTotal - p.FilesSkipped} file(s) copied, {p.FilesSkipped} skipped (already there) · {TransferText.Size(p.BytesTotal)}",
-                _ => $"Done · {p.FilesTotal} files · {TransferText.Size(p.BytesTotal)}",
+                    $"Done · {p.FilesTotal - p.FilesSkipped} file(s) copied, {p.FilesSkipped} skipped (already there) · {TransferText.Finished(p.BytesTotal, p.Took)}",
+                _ => $"Done · {p.FilesTotal} files · {TransferText.Finished(p.BytesTotal, p.Took)}",
             };
         }
     }

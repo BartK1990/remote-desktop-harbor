@@ -10,6 +10,8 @@ namespace Harbor.Core.Transfer;
 /// <param name="CurrentBytesDone">Bytes of <paramref name="CurrentFile"/> copied so far.</param>
 /// <param name="CurrentBytes">Size of <paramref name="CurrentFile"/>; 0 when not known.</param>
 /// <param name="Error">The first failed file's error, or the retrying file's.</param>
+/// <param name="StartedUtc">When the first file started copying; <c>null</c> before.</param>
+/// <param name="FinishedUtc">When the last file was done, once all are; <c>null</c> before.</param>
 public sealed record TransferBatchProgress(
     TransferState State,
     int FilesTotal,
@@ -21,8 +23,13 @@ public sealed record TransferBatchProgress(
     string? CurrentFile,
     long CurrentBytesDone,
     long CurrentBytes,
-    string? Error)
+    string? Error,
+    DateTimeOffset? StartedUtc = null,
+    DateTimeOffset? FinishedUtc = null)
 {
+    /// <summary>From the first file's start to the last one's end (pauses included); <c>null</c> until done.</summary>
+    public TimeSpan? Took => StartedUtc is { } start && FinishedUtc is { } end && end >= start ? end - start : null;
+
     /// <summary>0..1 of the bytes of all files; skipped files count for neither part.</summary>
     public double Progress => BytesTotal > 0 ? Math.Clamp((double)BytesDone / BytesTotal, 0, 1)
         : FilesTotal > 0 && FilesDone == FilesTotal ? 1 : 0;
@@ -63,7 +70,9 @@ public sealed record TransferBatchProgress(
             : jobs.FirstOrDefault(j => j.State == TransferState.Failed)?.Error;
         return new(state, jobs.Count, finished, skipped, failed, done, total,
             current is null ? null : Relative(current.DestinationPath, folder ?? current.BatchDestination),
-            current?.BytesDone ?? 0, current?.ExpectedLength ?? 0, error);
+            current?.BytesDone ?? 0, current?.ExpectedLength ?? 0, error,
+            jobs.Select(j => j.StartedUtc).Where(t => t is not null).Min(),
+            state == TransferState.Completed ? jobs.Select(j => j.CompletedUtc ?? j.StartedUtc).Where(t => t is not null).Max() : null);
     }
 
     /// <summary><c>sub\file.txt</c> for <c>\\host\share\folder\sub\file.txt</c> in <c>\\host\share\folder</c>; the name otherwise.</summary>
@@ -142,8 +151,30 @@ public static class TransferText
         _ => string.Create(CultureInfo.CurrentCulture, $"about {(int)time.TotalHours} h {time.Minutes} min left"),
     };
 
-    /// <summary><c>1.2 GB of 4.5 GB (27%)</c>, then speed and time left when they are known.</summary>
-    public static string Progress(long done, long total, TransferRate? rate, bool copying)
+    /// <summary><c>45 s</c>, <c>12 min 30 s</c>, <c>2 h 5 min</c>.</summary>
+    public static string Duration(TimeSpan time) => time.TotalSeconds switch
+    {
+        < 1 => "less than a second",
+        < 60 => string.Create(CultureInfo.CurrentCulture, $"{(int)time.TotalSeconds} s"),
+        < 3600 => time.Seconds > 0
+            ? string.Create(CultureInfo.CurrentCulture, $"{(int)time.TotalMinutes} min {time.Seconds} s")
+            : string.Create(CultureInfo.CurrentCulture, $"{(int)time.TotalMinutes} min"),
+        _ => string.Create(CultureInfo.CurrentCulture, $"{(int)time.TotalHours} h {time.Minutes} min"),
+    };
+
+    /// <summary><c>4.5 GB in 12 min 30 s (6.1 MB/s average)</c>; just the size when the time is not known.</summary>
+    public static string Finished(long bytes, TimeSpan? took)
+    {
+        if (took is not { } time || time < TimeSpan.Zero) return Size(bytes);
+        var speed = time.TotalSeconds >= 1 && bytes > 0 ? $" ({Speed(bytes / time.TotalSeconds)} average)" : "";
+        return $"{Size(bytes)} in {Duration(time)}{speed}";
+    }
+
+    /// <summary>
+    /// <c>1.2 GB of 4.5 GB (27%)</c>, then speed, time elapsed since the start (<paramref name="elapsed"/>) and time left
+    /// when they are known.
+    /// </summary>
+    public static string Progress(long done, long total, TransferRate? rate, bool copying, TimeSpan? elapsed = null)
     {
         var parts = new List<string>
         {
@@ -152,6 +183,7 @@ public static class TransferText
                 : Size(done),
         };
         if (rate?.BytesPerSecond is { } speed) parts.Add($"{Speed(speed)} average");
+        if (elapsed is { } spent && spent >= TimeSpan.Zero) parts.Add($"{Duration(spent)} elapsed");
         if (copying && total > 0 && rate?.TimeLeft(total - done) is { } left) parts.Add(TimeLeft(left));
         return string.Join(" · ", parts);
     }

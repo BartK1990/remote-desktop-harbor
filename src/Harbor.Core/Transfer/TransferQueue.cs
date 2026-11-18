@@ -194,6 +194,7 @@ public sealed class TransferQueue : IAsyncDisposable
         {
             if (shutdown.IsCancellationRequested || _jobs.FirstOrDefault(j => j.State == TransferState.Queued) is not { } job) return null;
             job.State = TransferState.Running;
+            job.StartedUtc ??= DateTimeOffset.UtcNow; // SPEC FR-70: elapsed and total time
             work = job.Clone();
             current = _current = new Current(job.Id, CancellationTokenSource.CreateLinkedTokenSource(shutdown));
         }
@@ -286,6 +287,7 @@ public sealed class TransferQueue : IAsyncDisposable
     /// <summary>Replaces the stored job with <paramref name="work"/>, journals it and tells listeners.</summary>
     private void Store(TransferJob work)
     {
+        if (work.State == TransferState.Completed) work.CompletedUtc ??= DateTimeOffset.UtcNow; // SPEC FR-70
         var copy = work.Clone();
         lock (_gate)
         {
@@ -294,7 +296,17 @@ public sealed class TransferQueue : IAsyncDisposable
             _jobs[i] = copy;
         }
 
-        Persist(copy);
+        // SPEC FR-70: while copying, the journal (which holds every chunk's hash) is written at most once a second, not
+        // after every chunk. Lagging behind is safe: it then claims fewer bytes than were flushed. Every other change of
+        // state is written at once.
+        var now = DateTimeOffset.UtcNow;
+        if (copy.State != TransferState.Running || copy.Id != _lastPersistedId || now - _lastPersisted >= JournalInterval)
+        {
+            _lastPersistedId = copy.Id;
+            _lastPersisted = now;
+            Persist(copy);
+        }
+
         JobChanged?.Invoke(this, copy.Clone());
     }
 
@@ -314,15 +326,6 @@ public sealed class TransferQueue : IAsyncDisposable
     {
         try
         {
-            if (deletePartial) _fs.Delete(job.PartialPath);
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            _onError?.Invoke(ex);
-        }
-
-        try
-        {
             _journal.Delete(job.Id);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -331,7 +334,33 @@ public sealed class TransferQueue : IAsyncDisposable
         }
 
         JobRemoved?.Invoke(this, job.Id);
+
+        // The partial file is deleted in the background: Cancel is called from the UI, and on a share that cannot be
+        // reached even checking whether the file exists waits for the network to time out (seconds per file). A file
+        // that never started copying has no partial file. SPEC FR-60
+        if (!deletePartial || job is { StartedUtc: null, BytesDone: 0, State: TransferState.Queued }) return;
+        var delete = Task.Run(() =>
+        {
+            try
+            {
+                _fs.Delete(job.PartialPath);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+            {
+                _onError?.Invoke(ex);
+            }
+        });
+        lock (_gate) PendingDeletes = Task.WhenAll(PendingDeletes, delete);
     }
+
+    /// <summary>Longest a running job's journal lags behind its copy. SPEC FR-70</summary>
+    public static readonly TimeSpan JournalInterval = TimeSpan.FromSeconds(1);
+
+    private Guid _lastPersistedId;
+    private DateTimeOffset _lastPersisted;
+
+    /// <summary>Partial files of cancelled transfers still being deleted (tests wait for it).</summary>
+    internal Task PendingDeletes { get; private set; } = Task.CompletedTask;
 
     /// <summary>Stops the running job (it stays resumable in the journal) and the queue.</summary>
     public async ValueTask DisposeAsync()
