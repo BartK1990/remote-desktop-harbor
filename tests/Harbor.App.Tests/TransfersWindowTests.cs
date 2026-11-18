@@ -71,7 +71,8 @@ public sealed class TransfersWindowTests : IDisposable
         var field = typeof(Application).GetFields(Static).FirstOrDefault(f => f.FieldType == typeof(Assembly) && f.Name.Contains("resourceAssembly", StringComparison.OrdinalIgnoreCase))
                     ?? throw new InvalidOperationException("WPF's resource assembly field was not found");
         field.SetValue(null, app);
-        var helper = typeof(UIElement).Assembly.GetType("MS.Internal.BaseUriHelper") ?? typeof(Application).Assembly.GetType("MS.Internal.BaseUriHelper")
+        var helper = new[] { typeof(UIElement).Assembly, typeof(Application).Assembly, typeof(DependencyObject).Assembly }
+                         .SelectMany(a => a.GetTypes()).FirstOrDefault(t => t.Name == "BaseUriHelper")
                      ?? throw new InvalidOperationException("BaseUriHelper was not found");
         var property = helper.GetProperty("ResourceAssembly", Static) ?? throw new InvalidOperationException("BaseUriHelper.ResourceAssembly was not found");
         property.SetValue(null, app);
