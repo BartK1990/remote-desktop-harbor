@@ -61,6 +61,20 @@ public sealed class TransfersWindowTests : IDisposable
             throw new InvalidOperationException("not in tests");
     }
 
+    // Pack URIs such as /Themes/Tokens.xaml resolve against the application's assembly, which in a test run is the
+    // test host unless it is set first (before any Application exists).
+    static TransfersWindowTests()
+    {
+        try
+        {
+            Application.ResourceAssembly = typeof(App).Assembly;
+        }
+        catch (InvalidOperationException)
+        {
+            // already set by another test class
+        }
+    }
+
     private static void RunOnSta(Action test)
     {
         Exception? failure = null;
