@@ -113,13 +113,22 @@ public sealed class RdpTransferTests : IDisposable
         Assert.Equal(account, prepared.Plan.AccountId);
     }
 
-    // ADR-0042: 1 MiB chunks, so a dropped slow link loses little and progress moves often.
+    // ADR-0051: 4 MiB chunks by default (progress is saved on a timer, so bigger chunks cost little on a drop); the
+    // File transfer window offers 1-16 MiB, and a plan keeps the size it was made with.
     [Fact]
-    public void Chunks_are_one_mebibyte()
+    public void Chunks_are_four_mebibytes_by_default_and_can_be_chosen()
     {
-        Assert.Equal(1024 * 1024, TransferJob.DefaultChunkSize);
-        Assert.Equal(1024 * 1024, new RdpTransferKit(_dir).ChunkSize);
-        Assert.Contains("$ChunkSize = 1MB", RdpTransferKit.Script, StringComparison.Ordinal);
+        Assert.Equal(4 * 1024 * 1024, TransferJob.DefaultChunkSize);
+        Assert.Equal(4 * 1024 * 1024, new RdpTransferKit(_dir).ChunkSize);
+        Assert.Equal(4, new HarborSettings().TransferChunkSizeMiB);
+        Assert.Contains("$ChunkSize = 4MB", RdpTransferKit.Script, StringComparison.Ordinal);
+        Assert.Equal([1, 2, 4, 8, 16], TransferJob.ChunkSizesMiB);
+        Assert.Equal((1, 8, 16, 2), (TransferJob.NormalizeChunkSizeMiB(0), TransferJob.NormalizeChunkSizeMiB(7),
+            TransferJob.NormalizeChunkSizeMiB(500), TransferJob.NormalizeChunkSizeMiB(2)));
+
+        var kit = new RdpTransferKit(Path.Combine(_dir, "pc", "rdp-transfers"), p => p) { ChunkSize = 8 * 1024 * 1024 };
+        var prepared = kit.CreateUpload("SRV01", null, [(File("c.txt", 1), "c.txt")], ServerFolder, ExistingFiles.Fail);
+        Assert.Equal(8 * 1024 * 1024, prepared.Plan.ChunkSize);
     }
 
     // ---------------------------------------------------------------- the helper itself (needs PowerShell)

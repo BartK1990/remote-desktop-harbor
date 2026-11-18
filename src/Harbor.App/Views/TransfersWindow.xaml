@@ -70,6 +70,16 @@
           <RadioButton GroupName="Existing" Style="{StaticResource Harbor.Segment}" Content="Replace" IsChecked="{Binding ReplaceExisting}"
                        ToolTip="Replace files that are already there. Over a network share, files on this PC are replaced only after you confirm." />
         </StackPanel>
+        <!-- SPEC FR-61, ADR-0051: the chunk size of new transfers. -->
+        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+          <TextBlock Text="Chunk size" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0.8" />
+          <ComboBox ItemsSource="{Binding ChunkSizes}" SelectedItem="{Binding ChunkSizeMiB}" ItemStringFormat="{}{0} MB" MinWidth="90"
+                    AutomationProperties.Name="Chunk size">
+            <ComboBox.ToolTip>
+              <TextBlock MaxWidth="420" TextWrapping="Wrap"><Run FontWeight="SemiBold" Text="How much is read and recorded at a time (default 4 MB)." /><LineBreak /><LineBreak /><Run Text="Higher (8–16 MB): fewer round trips and less work per MB, usually faster on slow or distant connections; more is copied again after a dropped connection, and more memory is used (four chunks are read at once)." /><LineBreak /><LineBreak /><Run Text="Lower (1–2 MB): little is copied again when the connection drops and the progress of each file moves in smaller steps; usually slower over Remote Desktop." /><LineBreak /><LineBreak /><Run Text="Applies to new transfers; a transfer keeps the size it started with." /></TextBlock>
+            </ComboBox.ToolTip>
+          </ComboBox>
+        </StackPanel>
         <WrapPanel Margin="0,10,0,0">
           <Button Content="Upload files…" Command="{Binding UploadFilesCommand}" Style="{DynamicResource AccentButtonStyle}" Margin="0,0,6,6" Padding="14,6" />
           <Button Content="Upload folder…" Command="{Binding UploadFolderCommand}" Style="{StaticResource Harbor.Button}" Margin="0,0,6,6" />

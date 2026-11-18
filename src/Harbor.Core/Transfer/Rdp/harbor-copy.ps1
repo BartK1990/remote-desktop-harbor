@@ -230,7 +230,7 @@ if ([IO.File]::Exists($FinishedPath)) {
 if ($journalChanged) { Save-Journal; if ([IO.File]::Exists($FinishedPath)) { [IO.File]::Delete($FinishedPath) } }
 
 $ChunkSize = [int]$PlanData.chunkSize
-if ($ChunkSize -le 0) { $ChunkSize = 1MB }
+if ($ChunkSize -le 0) { $ChunkSize = 4MB }
 $Overwrite = [bool]$PlanData.overwrite
 # SPEC FR-64: leave files that already exist alone. Plans written before this option have no such property.
 $SkipExisting = (-not $Overwrite) -and ($null -ne $PlanData.PSObject.Properties['skipExisting']) -and [bool]$PlanData.skipExisting

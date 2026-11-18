@@ -132,6 +132,12 @@ public sealed class HarborSettings
     /// <summary>The folder <see cref="TransferServerFolder"/> starts as, and the File transfer window's Default puts back. SPEC FR-63</summary>
     public const string DefaultTransferServerFolder = @"%USERPROFILE%\Downloads";
 
+    /// <summary>
+    /// Chunk size of new file transfers in MiB, one of <see cref="Transfer.TransferJob.ChunkSizesMiB"/> (SPEC FR-61,
+    /// ADR-0051): bigger is usually faster over slow or distant links; smaller loses less after a dropped connection.
+    /// </summary>
+    public int TransferChunkSizeMiB { get; set; } = Transfer.TransferJob.DefaultChunkSizeMiB;
+
     /// <summary>What file transfers do with files that already exist at the destination; the last choice (SPEC FR-64).</summary>
     public Transfer.ExistingFiles TransferExistingFiles { get; set; } = Transfer.ExistingFiles.Fail;
 

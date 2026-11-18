@@ -102,8 +102,8 @@ public sealed class RdpTransferKit(string directory, Func<string, string>? clien
 
     public string Directory => directory;
 
-    /// <summary>Bytes between two checkpoints of the helper's journal.</summary>
-    public int ChunkSize { get; init; } = TransferJob.DefaultChunkSize;
+    /// <summary>Chunk of the next plans: read, hashed and recorded as one (SPEC FR-61); a plan keeps the size it has.</summary>
+    public int ChunkSize { get; set; } = TransferJob.DefaultChunkSize;
 
     /// <summary>The helper script shipped with the app.</summary>
     public static string Script

@@ -45,10 +45,20 @@ public enum TransferState
 public sealed class TransferJob
 {
     /// <summary>
-    /// Default chunk: bytes between two checkpoints in the journal. 1 MiB, so a dropped slow link loses little and progress
-    /// moves often (ADR-0042). A journal keeps the chunk size it was started with.
+    /// Default chunk: the unit that is read, hashed and recorded in the journal. 4 MiB (ADR-0051): with progress saved on
+    /// a timer, bigger chunks mean fewer round trips and less work per byte. A journal keeps the chunk size it was started
+    /// with.
     /// </summary>
-    public const int DefaultChunkSize = 1024 * 1024;
+    public const int DefaultChunkSize = DefaultChunkSizeMiB * 1024 * 1024;
+
+    /// <summary><see cref="DefaultChunkSize"/> in MiB, as the File transfer window offers it.</summary>
+    public const int DefaultChunkSizeMiB = 4;
+
+    /// <summary>Chunk sizes the File transfer window offers, in MiB (SPEC FR-61).</summary>
+    public static IReadOnlyList<int> ChunkSizesMiB { get; } = [1, 2, 4, 8, 16];
+
+    /// <summary>The offered chunk size closest to <paramref name="mib"/> (a hand-edited setting may hold anything).</summary>
+    public static int NormalizeChunkSizeMiB(int mib) => ChunkSizesMiB.MinBy(s => Math.Abs(s - mib));
 
     /// <summary>Suffix of the destination file while it is incomplete; renamed to the final name at the end.</summary>
     public const string PartialSuffix = ".harbor-part";

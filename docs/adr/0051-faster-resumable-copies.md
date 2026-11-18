@@ -3,7 +3,8 @@
 * Status: Accepted
 * Date: 2026-11-18
 * Requirements: FR-61, FR-63, FR-70
-* Amends: ADR-0039 (journal after every chunk), ADR-0041 (status after every chunk), ADR-0042 (1 MiB chunks)
+* Amends: ADR-0039 (journal after every chunk), ADR-0041 (status after every chunk), ADR-0042 (1 MiB chunks; now
+  4 MiB by default and adjustable)
 
 ## Context
 
@@ -42,6 +43,11 @@ Option 2.
 * The journal still records a chunk only after it was flushed; it may lag behind, which only means it claims fewer
   bytes, and resuming still checks the partial file's length and last chunk's hash. At most a couple of seconds of
   copying is redone after a crash.
+
+* Chunk size: 4 MiB by default again (ADR-0042 had lowered it to 1 MiB when progress was saved after every chunk).
+  Bigger chunks mean fewer round trips and less PowerShell work per byte; the cost of a drop is now bounded by the
+  2 s checkpoint, plus at most the four chunks in flight. The File transfer window offers 1, 2, 4, 8 and 16 MiB
+  (`TransferChunkSizeMiB`) with a tooltip on the trade-off; a journal or plan keeps the size it was started with.
 
 ## Consequences
 

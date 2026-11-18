@@ -56,6 +56,7 @@ public sealed partial class TransfersViewModel : ObservableObject
         _useRemoteDesktop = settings.TransferMethod != TransferMethod.NetworkShare;
         _serverFolder = settings.TransferServerFolder;
         _existingFiles = settings.TransferExistingFiles;
+        _chunkSizeMiB = TransferJob.NormalizeChunkSizeMiB(settings.TransferChunkSizeMiB);
         _autoStart = settings.TransferAutoStart && sessions.IsAvailable;
 
         foreach (var plan in kit.List()) Jobs.Add(NewRdpRow(plan));
@@ -198,6 +199,19 @@ public sealed partial class TransfersViewModel : ObservableObject
         _settings.TransferExistingFiles = value;
         _saveSettings();
     }
+
+    /// <summary>Chunk size of the next transfers in MiB, either way of copying (SPEC FR-61, ADR-0051).</summary>
+    [ObservableProperty] private int _chunkSizeMiB;
+
+    public IReadOnlyList<int> ChunkSizes => TransferJob.ChunkSizesMiB;
+
+    partial void OnChunkSizeMiBChanged(int value)
+    {
+        _settings.TransferChunkSizeMiB = TransferJob.NormalizeChunkSizeMiB(value);
+        _saveSettings();
+    }
+
+    private int ChunkBytes => TransferJob.NormalizeChunkSizeMiB(ChunkSizeMiB) * 1024 * 1024;
 
     /// <summary>Copy only the files that are not there yet (same name and extension, same sub-folder). SPEC FR-64</summary>
     public bool SkipExisting
@@ -346,6 +360,7 @@ public sealed partial class TransfersViewModel : ObservableObject
         RdpTransferPrepared prepared;
         try
         {
+            _kit.ChunkSize = ChunkBytes;
             prepared = prepare();
         }
         catch (Exception ex) when (ex is ArgumentException or IOException or UnauthorizedAccessException)
@@ -516,6 +531,7 @@ public sealed partial class TransfersViewModel : ObservableObject
         IsUpload = upload,
         SourcePath = source,
         DestinationPath = destination,
+        ChunkSize = ChunkBytes,
     };
 
     [RelayCommand]
