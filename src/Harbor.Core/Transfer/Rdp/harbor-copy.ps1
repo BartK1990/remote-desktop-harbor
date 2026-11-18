@@ -30,10 +30,14 @@ $script:LastStatus = $null
 
 # SPEC FR-70, ADR-0051: speed. status.json and the cancel file are on the PC, so every look at them is a round trip
 # over Remote Desktop; the journal holds every chunk's hash. None of them is touched after every chunk any more.
-$StatusEvery = [TimeSpan]::FromSeconds(1)      # status.json, the console's progress bar, the cancel file
+# What matters is the journal here on the server; the PC only shows progress, so it is told seldom.
+$StatusEvery = [TimeSpan]::FromSeconds(10)     # status.json on the PC while copying (any other state at once)
+$CancelEvery = [TimeSpan]::FromSeconds(3)      # the cancel file on the PC
+$ProgressEvery = [TimeSpan]::FromSeconds(1)    # the console's progress bar, here in the session
 $CheckpointEvery = [TimeSpan]::FromSeconds(2)  # flush to disk + journal while a file is copied
 $ReadAhead = 4                                  # chunks read at once, each on its own handle, to hide the latency
 $script:LastStatusWrite = [DateTime]::MinValue
+$script:LastProgress = [DateTime]::MinValue
 $script:LastCancelCheck = [DateTime]::MinValue
 $script:CancelSeen = $false
 $script:Sha = [Security.Cryptography.SHA256]::Create()
@@ -72,21 +76,25 @@ function Test-ClientReachable($Item) {
     return $true
 }
 
-# Looks for the cancel file at most once a second (it is on the PC); once seen, it stays cancelled.
+# Looks for the cancel file at most every few seconds (it is on the PC); once seen, it stays cancelled.
 function Test-Cancelled([switch]$Now) {
     if ($script:CancelSeen) { return $true }
     $time = [DateTime]::UtcNow
-    if (-not $Now -and ($time - $script:LastCancelCheck) -lt $StatusEvery) { return $false }
+    if (-not $Now -and ($time - $script:LastCancelCheck) -lt $CancelEvery) { return $false }
     $script:LastCancelCheck = $time
     try { $script:CancelSeen = [IO.File]::Exists($CancelPath) } catch { }
     return $script:CancelSeen
 }
 
 function Save-Status([string]$State, [string]$Message, [switch]$Force) {
-    # While copying, at most once a second; any other state at once.
+    # While copying, the console's bar at most once a second and status.json on the PC every $StatusEvery; any other
+    # state at once.
     $time = [DateTime]::UtcNow
-    if ($State -eq 'running' -and -not $Force -and ($time - $script:LastStatusWrite) -lt $StatusEvery) { return }
-    $script:LastStatusWrite = $time
+    $copying = $State -eq 'running' -and -not $Force
+    $toPc = -not $copying -or ($time - $script:LastStatusWrite) -ge $StatusEvery
+    if (-not $toPc -and ($time - $script:LastProgress) -lt $ProgressEvery) { return }
+    $script:LastProgress = $time
+    if ($toPc) { $script:LastStatusWrite = $time }
     $done = @($Journal.items | Where-Object { $_.state -eq 'done' -or $_.state -eq 'skipped' }).Count
     $skipped = @($Journal.items | Where-Object { $_.state -eq 'skipped' }).Count
     # SPEC FR-70: the total is every file's size from the start (skipped files count for neither part), so the bar is a
@@ -108,7 +116,7 @@ function Save-Status([string]$State, [string]$Message, [switch]$Force) {
         finishedUtc = if ($State -eq 'done') { [DateTime]::UtcNow.ToString('o') } else { $null }
     }
     $script:LastStatus = $status
-    try { Write-JsonFile $StatusPath $status } catch { } # the PC may be disconnected right now: best effort
+    if ($toPc) { try { Write-JsonFile $StatusPath $status } catch { } } # the PC may be disconnected right now: best effort
     $percent = if ($bytesTotal -gt 0) { [int](100 * $bytesDone / $bytesTotal) } else { 0 }
     $text = if ($Message) { $Message } else { "$done of $(@($Journal.items).Count) files" }
     $operation = if ($current) { $current } else { ' ' }

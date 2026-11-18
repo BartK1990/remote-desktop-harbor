@@ -63,7 +63,7 @@ where it stopped. Its journal is kept on the server. To resume a transfer whose 
 its row (Harbor starts it again) or run the start command again. A transfer never runs twice at once.
 
 **Speed.** The copy goes through your PC's drive shared into the session (`\\tsclient`), which answers one request at
-a time, so the helper keeps several 1 MB reads in flight and saves its progress only every couple of seconds. Copying
+a time, so the helper keeps several 1 MB reads in flight, saves its progress on the server every couple of seconds and tells Harbor on your PC every 10 seconds (so the numbers there move in steps). Copying
 and pasting a file in the session uses a different channel of the same connection and can still be somewhat faster,
 but it cannot resume after a dropped connection.
 

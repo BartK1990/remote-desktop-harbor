@@ -31,8 +31,9 @@ The network-share copier also wrote its journal after every chunk and read and w
 
 Option 2.
 
-* Helper: `status.json`, the progress bar and the cancel-file check at most once a second (any state other than
-  copying is written at once); flush and journal every 2 s while a file is copied, and before a file gets its final
+* Helper: what matters is the journal on the server; the PC only shows progress. So `status.json` (on the PC) every
+  10 s while copying, any other state at once; the cancel file every 3 s; the console's progress bar (in the session,
+  no round trip) at most once a second; flush and journal every 2 s while a file is copied, and before a file gets its final
   name; four chunk reads in flight, each on its own handle; the chunk hashes kept in a list that grows in place. A
   finished (or skipped) file is one line appended to `<id>.finished` next to the journal and read back when the helper
   starts, so it is never copied again or failed as "already exists" after the session ended right after its rename.
