@@ -32,8 +32,9 @@ public sealed class RdpWindowHost : IRdpWindowHost
 [SupportedOSPlatform("windows")]
 internal sealed class RdpWindowForm : Form, IRdpControlEvents
 {
-    // Resizing a session is not free (the server redraws the desktop): wait until the user stops dragging the border.
-    private static readonly TimeSpan ResizeDelay = TimeSpan.FromMilliseconds(400);
+    // Resizing a session is not free (the server redraws the desktop and moves its windows): nothing changes while the
+    // border is dragged, and the window has to keep its new size for a while first (SPEC FR-67, ADR-0045).
+    private static readonly TimeSpan ResizeDelay = RdpWindowSettings.ResizeDelay;
     private static readonly TimeSpan RetryDelay = TimeSpan.FromSeconds(1);
     private const int MaxResizeFailures = 4;
     private static readonly Size StartSize = new(1280, 800);
@@ -49,6 +50,7 @@ internal sealed class RdpWindowForm : Form, IRdpControlEvents
     private bool _canResizeSession = true;
     private int _resizeFailures;
     private bool _forceResize;
+    private bool _dragging;
     private Size _sessionSize;
     private int _sessionDpi;
     private bool _closing;
@@ -72,6 +74,7 @@ internal sealed class RdpWindowForm : Form, IRdpControlEvents
         _resizeTimer.Tick += (_, _) =>
         {
             _resizeTimer.Stop();
+            if (_dragging) return; // OnResizeEnd starts it again
             _resizeTimer.Interval = (int)ResizeDelay.TotalMilliseconds;
             ResizeSession(force: _forceResize);
         };
@@ -197,8 +200,29 @@ internal sealed class RdpWindowForm : Form, IRdpControlEvents
     protected override void OnSizeChanged(EventArgs e)
     {
         base.OnSizeChanged(e);
-        if (!_signedIn || WindowState == FormWindowState.Minimized) return;
+        if (!_signedIn || WindowState == FormWindowState.Minimized || _dragging) return;
+        RestartResizeTimer(); // maximized, restored, snapped: wait until it stays that size
+    }
+
+    // While the border (or the title bar) is dragged, pausing does not resize the session: only letting go does.
+    protected override void OnResizeBegin(EventArgs e)
+    {
+        base.OnResizeBegin(e);
+        _dragging = true;
+        if (!_forceResize) _resizeTimer.Stop();
+    }
+
+    protected override void OnResizeEnd(EventArgs e)
+    {
+        base.OnResizeEnd(e);
+        _dragging = false;
+        if (_signedIn && WindowState != FormWindowState.Minimized) RestartResizeTimer();
+    }
+
+    private void RestartResizeTimer()
+    {
         _resizeTimer.Stop();
+        _resizeTimer.Interval = (int)ResizeDelay.TotalMilliseconds;
         _resizeTimer.Start();
     }
 

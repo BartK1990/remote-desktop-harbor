@@ -68,21 +68,27 @@ function Test-Cancelled {
 function Save-Status([string]$State, [string]$Message) {
     $done = @($Journal.items | Where-Object { $_.state -eq 'done' -or $_.state -eq 'skipped' }).Count
     $skipped = @($Journal.items | Where-Object { $_.state -eq 'skipped' }).Count
-    $bytesDone = 0; $bytesTotal = 0; $current = $null
+    # SPEC FR-70: the total is every file's size from the start (skipped files count for neither part), so the bar is a
+    # share of the whole transfer, not of the files reached so far.
+    $bytesDone = 0; $bytesTotal = 0; $current = $null; $currentDone = 0; $currentTotal = 0
     foreach ($i in $Journal.items) {
-        if ($i.length -ge 0) { $bytesTotal += $i.length }
-        if ($i.state -eq 'done') { $bytesDone += $i.length } else { $bytesDone += $i.bytesDone }
-        if ($null -eq $current -and $i.state -eq 'pending') { $current = Split-Path -Leaf $i.destination }
+        if ($i.state -eq 'skipped') { continue }
+        $length = if ($i.length -ge 0) { $i.length } elseif ($i.size -ge 0) { $i.size } else { 0 }
+        $bytesTotal += $length
+        if ($i.state -eq 'done') { $bytesDone += $length } else { $bytesDone += [Math]::Min($i.bytesDone, $length) }
+        if ($null -eq $current -and $i.state -eq 'pending') { $current = $i.name; $currentDone = $i.bytesDone; $currentTotal = $length }
     }
     $status = [ordered]@{
         state = $State; filesDone = $done; filesTotal = @($Journal.items).Count; filesSkipped = $skipped; bytesDone = $bytesDone; bytesTotal = $bytesTotal
-        currentFile = $current; error = $Message; updatedUtc = [DateTime]::UtcNow.ToString('o')
+        currentFile = $current; currentFileBytesDone = $currentDone; currentFileBytes = $currentTotal
+        error = $Message; updatedUtc = [DateTime]::UtcNow.ToString('o')
     }
     $script:LastStatus = $status
     try { Write-JsonFile $StatusPath $status } catch { } # the PC may be disconnected right now: best effort
     $percent = if ($bytesTotal -gt 0) { [int](100 * $bytesDone / $bytesTotal) } else { 0 }
     $text = if ($Message) { $Message } else { "$done of $(@($Journal.items).Count) files" }
-    Write-Progress -Activity 'Remote Desktop Harbor file transfer' -Status "$State - $text" -PercentComplete ([Math]::Min(100, $percent))
+    $operation = if ($current) { $current } else { ' ' }
+    Write-Progress -Activity 'Remote Desktop Harbor file transfer' -Status "$State - $text" -CurrentOperation $operation -PercentComplete ([Math]::Min(100, $percent))
 }
 
 function Save-Journal { Write-JsonFile $JournalPath $Journal }
@@ -137,12 +143,30 @@ else {
                 [pscustomobject]@{
                     source = $_.source
                     destination = (Join-Path $destinationBase ($_.destination -replace '[\\/]', [IO.Path]::DirectorySeparatorChar))
+                    name = ($_.destination -replace '[\\/]', [IO.Path]::DirectorySeparatorChar)
                     length = -1; lastWriteTicks = 0; bytesDone = 0; hashes = @(); state = 'pending'; error = $null
                 }
             })
     }
     Save-Journal
 }
+
+# SPEC FR-70: every file's size and its path in the transfer, read once up front (a journal from an older helper gets
+# them now), for the whole transfer's progress and the name of the file being copied.
+$journalChanged = $false
+foreach ($i in $Journal.items) {
+    if ($null -eq $i.PSObject.Properties['size']) {
+        $size = -1
+        try { $file = New-Object IO.FileInfo $i.source; if ($file.Exists) { $size = $file.Length } } catch { }
+        $i | Add-Member -NotePropertyName size -NotePropertyValue $size
+        $journalChanged = $true
+    }
+    if ($null -eq $i.PSObject.Properties['name']) {
+        $i | Add-Member -NotePropertyName name -NotePropertyValue (Split-Path -Leaf $i.destination)
+        $journalChanged = $true
+    }
+}
+if ($journalChanged) { Save-Journal }
 
 $ChunkSize = [int]$PlanData.chunkSize
 if ($ChunkSize -le 0) { $ChunkSize = 1MB }

@@ -76,4 +76,9 @@ public sealed class RdpWindowTests
     [InlineData(9000, 9000, 8192, 8192)]
     public void The_desktop_size_is_within_limits_and_even(int width, int height, int expectedWidth, int expectedHeight) =>
         Assert.Equal((expectedWidth, expectedHeight), RdpWindowSettings.DesktopSizeFor(width, height));
+
+    // SPEC FR-67, ADR-0045: the session follows the window only once it has kept its new size for a while.
+    [Fact]
+    public void The_session_is_resized_only_after_the_window_settles() =>
+        Assert.True(RdpWindowSettings.ResizeDelay >= TimeSpan.FromSeconds(1));
 }

@@ -118,6 +118,13 @@ public sealed record RdpWindowSettings(
     private static int? Number(ConnectionEntry entry, string key) => int.TryParse(Value(entry, key), out var n) ? n : null;
 
     /// <summary>
+    /// How long the window must keep a new size (after the border is let go, or after maximizing or restoring) before the
+    /// remote desktop is resized to it. Long enough that a few quick changes give one resize, not several.
+    /// SPEC FR-67, ADR-0045
+    /// </summary>
+    public static readonly TimeSpan ResizeDelay = TimeSpan.FromSeconds(1.5);
+
+    /// <summary>
     /// The remote desktop size for a window area of <paramref name="width"/> × <paramref name="height"/> pixels: within
     /// the limits Remote Desktop accepts, and an even width (required when a session is resized).
     /// </summary>

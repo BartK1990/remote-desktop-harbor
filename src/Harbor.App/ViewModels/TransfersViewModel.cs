@@ -59,9 +59,9 @@ public sealed partial class TransfersViewModel : ObservableObject
         _autoStart = settings.TransferAutoStart && sessions.IsAvailable;
 
         foreach (var plan in kit.List()) Jobs.Add(NewRdpRow(plan));
-        foreach (var job in queue.Jobs) Jobs.Add(new TransferItemViewModel(job, queue));
+        foreach (var job in queue.Jobs) Apply(job);
         queue.JobChanged += (_, job) => OnUi(() => Apply(job));
-        queue.JobRemoved += (_, id) => OnUi(() => Forget(id.ToString()));
+        queue.JobRemoved += (_, id) => OnUi(() => ForgetJob(id));
         _statusTimer.Tick += (_, _) => RefreshRdpRows();
         _statusTimer.Start();
         RefreshRdpRows();
@@ -211,7 +211,8 @@ public sealed partial class TransfersViewModel : ObservableObject
             return;
         }
 
-        Add(files.Select(f => (f, UncPath.Combine(RemoteFolder, Path.GetFileName(f)))).ToList(), upload: true);
+        Add(files.Select(f => (f, UncPath.Combine(RemoteFolder, Path.GetFileName(f)))).ToList(), upload: true,
+            $"{files.Length} files", RemoteFolder);
     }
 
     [RelayCommand(CanExecute = nameof(CanTransfer))]
@@ -238,7 +239,8 @@ public sealed partial class TransfersViewModel : ObservableObject
             return;
         }
 
-        Add(files.Select(f => (f.Source, UncPath.Combine(RemoteFolder, f.Relative))).ToList(), upload: true);
+        Add(files.Select(f => (f.Source, UncPath.Combine(RemoteFolder, f.Relative))).ToList(), upload: true,
+            name, UncPath.Combine(RemoteFolder, name));
     }
 
     /// <summary>
@@ -272,7 +274,7 @@ public sealed partial class TransfersViewModel : ObservableObject
 
         if (_dialogs.PickFilesToDownload(RemoteFolder) is not { Length: > 0 } files) return;
         if (_dialogs.PickFolder("Save the files to", Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)) is not { } target) return;
-        Add(files.Select(f => (f, Path.Combine(target, Path.GetFileName(f)))).ToList(), upload: false);
+        Add(files.Select(f => (f, Path.Combine(target, Path.GetFileName(f)))).ToList(), upload: false, $"{files.Length} files", target);
     }
 
     /// <summary>
@@ -397,7 +399,9 @@ public sealed partial class TransfersViewModel : ObservableObject
         }
     }
 
-    private void Add(IReadOnlyList<(string Source, string Destination)> files, bool upload)
+    /// <param name="batchName">Name of the row several files are shown as (SPEC FR-70).</param>
+    /// <param name="batchFolder">Folder they are copied into; the file being copied is shown relative to it.</param>
+    private void Add(IReadOnlyList<(string Source, string Destination)> files, bool upload, string batchName, string batchFolder)
     {
         if (files.Count == 0) return;
         _settings.TransferRemoteFolder = RemoteFolder;
@@ -414,12 +418,35 @@ public sealed partial class TransfersViewModel : ObservableObject
             skip = !overwrite;
         }
 
+        // SPEC FR-70: several files are one row with the progress of all of them.
+        var batch = files.Count > 1 ? Guid.NewGuid() : (Guid?)null;
         foreach (var (source, destination) in files)
         {
             var job = NewJob(source, destination, upload);
             job.Overwrite = overwrite;
             job.SkipExisting = skip;
+            job.SizeHint = SizeOf(source);
+            if (batch is not null)
+            {
+                job.BatchId = batch;
+                job.BatchName = batchName;
+                job.BatchDestination = batchFolder;
+            }
+
             _queue.Enqueue(job);
+        }
+    }
+
+    /// <summary>The source's size for the batch total, or -1 when it cannot be read now. SPEC FR-70</summary>
+    private static long SizeOf(string path)
+    {
+        try
+        {
+            return new FileInfo(path) is { Exists: true } file ? file.Length : -1;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        {
+            return -1;
         }
     }
 
@@ -437,26 +464,67 @@ public sealed partial class TransfersViewModel : ObservableObject
     private void ResumeAll()
     {
         foreach (var job in Jobs.OfType<TransferItemViewModel>().Where(j => j.State == TransferState.Paused).ToList()) _queue.Resume(job.Id);
+        foreach (var batch in Jobs.OfType<TransferBatchRowViewModel>().ToList()) batch.ResumePaused();
     }
 
     [RelayCommand]
     private void ClearFinished()
     {
         foreach (var job in Jobs.OfType<TransferItemViewModel>().Where(j => j.State == TransferState.Completed).ToList()) _queue.Remove(job.Id);
+        foreach (var batch in Jobs.OfType<TransferBatchRowViewModel>().Where(b => b.IsDone).ToList()) batch.RemoveCommand.Execute(null);
         foreach (var row in Jobs.OfType<RdpTransferRowViewModel>().Where(r => r.IsDone).ToList()) row.RemoveCommand.Execute(null);
     }
 
     private void RefreshRdpRows()
     {
-        foreach (var row in Jobs.OfType<RdpTransferRowViewModel>().ToList()) row.Refresh();
+        var now = DateTimeOffset.UtcNow;
+        foreach (var row in Jobs.ToList())
+        {
+            switch (row)
+            {
+                case RdpTransferRowViewModel rdp:
+                    rdp.Refresh(now);
+                    break;
+                case TransferItemViewModel item:
+                    item.Tick(now);
+                    break;
+                case TransferBatchRowViewModel batch:
+                    batch.Tick(now);
+                    break;
+            }
+        }
+
         OnPropertyChanged(nameof(Summary));
     }
 
     private void Apply(TransferJob job)
     {
-        if (Jobs.OfType<TransferItemViewModel>().FirstOrDefault(j => j.Id == job.Id) is { } item) item.Update(job);
+        if (job.BatchId is { } batchId)
+        {
+            // SPEC FR-70: the files of a batch are one row.
+            if (Jobs.OfType<TransferBatchRowViewModel>().FirstOrDefault(b => b.BatchId == batchId) is not { } batch)
+            {
+                batch = new TransferBatchRowViewModel(batchId, _queue);
+                Jobs.Add(batch);
+            }
+
+            batch.Update(job);
+        }
+        else if (Jobs.OfType<TransferItemViewModel>().FirstOrDefault(j => j.Id == job.Id) is { } item) item.Update(job);
         else Jobs.Add(new TransferItemViewModel(job, _queue));
         OnPropertyChanged(nameof(Summary));
+    }
+
+    private void ForgetJob(Guid id)
+    {
+        if (Jobs.OfType<TransferBatchRowViewModel>().FirstOrDefault(b => b.Contains(id)) is { } batch)
+        {
+            if (batch.Forget(id)) Jobs.Remove(batch);
+            OnPropertyChanged(nameof(Summary));
+            return;
+        }
+
+        Forget(id.ToString());
     }
 
     private void Forget(string key)
@@ -478,6 +546,9 @@ public interface ITransferRow
     bool IsActive { get; }
     bool IsPaused { get; }
     bool IsDone { get; }
+
+    /// <summary>The file being copied now and how far it is, for transfers of several files (SPEC FR-70); <c>null</c> otherwise.</summary>
+    string? CurrentText { get; }
 }
 
 /// <summary>
@@ -491,6 +562,7 @@ public sealed partial class RdpTransferRowViewModel : ObservableObject, ITransfe
     private readonly RdpTransferKit _kit;
     private readonly Action<string> _removed;
     private readonly Func<RdpTransferRowViewModel, Task>? _reconnect;
+    private readonly TransferRate _rate = new();
     private IRdpTransferSession? _session;
     private bool _cancelling;
 
@@ -508,7 +580,7 @@ public sealed partial class RdpTransferRowViewModel : ObservableObject, ITransfe
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(FileName), nameof(Percent), nameof(StatusText), nameof(IsActive), nameof(IsDone), nameof(HasStartCommand),
-        nameof(RemoveText), nameof(CanConnect))]
+        nameof(RemoveText), nameof(CanConnect), nameof(CurrentText))]
     private RdpTransferStatus? _status;
 
     /// <summary>The transfer window's state while it is open (SPEC FR-65); <c>null</c> otherwise.</summary>
@@ -517,9 +589,26 @@ public sealed partial class RdpTransferRowViewModel : ObservableObject, ITransfe
     private RdpTransferSessionState? _sessionState;
 
     public string Key => Plan.Id;
-    public string FileName => Status is { FilesTotal: > 0 } s ? (s.FilesTotal == 1 && s.CurrentFile is { } f ? f : $"{s.FilesTotal} files")
-        : Plan.IsUpload ? (Plan.Items.Count == 1 ? Path.GetFileName(Plan.Items[0].Destination) : $"{Plan.Items.Count} files")
+    public string FileName => Status is { FilesTotal: > 0 } s
+        ? (s.FilesTotal == 1 && (s.CurrentFile ?? (Plan.Items.Count == 1 ? Path.GetFileName(Plan.Items[0].Destination) : null)) is { } f
+            ? Path.GetFileName(f) : FilesName(s.FilesTotal))
+        : Plan.IsUpload ? (Plan.Items.Count == 1 ? Path.GetFileName(Plan.Items[0].Destination) : FilesName(Plan.Items.Count))
         : "Files picked in the session";
+
+    /// <summary><c>Photos · 120 files</c> for an uploaded folder, else <c>120 files</c>.</summary>
+    private string FilesName(int count)
+    {
+        static string? Top(string path) => path.IndexOfAny(['\\', '/']) is > 0 and var cut ? path[..cut] : null;
+        var top = Plan.IsUpload && Plan.Items.Count > 0 ? Top(Plan.Items[0].Destination) : null;
+        return top is not null && Plan.Items.All(i => Top(i.Destination) == top) ? $"{top} · {count} files" : $"{count} files";
+    }
+
+    /// <summary>SPEC FR-70: the file being copied now in a transfer of several files.</summary>
+    public string? CurrentText => Status is { State: "running" or "waiting", FilesTotal: > 1, CurrentFile: { Length: > 0 } file } s
+        ? (s.CurrentFileBytes > 0
+            ? $"Now: {file} · {TransferText.Size(s.CurrentFileBytesDone)} of {TransferText.Size(s.CurrentFileBytes)}"
+            : $"Now: {file}")
+        : null;
     public string Direction => Plan.IsUpload ? $"↑ to {Plan.Label} over Remote Desktop" : $"↓ from {Plan.Label} over Remote Desktop";
     public string Destination => Plan.IsUpload ? $"{Plan.ServerFolder} (on the server)" : Plan.LocalFolder;
     public double Percent => Status is { BytesTotal: > 0 } s ? 100.0 * s.BytesDone / s.BytesTotal : Status?.State == "done" ? 100 : 0;
@@ -542,7 +631,7 @@ public sealed partial class RdpTransferRowViewModel : ObservableObject, ITransfe
         {
             if (_cancelling && Status is not { IsFinished: true }) return "Cancelling…";
             var size = Status is { BytesTotal: > 0 } t
-                ? $" · {TransferItemViewModel.FormatSize(t.BytesDone)} of {TransferItemViewModel.FormatSize(t.BytesTotal)}" : "";
+                ? $" · {TransferText.Size(t.BytesDone)} of {TransferText.Size(t.BytesTotal)}" : "";
             if (Status is null or { State: "failed" } && SessionState is { } session && session != RdpTransferSessionState.Closed)
             {
                 // SPEC FR-65: the helper has not reported yet; say what the transfer window is doing.
@@ -560,7 +649,8 @@ public sealed partial class RdpTransferRowViewModel : ObservableObject, ITransfe
             return Status?.State switch
             {
                 null => "Waiting to be started in the Remote Desktop session (Win+R, Ctrl+V, Enter)",
-                "running" => $"Copying file {Math.Min(Status.FilesDone + 1, Status.FilesTotal)} of {Status.FilesTotal}{size}",
+                "running" => $"Copying file {Math.Min(Status.FilesDone + 1, Status.FilesTotal)} of {Status.FilesTotal} · " +
+                             TransferText.Progress(Status.BytesDone, Status.BytesTotal, _rate, copying: true),
                 "waiting" => $"{Status.Error ?? "Connection lost."} The copy continues where it stopped{size}",
                 "done" => Status.FilesSkipped > 0
                     ? $"Done · {Status.FilesTotal - Status.FilesSkipped} file(s) copied, {Status.FilesSkipped} skipped (already there){size}"
@@ -598,11 +688,13 @@ public sealed partial class RdpTransferRowViewModel : ObservableObject, ITransfe
         }
     }
 
-    public void Refresh()
+    public void Refresh(DateTimeOffset now)
     {
         var status = _kit.ReadStatus(Plan.Id);
         if (status is not null) Status = status;
-        else OnPropertyChanged(nameof(StatusText));
+        // SPEC FR-70: average speed while the helper copies (it reports after every chunk).
+        _rate.Sample(Status?.BytesDone ?? 0, Status?.State == "running", now);
+        OnPropertyChanged(nameof(StatusText));
         // SPEC FR-65: the transfer window (with every drive of this PC shared) is closed as soon as the copy is done.
         if (Status is { State: "done" or "cancelled" } && _session is { } session)
         {
@@ -663,6 +755,7 @@ public sealed partial class RdpTransferRowViewModel : ObservableObject, ITransfe
 public sealed partial class TransferItemViewModel : ObservableObject, ITransferRow
 {
     private readonly TransferQueue _queue;
+    private readonly TransferRate _rate = new();
 
     public TransferItemViewModel(TransferJob job, TransferQueue queue)
     {
@@ -693,16 +786,17 @@ public sealed partial class TransferItemViewModel : ObservableObject, ITransferR
     public bool IsActive => !IsFinished && State != TransferState.Paused;
     public bool IsPaused => State == TransferState.Paused;
     public bool IsDone => State == TransferState.Completed;
+    public string? CurrentText => null;
 
     public string StatusText
     {
         get
         {
-            var size = Job.Length >= 0 ? $"{FormatSize(Job.BytesDone)} of {FormatSize(Job.Length)}" : "";
             return Job.State switch
             {
                 TransferState.Queued => "Waiting",
-                TransferState.Running => $"Copying · {size}",
+                TransferState.Running => Job.Length >= 0
+                    ? $"Copying · {TransferText.Progress(Job.BytesDone, Job.Length, _rate, copying: true)}" : "Copying",
                 TransferState.Retrying => $"Connection lost, retrying from {FormatSize(Job.BytesDone)} · {Job.Error}",
                 TransferState.Paused => $"Paused at {FormatSize(Job.BytesDone)}{(Job.Error is { } e ? $" · {e}" : "")}",
                 TransferState.Completed when Job.Skipped => "Skipped · already exists",
@@ -713,6 +807,13 @@ public sealed partial class TransferItemViewModel : ObservableObject, ITransferR
     }
 
     public void Update(TransferJob job) => Job = job;
+
+    /// <summary>Samples the average speed (SPEC FR-70).</summary>
+    public void Tick(DateTimeOffset now)
+    {
+        _rate.Sample(Job.BytesDone, Job.State == TransferState.Running, now);
+        OnPropertyChanged(nameof(StatusText));
+    }
 
     [RelayCommand(CanExecute = nameof(CanPause))]
     private void Pause() => _queue.Pause(Id);
@@ -728,11 +829,135 @@ public sealed partial class TransferItemViewModel : ObservableObject, ITransferR
         else _queue.Cancel(Id);
     }
 
-    internal static string FormatSize(long bytes) => bytes switch
+    internal static string FormatSize(long bytes) => TransferText.Size(bytes);
+}
+
+/// <summary>
+/// Several files copied over a network share (an uploaded folder, or more than one file picked) as one row with the
+/// progress of all of them: files and bytes of the whole, average speed, time left and the file being copied now (SPEC
+/// FR-70). Pause, Resume and Cancel act on all its files.
+/// </summary>
+public sealed partial class TransferBatchRowViewModel : ObservableObject, ITransferRow
+{
+    private readonly TransferQueue _queue;
+    private readonly Dictionary<Guid, TransferJob> _jobs = [];
+    private readonly TransferRate _rate = new();
+
+    public TransferBatchRowViewModel(Guid batchId, TransferQueue queue)
     {
-        < 1024 => string.Create(CultureInfo.CurrentCulture, $"{bytes} B"),
-        < 1024 * 1024 => string.Create(CultureInfo.CurrentCulture, $"{bytes / 1024.0:0.#} KB"),
-        < 1024L * 1024 * 1024 => string.Create(CultureInfo.CurrentCulture, $"{bytes / (1024.0 * 1024):0.#} MB"),
-        _ => string.Create(CultureInfo.CurrentCulture, $"{bytes / (1024.0 * 1024 * 1024):0.##} GB"),
-    };
+        BatchId = batchId;
+        _queue = queue;
+        _progress = TransferBatchProgress.Of([]);
+    }
+
+    public Guid BatchId { get; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(FileName), nameof(Direction), nameof(Destination), nameof(Percent), nameof(StatusText),
+        nameof(CurrentText), nameof(CanPause), nameof(CanResume), nameof(RemoveText), nameof(IsActive), nameof(IsPaused), nameof(IsDone))]
+    [NotifyCanExecuteChangedFor(nameof(PauseCommand), nameof(ResumeCommand))]
+    private TransferBatchProgress _progress;
+
+    private TransferJob? First => _jobs.Values.FirstOrDefault();
+
+    public string Key => BatchId.ToString();
+    public string FileName => First?.BatchName is { } name
+        ? (name.EndsWith(" files", StringComparison.Ordinal) ? name : $"{name} · {Progress.FilesTotal} files")
+        : $"{Progress.FilesTotal} files";
+    public string Direction => First is { } job ? (job.IsUpload ? $"↑ to {job.Label}" : $"↓ from {job.Label}") : "";
+    public string Destination => First?.BatchDestination ?? "";
+    public double Percent => Progress.Progress * 100;
+    public bool CanPause => _jobs.Values.Any(j => j.State is TransferState.Queued or TransferState.Running or TransferState.Retrying);
+    public bool CanResume => _jobs.Values.Any(j => j.State is TransferState.Paused or TransferState.Failed);
+    public string RemoveText => IsDone ? "Remove" : "Cancel";
+    public bool HasStartCommand => false;
+    public bool CanConnect => false;
+    public string ConnectText => "Connect";
+    public bool IsActive => Progress.State is TransferState.Queued or TransferState.Running or TransferState.Retrying;
+    public bool IsPaused => Progress.State == TransferState.Paused;
+    public bool IsDone => Progress.State == TransferState.Completed;
+
+    /// <summary>The queue copies one file after the other: between two of them the batch is still copying.</summary>
+    private bool Copying => Progress.State == TransferState.Running || (Progress.State == TransferState.Queued && Progress.FilesDone > 0);
+
+    public string StatusText
+    {
+        get
+        {
+            var p = Progress;
+            var bytes = TransferText.Progress(p.BytesDone, p.BytesTotal, _rate, Copying);
+            var failed = p.FilesFailed > 0 ? $" · {p.FilesFailed} failed" : "";
+            return p.State switch
+            {
+                _ when Copying =>
+                    $"Copying file {Math.Min(p.FilesDone + 1, p.FilesTotal)} of {p.FilesTotal} · {bytes}{failed}",
+                TransferState.Queued => $"Waiting · {p.FilesTotal} files, {TransferText.Size(p.BytesTotal)}",
+                TransferState.Retrying => $"Connection lost, retrying · {p.FilesDone} of {p.FilesTotal} files · {bytes} · {p.Error}",
+                TransferState.Paused => $"Paused · {p.FilesDone} of {p.FilesTotal} files · {bytes}{failed}",
+                TransferState.Failed => $"{p.FilesFailed} of {p.FilesTotal} files failed · {p.Error} · Resume retries them",
+                _ when p.FilesSkipped > 0 =>
+                    $"Done · {p.FilesTotal - p.FilesSkipped} file(s) copied, {p.FilesSkipped} skipped (already there) · {TransferText.Size(p.BytesTotal)}",
+                _ => $"Done · {p.FilesTotal} files · {TransferText.Size(p.BytesTotal)}",
+            };
+        }
+    }
+
+    public string? CurrentText => Progress is { State: TransferState.Running or TransferState.Retrying, CurrentFile: { } file } p
+        ? (p.CurrentBytes > 0 ? $"Now: {file} · {TransferText.Size(p.CurrentBytesDone)} of {TransferText.Size(p.CurrentBytes)}" : $"Now: {file}")
+        : null;
+
+    public bool Contains(Guid jobId) => _jobs.ContainsKey(jobId);
+
+    public void Update(TransferJob job)
+    {
+        _jobs[job.Id] = job;
+        Progress = TransferBatchProgress.Of(_jobs.Values, Destination);
+    }
+
+    /// <summary>Takes a removed file off the row; true when the row has no file left.</summary>
+    public bool Forget(Guid jobId)
+    {
+        _jobs.Remove(jobId);
+        Progress = TransferBatchProgress.Of(_jobs.Values, Destination);
+        return _jobs.Count == 0;
+    }
+
+    /// <summary>Samples the average speed (SPEC FR-70).</summary>
+    public void Tick(DateTimeOffset now)
+    {
+        _rate.Sample(Progress.BytesDone, Copying, now);
+        OnPropertyChanged(nameof(StatusText));
+    }
+
+    /// <summary>Resume all: the paused files of this batch.</summary>
+    public void ResumePaused()
+    {
+        foreach (var job in _jobs.Values.Where(j => j.State == TransferState.Paused).ToList()) _queue.Resume(job.Id);
+    }
+
+    [RelayCommand(CanExecute = nameof(CanPause))]
+    private void Pause()
+    {
+        foreach (var job in _jobs.Values.Where(j => j.State is TransferState.Queued or TransferState.Running or TransferState.Retrying).ToList())
+        {
+            _queue.Pause(job.Id);
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(CanResume))]
+    private void Resume()
+    {
+        foreach (var job in _jobs.Values.Where(j => j.State is TransferState.Paused or TransferState.Failed).ToList()) _queue.Resume(job.Id);
+    }
+
+    /// <summary>Removes a finished batch; otherwise stops its files and deletes their partial files (copied files stay).</summary>
+    [RelayCommand]
+    private void Remove()
+    {
+        foreach (var job in _jobs.Values.ToList())
+        {
+            if (job.State == TransferState.Completed) _queue.Remove(job.Id);
+            else _queue.Cancel(job.Id);
+        }
+    }
 }

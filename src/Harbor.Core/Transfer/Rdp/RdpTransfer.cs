@@ -58,7 +58,14 @@ public sealed class RdpTransferStatus
     public int FilesSkipped { get; set; }
     public long BytesDone { get; set; }
     public long BytesTotal { get; set; }
+
+    /// <summary>The file being copied, relative to the transfer's folder (SPEC FR-70); just the name from older helpers.</summary>
     public string? CurrentFile { get; set; }
+
+    /// <summary>Bytes of <see cref="CurrentFile"/> copied so far and its size. SPEC FR-70</summary>
+    public long CurrentFileBytesDone { get; set; }
+    public long CurrentFileBytes { get; set; }
+
     public string? Error { get; set; }
     public DateTimeOffset UpdatedUtc { get; set; }
 
