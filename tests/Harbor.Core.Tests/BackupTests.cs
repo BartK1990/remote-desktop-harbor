@@ -72,12 +72,25 @@ public class BackupTests
     [Fact]
     public void File_is_encrypted_and_names_its_format()
     {
-        var text = Encoding.UTF8.GetString(BackupFile.Encrypt(Sample(out _), Passphrase, iterations: 1000));
+        var file = BackupFile.Encrypt(Sample(out _), Passphrase, iterations: 1000);
+        Assert.Contains(BackupFile.FormatName, Encoding.UTF8.GetString(file), StringComparison.Ordinal);
 
-        Assert.Contains(BackupFile.FormatName, text, StringComparison.Ordinal);
+        // The readable envelope, without its random base64 fields (salt, nonce, tag, data): checking those for short
+        // words such as "SQL" fails now and then just because random base64 contains them.
+        var envelope = System.Text.Json.Nodes.JsonNode.Parse(file)!.AsObject();
+        var binary = new[] { "salt", "nonce", "tag", "data" };
+        var ciphertext = Convert.FromBase64String((string)envelope.First(p => p.Key.Equals("data", StringComparison.OrdinalIgnoreCase)).Value!);
+        foreach (var key in envelope.Select(p => p.Key).Where(k => binary.Contains(k, StringComparer.OrdinalIgnoreCase)).ToList()) envelope.Remove(key);
+        var readable = envelope.ToJsonString();
         foreach (var secret in new[] { "pw-web01", "pw-admin2", "web01", "10.0.0.5", "jdoe", "SQL" })
         {
-            Assert.DoesNotContain(secret, text, StringComparison.Ordinal);
+            Assert.DoesNotContain(secret, readable, StringComparison.Ordinal);
+        }
+
+        // And the data is really encrypted: no secret in it as plain bytes (long ones only; a 3-byte match is chance).
+        foreach (var secret in new[] { "pw-web01", "pw-admin2", "10.0.0.5" })
+        {
+            Assert.Equal(-1, ciphertext.AsSpan().IndexOf(Encoding.UTF8.GetBytes(secret)));
         }
     }
 
