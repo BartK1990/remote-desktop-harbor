@@ -14,7 +14,16 @@ using Harbor.Core.Transfer.Rdp;
 
 namespace Harbor.App.Tests;
 
+// A WPF Application is global to the process: the window tests run alone and leave none behind, so tests of code that
+// looks at Application.Current (e.g. the theme) still see no application.
+[CollectionDefinition(Name, DisableParallelization = true)]
+public sealed class WpfWindowCollection
+{
+    public const string Name = "WPF windows";
+}
+
 // SPEC FR-60, FR-63: the real File transfer window, driven like a user would (WPF on an STA thread; Windows only).
+[Collection(WpfWindowCollection.Name)]
 public sealed class TransfersWindowTests : IDisposable
 {
     private readonly string _dir = Path.Combine(Path.GetTempPath(), $"harbor-transfers-window-{Guid.NewGuid():N}");
@@ -85,18 +94,33 @@ public sealed class TransfersWindowTests : IDisposable
         {
             try
             {
-                if (Application.Current is null) new App().InitializeComponent(); // the app's resources, no startup
+                new App().InitializeComponent(); // the app's resources, no startup
                 test();
             }
             catch (Exception ex)
             {
                 failure = ex;
             }
+            finally
+            {
+                ForgetApplication();
+            }
         });
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
         thread.Join();
         if (failure is not null) throw new Xunit.Sdk.XunitException(failure.ToString());
+    }
+
+    /// <summary>Clears WPF's current application (test only), so the next test can create its own and others see none.</summary>
+    private static void ForgetApplication()
+    {
+        const BindingFlags Static = BindingFlags.Static | BindingFlags.NonPublic;
+        foreach (var field in typeof(Application).GetFields(Static))
+        {
+            if (field.FieldType == typeof(Application)) field.SetValue(null, null);
+            else if (field.FieldType == typeof(bool) && field.Name.Contains("appCreated", StringComparison.OrdinalIgnoreCase)) field.SetValue(null, false);
+        }
     }
 
     private static void Pump() => Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
