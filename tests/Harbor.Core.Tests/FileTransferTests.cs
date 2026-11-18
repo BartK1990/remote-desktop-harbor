@@ -171,6 +171,8 @@ public sealed class FileTransferTests : IDisposable
 
         var stopped = Assert.Single(journal.LoadAll());
         Assert.Equal(TransferState.Paused, stopped.State);
+        Assert.NotNull(stopped.StartedUtc);
+        Assert.Null(stopped.CompletedUtc);
         // The chunk in flight is either dropped or finished and recorded; nothing after it is copied.
         Assert.InRange(stopped.BytesDone, 3L * Chunk, 4L * Chunk);
 
@@ -181,8 +183,13 @@ public sealed class FileTransferTests : IDisposable
         Assert.NotNull(paused.Error);
 
         second.Resume(paused.Id);
-        await WaitAsync(second, paused.Id, TransferState.Completed);
+        var done = await WaitAsync(second, paused.Id, TransferState.Completed);
         Assert.Equal(File.ReadAllBytes(job.SourcePath), File.ReadAllBytes(job.DestinationPath));
+
+        // SPEC FR-70: the start is the first one, before the restart, so the time it took covers the whole copy.
+        Assert.Equal(stopped.StartedUtc, done.StartedUtc);
+        Assert.NotNull(done.CompletedUtc);
+        Assert.True(done.CompletedUtc >= done.StartedUtc);
     }
 
     [Fact]

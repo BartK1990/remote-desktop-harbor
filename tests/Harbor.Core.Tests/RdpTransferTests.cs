@@ -187,6 +187,8 @@ public sealed class RdpTransferTests : IDisposable
         var status = Kit.ReadStatus(prepared.Plan.Id)!;
         Assert.Equal((8L * Chunk, 1L * Chunk), (status.BytesTotal, status.BytesDone)); // the second file counts already
         Assert.Equal(Path.Combine("folder", "first.bin"), status.CurrentFile);
+        var started = Assert.NotNull(status.StartedUtc);
+        Assert.Null(status.FinishedUtc);
 
         Assert.Equal(3, Run(prepared, "-TestExitAfterChunks 3")); // resumed, stopped in the second file
         status = Kit.ReadStatus(prepared.Plan.Id)!;
@@ -198,6 +200,10 @@ public sealed class RdpTransferTests : IDisposable
         status = Kit.ReadStatus(prepared.Plan.Id)!;
         Assert.Equal(("done", 8L * Chunk), (status.State, status.BytesDone));
         Assert.Equal(status.BytesTotal, status.BytesDone);
+        // The start is the first run's, so the time it took covers every run.
+        Assert.Equal(started, status.StartedUtc);
+        Assert.NotNull(status.FinishedUtc);
+        Assert.True(status.Took >= TimeSpan.Zero);
     }
 
     [Fact]

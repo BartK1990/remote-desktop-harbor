@@ -25,7 +25,7 @@ Not sure? Run `Test-NetConnection <server> -Port 445` in PowerShell: if `TcpTest
 ## Copying through Remote Desktop
 
 1. Type the **Folder on the server** as the server sees it — `%USERPROFILE%\Downloads` (the default), `D:\Install`…
-   Environment variables are expanded on the server. Choose what happens to [files that already exist](#files-that-already-exist).
+   Environment variables are expanded on the server; **Default** puts `%USERPROFILE%\Downloads` back. Choose what happens to [files that already exist](#files-that-already-exist).
 2. Click **Upload files…**, **Upload folder…** or **Download…** (for a download you pick the folder on this PC; the files
    themselves are picked on the server).
 3. Harbor opens its **transfer window**: a Remote Desktop window of its own, connected to the entry with the drives of
@@ -73,7 +73,7 @@ turns it off, the command reports that `\\tsclient` cannot be found. No password
 
 **Folder on the host** is a shared folder on the host as a UNC path. It starts as
 `\\<host>\C$\Users\Public\Downloads`; type another one (any share, e.g. `\\<host>\Transfer` or `\\fileserver\drop`)
-and Harbor remembers it for next time. The administrative share `C$` needs an administrator account on the host.
+and Harbor remembers it for next time; **Default** puts `\\<host>\C$\Users\Public\Downloads` back. The administrative share `C$` needs an administrator account on the host.
 
 | Button | What it does |
 |---|---|
@@ -104,7 +104,7 @@ folder again and only the new files are copied. Harbor remembers the choice.
 
 Transfers run one after another. Each row shows the file, the direction, the destination, a progress bar and the
 state. When you upload a folder or pick several files, they are **one row**: the bar and *1.2 GB of 4.5 GB (27%)* are of
-all the files together, followed by the **average speed** and **time left**, and a second line names the file being
+all the files together, followed by the **average speed**, the **time elapsed** and the **time left**, and a second line names the file being
 copied now (with its sub-folder) and how far it is. **Pause**, **Resume** and **Cancel** on that row act on all its
 files; files already copied stay when you cancel.
 
@@ -114,7 +114,7 @@ files; files already copied stay when you cancel.
 | Copying | Copying now: file *n* of *m*, bytes done of the total with the percentage, average speed and time left. |
 | Connection lost, retrying | The connection dropped; Harbor retries automatically from where it stopped. |
 | Paused | Paused by you, by closing the app, or after 10 minutes of retrying. **Resume** continues where it stopped. |
-| Done | Copied completely; the file has its final name. |
+| Done | Copied completely; the file has its final name. It says how long the copy took and its average speed, e.g. *4.5 GB in 12 min 30 s (6.1 MB/s average)*, counted from the first start, pauses included. |
 | Failed | A problem retrying cannot fix (source gone, file exists, access denied). **Resume** tries again. |
 | Skipped | The file was already there and **Skip** was chosen; it was left as it is. |
 

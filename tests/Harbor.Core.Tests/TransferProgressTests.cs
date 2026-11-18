@@ -103,4 +103,39 @@ public sealed class TransferProgressTests
     [InlineData(7800, "about 2 h 10 min left")]
     public void Time_left_is_rounded_for_reading(int seconds, string expected) =>
         Assert.Equal(expected, TransferText.TimeLeft(TimeSpan.FromSeconds(seconds)));
+
+    [Theory]
+    [InlineData(0.4, "less than a second")]
+    [InlineData(45, "45 s")]
+    [InlineData(750, "12 min 30 s")]
+    [InlineData(720, "12 min")]
+    [InlineData(7500, "2 h 5 min")]
+    public void Durations_are_short_and_readable(double seconds, string expected) =>
+        Assert.Equal(expected, TransferText.Duration(TimeSpan.FromSeconds(seconds)));
+
+    [Fact]
+    public void A_finished_transfer_says_how_long_it_took_and_its_average_speed()
+    {
+        Assert.Equal("10 MB in 10 s (1 MB/s average)", TransferText.Finished(10 * 1024 * 1024, TimeSpan.FromSeconds(10)).Replace(',', '.'));
+        Assert.Equal("10 MB", TransferText.Finished(10 * 1024 * 1024, null));
+        Assert.Contains("1 min 5 s elapsed", TransferText.Progress(1, 2, null, copying: true, TimeSpan.FromSeconds(65)), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_batch_took_from_its_first_start_to_its_last_end()
+    {
+        var t = DateTimeOffset.UnixEpoch;
+        var a = Job("a", 1, 1, TransferState.Completed, length: 1);
+        a.StartedUtc = t;
+        a.CompletedUtc = t.AddMinutes(1);
+        var b = Job("b", 1, 1, TransferState.Completed, length: 1);
+        b.StartedUtc = t.AddMinutes(1);
+        b.CompletedUtc = t.AddMinutes(3);
+        Assert.Equal(TimeSpan.FromMinutes(3), TransferBatchProgress.Of([a, b]).Took);
+
+        var c = Job("c", 1, 0, TransferState.Queued);
+        var running = TransferBatchProgress.Of([a, c]);
+        Assert.Equal(t, running.StartedUtc);
+        Assert.Null(running.Took); // not done yet
+    }
 }

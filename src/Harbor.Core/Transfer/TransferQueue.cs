@@ -194,6 +194,7 @@ public sealed class TransferQueue : IAsyncDisposable
         {
             if (shutdown.IsCancellationRequested || _jobs.FirstOrDefault(j => j.State == TransferState.Queued) is not { } job) return null;
             job.State = TransferState.Running;
+            job.StartedUtc ??= DateTimeOffset.UtcNow; // SPEC FR-70: elapsed and total time
             work = job.Clone();
             current = _current = new Current(job.Id, CancellationTokenSource.CreateLinkedTokenSource(shutdown));
         }
@@ -286,6 +287,7 @@ public sealed class TransferQueue : IAsyncDisposable
     /// <summary>Replaces the stored job with <paramref name="work"/>, journals it and tells listeners.</summary>
     private void Store(TransferJob work)
     {
+        if (work.State == TransferState.Completed) work.CompletedUtc ??= DateTimeOffset.UtcNow; // SPEC FR-70
         var copy = work.Clone();
         lock (_gate)
         {

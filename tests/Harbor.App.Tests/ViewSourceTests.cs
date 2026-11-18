@@ -132,6 +132,18 @@ public class ViewSourceTests
         Assert.Single(doc.Descendants(Wpf + "Button"), b => (string?)b.Attribute("Command") == "{Binding ConnectCommand}");
     }
 
+    // SPEC FR-60, FR-63: each folder box has a Default button that puts the default folder back; SPEC FR-70: rows have a
+    // line for the file being copied now.
+    [Fact]
+    public void Transfer_folders_can_go_back_to_the_default_and_rows_name_the_current_file()
+    {
+        var doc = XDocument.Load(Source("TransfersWindow.xaml"));
+        var commands = doc.Descendants(Wpf + "Button").Select(b => (string?)b.Attribute("Command")).ToList();
+        Assert.Contains("{Binding UseDefaultServerFolderCommand}", commands);
+        Assert.Contains("{Binding UseDefaultRemoteFolderCommand}", commands);
+        Assert.Single(doc.Descendants(Wpf + "TextBlock"), t => (string?)t.Attribute("Text") == "{Binding CurrentText}");
+    }
+
     // SPEC FR-60: the transfer list keeps a right gutter so the scroll bar never covers the Pause / Resume / Cancel buttons.
     [Fact]
     public void Transfer_rows_keep_a_gutter_for_the_scroll_bar()

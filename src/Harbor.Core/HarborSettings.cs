@@ -115,7 +115,10 @@ public sealed class HarborSettings
     /// Folder on the entry's host that file transfers start in (SPEC FR-60): relative to <c>\\host\</c>, or a full UNC path.
     /// Remembered from the last transfer.
     /// </summary>
-    public string TransferRemoteFolder { get; set; } = @"C$\Users\Public\Downloads";
+    public string TransferRemoteFolder { get; set; } = DefaultTransferRemoteFolder;
+
+    /// <summary>The folder <see cref="TransferRemoteFolder"/> starts as, and the File transfer window's Default puts back. SPEC FR-60</summary>
+    public const string DefaultTransferRemoteFolder = @"C$\Users\Public\Downloads";
 
     /// <summary>How file transfers reach the host; the last choice in the File transfer window (SPEC FR-63).</summary>
     public TransferMethod TransferMethod { get; set; } = TransferMethod.RemoteDesktop;
@@ -124,7 +127,10 @@ public sealed class HarborSettings
     /// Remote Desktop transfers: folder on the server, as the server sees it; environment variables are expanded there
     /// (SPEC FR-63). Remembered from the last transfer.
     /// </summary>
-    public string TransferServerFolder { get; set; } = @"%USERPROFILE%\Downloads";
+    public string TransferServerFolder { get; set; } = DefaultTransferServerFolder;
+
+    /// <summary>The folder <see cref="TransferServerFolder"/> starts as, and the File transfer window's Default puts back. SPEC FR-63</summary>
+    public const string DefaultTransferServerFolder = @"%USERPROFILE%\Downloads";
 
     /// <summary>What file transfers do with files that already exist at the destination; the last choice (SPEC FR-64).</summary>
     public Transfer.ExistingFiles TransferExistingFiles { get; set; } = Transfer.ExistingFiles.Fail;

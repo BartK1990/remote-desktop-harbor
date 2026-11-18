@@ -69,6 +69,14 @@ public sealed class RdpTransferStatus
     public string? Error { get; set; }
     public DateTimeOffset UpdatedUtc { get; set; }
 
+    /// <summary>When the helper first started this transfer, and when it was done (SPEC FR-70); <c>null</c> when not known.</summary>
+    public DateTimeOffset? StartedUtc { get; set; }
+    public DateTimeOffset? FinishedUtc { get; set; }
+
+    /// <summary>From the start to the end, pauses and reconnects included; <c>null</c> until done.</summary>
+    [JsonIgnore]
+    public TimeSpan? Took => StartedUtc is { } start && FinishedUtc is { } end && end >= start ? end - start : null;
+
     [JsonIgnore]
     public bool IsFinished => State is "done" or "failed" or "cancelled";
 }

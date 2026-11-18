@@ -82,6 +82,9 @@ function Save-Status([string]$State, [string]$Message) {
         state = $State; filesDone = $done; filesTotal = @($Journal.items).Count; filesSkipped = $skipped; bytesDone = $bytesDone; bytesTotal = $bytesTotal
         currentFile = $current; currentFileBytesDone = $currentDone; currentFileBytes = $currentTotal
         error = $Message; updatedUtc = [DateTime]::UtcNow.ToString('o')
+        # SPEC FR-70: when the transfer first started and when it was done, for the time elapsed and the time it took.
+        startedUtc = (New-Object DateTime ([long]$Journal.startedTicks), ([DateTimeKind]::Utc)).ToString('o')
+        finishedUtc = if ($State -eq 'done') { [DateTime]::UtcNow.ToString('o') } else { $null }
     }
     $script:LastStatus = $status
     try { Write-JsonFile $StatusPath $status } catch { } # the PC may be disconnected right now: best effort
@@ -154,6 +157,11 @@ else {
 # SPEC FR-70: every file's size and its path in the transfer, read once up front (a journal from an older helper gets
 # them now), for the whole transfer's progress and the name of the file being copied.
 $journalChanged = $false
+# Ticks, not a date: Windows PowerShell and PowerShell 7 write and read dates in JSON differently.
+if ($null -eq $Journal.PSObject.Properties['startedTicks']) {
+    $Journal | Add-Member -NotePropertyName startedTicks -NotePropertyValue ([DateTime]::UtcNow.Ticks)
+    $journalChanged = $true
+}
 foreach ($i in $Journal.items) {
     if ($null -eq $i.PSObject.Properties['size']) {
         $size = -1

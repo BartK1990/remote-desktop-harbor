@@ -107,6 +107,12 @@ public sealed class TransferJob
     /// <summary>SHA-256 (hex) of each copied chunk, to check the partial file before resuming.</summary>
     public List<string> ChunkHashes { get; set; } = [];
 
+    /// <summary>When copying this file first started; <c>null</c> until then. SPEC FR-70</summary>
+    public DateTimeOffset? StartedUtc { get; set; }
+
+    /// <summary>When it was done (copied or skipped); <c>null</c> until then. SPEC FR-70</summary>
+    public DateTimeOffset? CompletedUtc { get; set; }
+
     public TransferState State { get; set; } = TransferState.Queued;
     public string? Error { get; set; }
     public DateTimeOffset CreatedUtc { get; set; } = DateTimeOffset.UtcNow;
