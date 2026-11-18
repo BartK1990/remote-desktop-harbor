@@ -53,6 +53,8 @@
           <DockPanel>
             <Button DockPanel.Dock="Right" Content="Default" Command="{Binding UseDefaultRemoteFolderCommand}" Style="{StaticResource Harbor.SubtleButton}"
                     Margin="6,0,0,0" ToolTip="Use the default folder again: \\host\C$\Users\Public\Downloads" />
+            <Button DockPanel.Dock="Right" Content="Browse…" Command="{Binding BrowseRemoteFolderCommand}" Style="{StaticResource Harbor.Button}"
+                    Margin="6,0,0,0" ToolTip="Pick the folder on the host: the share is opened with the entry's account, starting in the folder above (or the default one)" />
             <TextBox Text="{Binding RemoteFolder, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource Harbor.MonoFont}"
                      AutomationProperties.Name="Folder on the host"
                      ToolTip="A shared folder on the host, e.g. \\server\C$\Users\Public\Downloads. It is opened with the entry's account." />

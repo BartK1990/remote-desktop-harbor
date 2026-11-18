@@ -24,7 +24,7 @@ public sealed class TransfersWindowTests : IDisposable
         try { Directory.Delete(_dir, recursive: true); } catch (IOException) { }
     }
 
-    private sealed class NoDialogs : IDialogService
+    private class NoDialogs : IDialogService
     {
         public bool EditEntry(EntryEditorViewModel editor) => false;
         public bool EditSettings(SettingsViewModel settings) => false;
@@ -39,8 +39,19 @@ public sealed class TransfersWindowTests : IDisposable
         public string? AskBackupPassphrase(bool isNew) => null;
         public string[]? PickFilesToUpload() => null;
         public string[]? PickFilesToDownload(string remoteFolder) => null;
-        public string? PickFolder(string title, string? initialFolder) => null;
+        public virtual string? PickFolder(string title, string? initialFolder) => null;
         public void ShowTransfers(TransfersViewModel transfers) { }
+    }
+
+    private sealed class FolderPicker(string? answer) : NoDialogs
+    {
+        public string? Started { get; private set; }
+
+        public override string? PickFolder(string title, string? initialFolder)
+        {
+            Started = initialFolder;
+            return answer;
+        }
     }
 
     private sealed class NoSessions : IRdpTransferSessionHost
@@ -91,9 +102,31 @@ public sealed class TransfersWindowTests : IDisposable
         Pump();
     }
 
-    private TransfersViewModel NewViewModel() => new(
+    private TransfersViewModel NewViewModel(IDialogService? dialogs = null, Func<TransferJob, CancellationToken, Task>? connect = null,
+        HarborSettings? settings = null) => new(
         new TransferQueue(new TransferJournal(Path.Combine(_dir, "journal"))), new RdpTransferKit(Path.Combine(_dir, "rdp")), new NoSessions(),
-        new NoDialogs(), (_, _) => Task.CompletedTask, (_, _, _, _) => Task.FromResult(false), new HarborSettings(), () => { });
+        dialogs ?? new NoDialogs(), connect ?? ((_, _) => Task.CompletedTask), (_, _, _, _) => Task.FromResult(false), settings ?? new HarborSettings(), () => { });
+
+    // SPEC FR-60: Browse… connects the share with the entry's account, then picks the folder starting at the one in the
+    // box, or at the default one when the box is empty; the share root when that folder is not there.
+    [Fact]
+    public void Browse_connects_the_share_and_starts_in_the_folder_on_the_host() => RunOnSta(() =>
+    {
+        var picker = new FolderPicker(@"\\srv\C$\Data\In");
+        var connected = new List<string>();
+        var settings = new HarborSettings();
+        var vm = NewViewModel(picker, (job, _) => { connected.Add(job.SourcePath); return Task.CompletedTask; }, settings);
+        vm.Target(ConnectionEntry.CreateNew("srv") with { Host = "srv-does-not-exist.invalid" }, null);
+        vm.UseNetworkShare = true;
+        vm.RemoteFolder = "";
+
+        vm.BrowseRemoteFolderCommand.ExecuteAsync(null).GetAwaiter().GetResult();
+
+        Assert.Equal([@"\\srv-does-not-exist.invalid\C$\Users\Public\Downloads"], connected); // the default, connected first
+        Assert.Equal(@"\\srv-does-not-exist.invalid\C$", picker.Started); // not there: starts at the share
+        Assert.Equal(@"\\srv\C$\Data\In", vm.RemoteFolder);
+        Assert.Equal(@"\\srv\C$\Data\In", settings.TransferRemoteFolder);
+    });
 
     // The bug report: with Network share chosen and its folder left empty, Remote Desktop could not be chosen again.
     [Fact]

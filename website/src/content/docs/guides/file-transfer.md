@@ -73,7 +73,8 @@ turns it off, the command reports that `\\tsclient` cannot be found. No password
 
 **Folder on the host** is a shared folder on the host as a UNC path. It starts as
 `\\<host>\C$\Users\Public\Downloads`; type another one (any share, e.g. `\\<host>\Transfer` or `\\fileserver\drop`)
-and Harbor remembers it for next time; **Default** puts `\\<host>\C$\Users\Public\Downloads` back. The administrative share `C$` needs an administrator account on the host.
+and Harbor remembers it for next time. **Browse…** opens the share with the entry's account and lets you pick the folder
+there, starting in the folder in the box (or the default one); **Default** puts `\\<host>\C$\Users\Public\Downloads` back. The administrative share `C$` needs an administrator account on the host.
 
 | Button | What it does |
 |---|---|

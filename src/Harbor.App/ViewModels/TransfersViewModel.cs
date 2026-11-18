@@ -72,7 +72,8 @@ public sealed partial class TransfersViewModel : ObservableObject
     /// <summary>The entry whose host and account the next transfer uses.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(TargetText))]
-    [NotifyCanExecuteChangedFor(nameof(UploadFilesCommand), nameof(UploadFolderCommand), nameof(DownloadCommand), nameof(UseDefaultRemoteFolderCommand))]
+    [NotifyCanExecuteChangedFor(nameof(UploadFilesCommand), nameof(UploadFolderCommand), nameof(DownloadCommand), nameof(UseDefaultRemoteFolderCommand),
+        nameof(BrowseRemoteFolderCommand))]
     private ConnectionEntry? _entry;
 
     [ObservableProperty]
@@ -144,6 +145,46 @@ public sealed partial class TransfersViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanUseDefaultRemoteFolder))]
     private void UseDefaultRemoteFolder() => RemoteFolder = DefaultRemoteFolder;
 
+    /// <summary>
+    /// Picks the folder on the host in a folder dialog (SPEC FR-60): connects the share with the entry's account first,
+    /// then opens the dialog in the folder typed in the box, or the default one when the box is empty or not a share.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanBrowseRemoteFolder))]
+    private async Task BrowseRemoteFolderAsync()
+    {
+        var folder = UncPath.ShareRoot(RemoteFolder.Trim()) is not null ? RemoteFolder.Trim().TrimEnd('\\', '/') : DefaultRemoteFolder;
+        string start;
+        IsBusy = true;
+        try
+        {
+            await _connectShares(NewJob(folder, folder, upload: false), CancellationToken.None);
+            // Start where the folder is, or at the share when the folder is not there (yet).
+            start = await Task.Run(() => Directory.Exists(folder)) ? folder : UncPath.ShareRoot(folder)!;
+        }
+        catch (Exception ex)
+        {
+            _dialogs.ShowError("Cannot open the folder on the host", ex.Message);
+            return;
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+
+        if (_dialogs.PickFolder("Folder on the host", start) is not { } picked) return;
+        if (UncPath.ShareRoot(picked) is null)
+        {
+            _dialogs.ShowError("Pick a folder on the host", $"{picked} is not a shared folder on a host. Pick a folder under {UncPath.ShareRoot(folder)}.");
+            return;
+        }
+
+        RemoteFolder = picked;
+        _settings.TransferRemoteFolder = picked;
+        _saveSettings();
+    }
+
+    private bool CanBrowseRemoteFolder() => !IsBusy && Entry is { Host.Length: > 0 };
+
     private bool CanUseDefaultRemoteFolder() =>
         Entry is { Host.Length: > 0 } && !string.Equals(RemoteFolder.Trim(), DefaultRemoteFolder, StringComparison.OrdinalIgnoreCase);
 
@@ -214,6 +255,7 @@ public sealed partial class TransfersViewModel : ObservableObject
         UploadFilesCommand.NotifyCanExecuteChanged();
         UploadFolderCommand.NotifyCanExecuteChanged();
         DownloadCommand.NotifyCanExecuteChanged();
+        BrowseRemoteFolderCommand.NotifyCanExecuteChanged();
     }
 
     [RelayCommand(CanExecute = nameof(CanTransfer))]
