@@ -316,15 +316,6 @@ public sealed class TransferQueue : IAsyncDisposable
     {
         try
         {
-            if (deletePartial) _fs.Delete(job.PartialPath);
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            _onError?.Invoke(ex);
-        }
-
-        try
-        {
             _journal.Delete(job.Id);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -333,7 +324,27 @@ public sealed class TransferQueue : IAsyncDisposable
         }
 
         JobRemoved?.Invoke(this, job.Id);
+
+        // The partial file is deleted in the background: Cancel is called from the UI, and on a share that cannot be
+        // reached even checking whether the file exists waits for the network to time out (seconds per file). A file
+        // that never started copying has no partial file. SPEC FR-60
+        if (!deletePartial || job is { StartedUtc: null, BytesDone: 0, State: TransferState.Queued }) return;
+        var delete = Task.Run(() =>
+        {
+            try
+            {
+                _fs.Delete(job.PartialPath);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+            {
+                _onError?.Invoke(ex);
+            }
+        });
+        lock (_gate) PendingDeletes = Task.WhenAll(PendingDeletes, delete);
     }
+
+    /// <summary>Partial files of cancelled transfers still being deleted (tests wait for it).</summary>
+    internal Task PendingDeletes { get; private set; } = Task.CompletedTask;
 
     /// <summary>Stops the running job (it stays resumable in the journal) and the queue.</summary>
     public async ValueTask DisposeAsync()
