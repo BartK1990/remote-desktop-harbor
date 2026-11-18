@@ -206,6 +206,39 @@ public sealed class RdpTransferTests : IDisposable
         Assert.True(status.Took >= TimeSpan.Zero);
     }
 
+    // ADR-0051: a finished file is recorded in an append-only list, not by rewriting the journal; ending right after a
+    // file got its final name must not make it fail as "already exists" when the transfer resumes.
+    [Fact]
+    public void A_file_finished_just_before_the_session_ended_is_not_copied_again()
+    {
+        if (PowerShell is null) return;
+        var first = File("first.bin", 3 * Chunk + 5, seed: 1);
+        var second = File("second.bin", 2 * Chunk, seed: 2);
+        var prepared = Upload([(first, "first.bin"), (second, "second.bin")]); // Fail on existing files
+
+        Assert.Equal(3, Run(prepared, "-TestExitAfterFiles 1"));
+        Assert.True(System.IO.File.Exists(Path.Combine(ServerFolder, "first.bin")));
+
+        Assert.Equal(0, Run(prepared));
+        Assert.Equal(System.IO.File.ReadAllBytes(first), System.IO.File.ReadAllBytes(Path.Combine(ServerFolder, "first.bin")));
+        Assert.Equal(System.IO.File.ReadAllBytes(second), System.IO.File.ReadAllBytes(Path.Combine(ServerFolder, "second.bin")));
+        var status = Kit.ReadStatus(prepared.Plan.Id)!;
+        Assert.Equal(("done", 2, 0), (status.State, status.FilesDone, status.FilesSkipped));
+        Assert.Empty(Directory.GetFiles(JournalFolder)); // journal and finished list removed once done
+    }
+
+    // ADR-0051: several chunks are read at once; a big file still arrives byte for byte, also after a dropped connection.
+    [Fact]
+    public void Reading_ahead_copies_every_byte_in_order()
+    {
+        if (PowerShell is null) return;
+        var big = File("ahead.bin", 23 * Chunk + 7, seed: 9);
+        var prepared = Upload([(big, "ahead.bin")]);
+
+        Assert.Equal(0, Run(prepared, "-TestFailAfterChunks 9"));
+        Assert.Equal(System.IO.File.ReadAllBytes(big), System.IO.File.ReadAllBytes(Path.Combine(ServerFolder, "ahead.bin")));
+    }
+
     [Fact]
     public void Download_copies_server_files_to_the_shared_pc_folder()
     {

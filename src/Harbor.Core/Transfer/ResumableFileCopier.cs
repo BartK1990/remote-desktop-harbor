@@ -54,6 +54,7 @@ public sealed class ResumableFileCopier(ITransferFileSystem? fileSystem = null)
         }
 
         var buffer = new byte[job.ChunkSize];
+        var ahead = new byte[job.ChunkSize];
         await using (var output = _fs.OpenWrite(job.PartialPath))
         {
             await RewindToVerifiedAsync(job, output, buffer, cancellationToken).ConfigureAwait(false);
@@ -63,19 +64,51 @@ public sealed class ResumableFileCopier(ITransferFileSystem? fileSystem = null)
             await using var input = _fs.OpenRead(job.SourcePath);
             input.Seek(job.BytesDone, SeekOrigin.Begin);
             output.Seek(job.BytesDone, SeekOrigin.Begin);
-            while (job.BytesDone < job.Length)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                var wanted = (int)Math.Min(job.ChunkSize, job.Length - job.BytesDone);
-                await input.ReadExactlyAsync(buffer.AsMemory(0, wanted), cancellationToken).ConfigureAwait(false);
-                await output.WriteAsync(buffer.AsMemory(0, wanted), cancellationToken).ConfigureAwait(false);
-                await FlushAsync(output, cancellationToken).ConfigureAwait(false);
 
-                // Recorded only once the chunk is flushed: the journal never claims bytes the destination may not have.
-                job.ChunkHashes.Add(Hash(buffer.AsSpan(0, wanted)));
-                job.BytesDone += wanted;
-                job.UpdatedUtc = DateTimeOffset.UtcNow;
-                checkpoint(job);
+            // SPEC FR-70: the next chunk is read while this one is written and flushed, so the source's connection is
+            // never idle waiting for the destination's.
+            Task? reading = null;
+            var readAt = job.BytesDone;
+            Task ReadNext(byte[] into)
+            {
+                var size = (int)Math.Min(job.ChunkSize, job.Length - readAt);
+                readAt += size;
+                return size > 0 ? input.ReadExactlyAsync(into.AsMemory(0, size), cancellationToken).AsTask() : Task.CompletedTask;
+            }
+
+            try
+            {
+                reading = ReadNext(buffer);
+                while (job.BytesDone < job.Length)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var wanted = (int)Math.Min(job.ChunkSize, job.Length - job.BytesDone);
+                    await reading.ConfigureAwait(false);
+                    reading = ReadNext(ahead);
+                    await output.WriteAsync(buffer.AsMemory(0, wanted), cancellationToken).ConfigureAwait(false);
+                    await FlushAsync(output, cancellationToken).ConfigureAwait(false);
+
+                    // Recorded only once the chunk is flushed: the journal never claims bytes the destination may not have.
+                    job.ChunkHashes.Add(Hash(buffer.AsSpan(0, wanted)));
+                    job.BytesDone += wanted;
+                    job.UpdatedUtc = DateTimeOffset.UtcNow;
+                    checkpoint(job);
+                    (buffer, ahead) = (ahead, buffer);
+                }
+            }
+            finally
+            {
+                // Never leave a read running on a stream that is being closed.
+                if (reading is not null)
+                {
+                    try
+                    {
+                        await reading.ConfigureAwait(false);
+                    }
+                    catch (Exception ex) when (ex is IOException or OperationCanceledException or ObjectDisposedException or EndOfStreamException)
+                    {
+                    }
+                }
             }
         }
 

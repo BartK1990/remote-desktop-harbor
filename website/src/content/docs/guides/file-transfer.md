@@ -62,6 +62,11 @@ reconnect — by itself, with **Reconnect** in the transfer window, or **Connect
 where it stopped. Its journal is kept on the server. To resume a transfer whose console was closed, use **Connect** on
 its row (Harbor starts it again) or run the start command again. A transfer never runs twice at once.
 
+**Speed.** The copy goes through your PC's drive shared into the session (`\\tsclient`), which answers one request at
+a time, so the helper keeps several 1 MB reads in flight and saves its progress only every couple of seconds. Copying
+and pasting a file in the session uses a different channel of the same connection and can still be somewhat faster,
+but it cannot resume after a dropped connection.
+
 :::note
 While the transfer window is connected, **every drive of your PC** is visible to the server — that is how the files get
 there; the window is closed as soon as the copy is done. With Remote Desktop Connection only the needed drives are
@@ -126,9 +131,10 @@ stays). **Clear done** removes all finished rows. The window can be closed while
 ## How resuming works over a network share
 
 - Each file is copied in 1 MB chunks into `<name>.harbor-part` next to its destination.
-- After every chunk is written and flushed, Harbor saves its position and a hash in a small journal
-  (`transfers\<id>.json` in the [data folder](../../reference/data-and-files/)). So Harbor always knows exactly how
-  much reached the destination — after a dropped connection, a closed app or a crash.
+- After every chunk is written and flushed, Harbor records its position and a hash in a small journal
+  (`transfers\<id>.json` in the [data folder](../../reference/data-and-files/)), saved at most once a second while
+  copying. So Harbor knows how much reached the destination — after a dropped connection, a closed app or a crash
+  (at most about a second of copying is done again). The next chunk is read while the current one is written.
 - Before continuing it checks the partial file against the journal (its length and the last chunk's hash) and copies
   again anything that did not really arrive. If the source file changed in the meantime the copy starts over.
 - When all bytes are in, the partial file is renamed to its real name.

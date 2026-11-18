@@ -296,7 +296,17 @@ public sealed class TransferQueue : IAsyncDisposable
             _jobs[i] = copy;
         }
 
-        Persist(copy);
+        // SPEC FR-70: while copying, the journal (which holds every chunk's hash) is written at most once a second, not
+        // after every chunk. Lagging behind is safe: it then claims fewer bytes than were flushed. Every other change of
+        // state is written at once.
+        var now = DateTimeOffset.UtcNow;
+        if (copy.State != TransferState.Running || copy.Id != _lastPersistedId || now - _lastPersisted >= JournalInterval)
+        {
+            _lastPersistedId = copy.Id;
+            _lastPersisted = now;
+            Persist(copy);
+        }
+
         JobChanged?.Invoke(this, copy.Clone());
     }
 
@@ -342,6 +352,12 @@ public sealed class TransferQueue : IAsyncDisposable
         });
         lock (_gate) PendingDeletes = Task.WhenAll(PendingDeletes, delete);
     }
+
+    /// <summary>Longest a running job's journal lags behind its copy. SPEC FR-70</summary>
+    public static readonly TimeSpan JournalInterval = TimeSpan.FromSeconds(1);
+
+    private Guid _lastPersistedId;
+    private DateTimeOffset _lastPersisted;
 
     /// <summary>Partial files of cancelled transfers still being deleted (tests wait for it).</summary>
     internal Task PendingDeletes { get; private set; } = Task.CompletedTask;

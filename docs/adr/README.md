@@ -56,3 +56,4 @@ Process: see [spec/README.md](../spec/README.md).
 | [0048](0048-delete-shown-entries.md) | Several entries are deleted by deleting the entries the tree shows (search and filter), not by multi-selection | Accepted |
 | [0049](0049-bulk-delete-never-shared.md) | Deleting the shown entries never deletes from the shared database; shared entries go one at a time | Accepted |
 | [0050](0050-transfer-progress-of-the-whole.md) | Transfers of several files are one row with the progress, speed and time left of the whole | Accepted |
+| [0051](0051-faster-resumable-copies.md) | Resumable copies save progress every second or two, not after every chunk, and read ahead | Accepted |

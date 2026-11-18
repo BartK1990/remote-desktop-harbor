@@ -97,7 +97,7 @@
           </StackPanel>
         </Border>
         <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,2,0,8"
-                   Text="Each file is copied in chunks and its progress is saved after every chunk: when the connection drops the copy waits or retries and continues where it stopped." />
+                   Text="Each file is copied in chunks and its progress is saved as it goes: when the connection drops the copy waits or retries and continues where it stopped." />
       </StackPanel>
 
       <DockPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">

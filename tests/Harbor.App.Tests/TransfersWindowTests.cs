@@ -61,18 +61,20 @@ public sealed class TransfersWindowTests : IDisposable
             throw new InvalidOperationException("not in tests");
     }
 
-    // Pack URIs such as /Themes/Tokens.xaml resolve against the application's assembly, which in a test run is the
-    // test host unless it is set first (before any Application exists).
+    // Pack URIs such as /Themes/Tokens.xaml resolve against the application's resource assembly: the entry assembly,
+    // which in a test run is the test host. Its public setter refuses whenever there is an entry assembly, so the test
+    // points WPF's two copies of it at the app by reflection (test only; the app is its own entry assembly).
     static TransfersWindowTests()
     {
-        try
-        {
-            Application.ResourceAssembly = typeof(App).Assembly;
-        }
-        catch (InvalidOperationException)
-        {
-            // already set by another test class
-        }
+        var app = typeof(App).Assembly;
+        const BindingFlags Static = BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public;
+        var field = typeof(Application).GetFields(Static).FirstOrDefault(f => f.FieldType == typeof(Assembly) && f.Name.Contains("resourceAssembly", StringComparison.OrdinalIgnoreCase))
+                    ?? throw new InvalidOperationException("WPF's resource assembly field was not found");
+        field.SetValue(null, app);
+        var helper = typeof(UIElement).Assembly.GetType("MS.Internal.BaseUriHelper") ?? typeof(Application).Assembly.GetType("MS.Internal.BaseUriHelper")
+                     ?? throw new InvalidOperationException("BaseUriHelper was not found");
+        var property = helper.GetProperty("ResourceAssembly", Static) ?? throw new InvalidOperationException("BaseUriHelper.ResourceAssembly was not found");
+        property.SetValue(null, app);
     }
 
     private static void RunOnSta(Action test)
