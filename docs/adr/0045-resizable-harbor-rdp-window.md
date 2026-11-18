@@ -49,3 +49,11 @@ Option 1, as a choice: mstsc stays the default (FR-10).
   entries or needs use mstsc (the menu item names it).
 * The window and resizing only run on Windows and are tested by hand; the settings mapping and size limits are covered
   by `RdpWindowTests` (NFR-30).
+
+## Amendment (2026-11-18)
+
+Applying a new size 400 ms after the last resize event was too eager: pausing while dragging the border, or a quick
+maximize and restore, made the server redraw and rearrange the remote desktop several times. Now nothing is applied
+while the border (or the window) is being dragged (`ResizeBegin` … `ResizeEnd`); the size is applied once the window
+has kept it for `RdpWindowSettings.ResizeDelay` (1.5 s) after the border is let go, or after maximizing, restoring or
+snapping. Moving to a screen with another scale still resizes at once.

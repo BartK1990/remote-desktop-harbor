@@ -173,6 +173,33 @@ public sealed class RdpTransferTests : IDisposable
         Assert.False(System.IO.File.Exists(Path.Combine(ServerFolder, "big.bin.harbor-part")));
     }
 
+    // SPEC FR-70: the total is the whole transfer from the first chunk on, and the file being copied is named with its
+    // sub-folder.
+    [Fact]
+    public void Progress_is_of_the_whole_folder_and_names_the_file_being_copied()
+    {
+        if (PowerShell is null) return;
+        var first = File(Path.Combine("folder", "first.bin"), 3 * Chunk, seed: 1);
+        var second = File(Path.Combine("folder", "sub", "second.bin"), 5 * Chunk, seed: 2);
+        var prepared = Upload([(first, @"folder\first.bin"), (second, @"folder\sub\second.bin")]);
+
+        Assert.Equal(3, Run(prepared, "-TestExitAfterChunks 1")); // stopped in the first file
+        var status = Kit.ReadStatus(prepared.Plan.Id)!;
+        Assert.Equal((8L * Chunk, 1L * Chunk), (status.BytesTotal, status.BytesDone)); // the second file counts already
+        Assert.Equal(Path.Combine("folder", "first.bin"), status.CurrentFile);
+
+        Assert.Equal(3, Run(prepared, "-TestExitAfterChunks 3")); // resumed, stopped in the second file
+        status = Kit.ReadStatus(prepared.Plan.Id)!;
+        Assert.Equal((8L * Chunk, 4L * Chunk), (status.BytesTotal, status.BytesDone));
+        Assert.Equal(Path.Combine("folder", "sub", "second.bin"), status.CurrentFile);
+        Assert.Equal((1L * Chunk, 5L * Chunk), (status.CurrentFileBytesDone, status.CurrentFileBytes));
+
+        Assert.Equal(0, Run(prepared));
+        status = Kit.ReadStatus(prepared.Plan.Id)!;
+        Assert.Equal(("done", 8L * Chunk), (status.State, status.BytesDone));
+        Assert.Equal(status.BytesTotal, status.BytesDone);
+    }
+
     [Fact]
     public void Download_copies_server_files_to_the_shared_pc_folder()
     {

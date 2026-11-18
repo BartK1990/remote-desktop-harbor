@@ -79,6 +79,24 @@ public sealed class TransferJob
 
     public int ChunkSize { get; set; } = DefaultChunkSize;
 
+    /// <summary>
+    /// The transfer this file is part of when several files were picked or a folder was uploaded: the list shows them as
+    /// one row with the progress of the whole (SPEC FR-70); <c>null</c> for a file on its own.
+    /// </summary>
+    public Guid? BatchId { get; set; }
+
+    /// <summary>What the batch row is called, e.g. the uploaded folder's name or "12 files".</summary>
+    public string? BatchName { get; set; }
+
+    /// <summary>The folder the batch copies into; files are shown relative to it.</summary>
+    public string? BatchDestination { get; set; }
+
+    /// <summary>
+    /// Size of the source when it was queued, or -1: counts in the batch total before the copy has read the file's real
+    /// <see cref="Length"/>, so the bar is a share of the whole from the start (SPEC FR-70).
+    /// </summary>
+    public long SizeHint { get; set; } = -1;
+
     /// <summary>Source length and last write time when copying started; a change restarts the copy from 0.</summary>
     public long Length { get; set; } = -1;
     public long SourceLastWriteUtcTicks { get; set; }
@@ -98,6 +116,10 @@ public sealed class TransferJob
     public string PartialPath => DestinationPath + PartialSuffix;
     [JsonIgnore]
     public string FileName => Path.GetFileName(SourcePath);
+    /// <summary>Bytes this file counts for in a total: its length once known, else <see cref="SizeHint"/>, else 0.</summary>
+    [JsonIgnore]
+    public long ExpectedLength => Length >= 0 ? Length : Math.Max(SizeHint, 0);
+
     [JsonIgnore]
     public bool IsFinished => State is TransferState.Completed or TransferState.Failed;
 

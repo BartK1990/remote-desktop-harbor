@@ -53,8 +53,9 @@ the start command on the clipboard, and you press <kbd>Win</kbd>+<kbd>R</kbd>, <
 The command looks like `\\tsclient\C\Users\you\AppData\Local\RemoteDesktopHarbor\rdp-transfers\<id>\start.cmd`.
 **Copy command** in the window (and on each unfinished row) puts it on the clipboard again.
 
-The File transfer window shows the progress the helper reports: file *n* of *m*, bytes, *waiting for Remote Desktop to
-reconnect*, done or failed. **Cancel** asks the helper to stop and delete the partly copied files.
+The File transfer window shows the progress the helper reports: file *n* of *m*, bytes and percentage of the **whole
+transfer** (the bar too), the average speed and the time left, the file being copied now with its sub-folder, *waiting
+for Remote Desktop to reconnect*, done or failed. **Cancel** asks the helper to stop and delete the partly copied files.
 
 **When the connection drops**, the remote session keeps running and so does the helper: it waits for Remote Desktop to
 reconnect — by itself, with **Reconnect** in the transfer window, or **Connect** on the transfer's row — and continues
@@ -102,12 +103,15 @@ folder again and only the new files are copied. Harbor remembers the choice.
 ## Following transfers
 
 Transfers run one after another. Each row shows the file, the direction, the destination, a progress bar and the
-state:
+state. When you upload a folder or pick several files, they are **one row**: the bar and *1.2 GB of 4.5 GB (27%)* are of
+all the files together, followed by the **average speed** and **time left**, and a second line names the file being
+copied now (with its sub-folder) and how far it is. **Pause**, **Resume** and **Cancel** on that row act on all its
+files; files already copied stay when you cancel.
 
 | State | Meaning |
 |---|---|
 | Waiting | Queued behind other transfers. |
-| Copying | Copying now, with bytes done of the total. |
+| Copying | Copying now: file *n* of *m*, bytes done of the total with the percentage, average speed and time left. |
 | Connection lost, retrying | The connection dropped; Harbor retries automatically from where it stopped. |
 | Paused | Paused by you, by closing the app, or after 10 minutes of retrying. **Resume** continues where it stopped. |
 | Done | Copied completely; the file has its final name. |

@@ -16,8 +16,10 @@ full-screen or close it like any other Remote Desktop session. Connections can a
 Harbor can open a connection in a window of its own, like the one used for
 [file transfers](../file-transfer/): a normal window you can resize, snap or **maximize without going full screen**
 (the taskbar and your other windows stay where they are). The **remote resolution follows the window**: when you resize
-or maximize it, the remote desktop is resized to exactly the window's size a moment later, and moving the window to
-a screen with another scale keeps text the same size.
+or maximize it, the remote desktop is resized to exactly the window's size once the window has settled: nothing changes
+while you drag the border, and about 1.5 seconds after you let go (or maximize or restore it) the desktop takes the new
+size, so a few quick changes cause one resize. Moving the window to a screen with another scale keeps text the same
+size.
 
 - **Shift+Enter** in the list, or **Connect in Harbor window** in the right-click menu or the **More** menu, opens the
   selected entry there once.

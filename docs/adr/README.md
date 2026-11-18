@@ -55,3 +55,4 @@ Process: see [spec/README.md](../spec/README.md).
 | [0047](0047-own-sessions-always-listed.md) | The app always lists its own Remote Desktop sessions as active, also in local mode and offline | Accepted |
 | [0048](0048-delete-shown-entries.md) | Several entries are deleted by deleting the entries the tree shows (search and filter), not by multi-selection | Accepted |
 | [0049](0049-bulk-delete-never-shared.md) | Deleting the shown entries never deletes from the shared database; shared entries go one at a time | Accepted |
+| [0050](0050-transfer-progress-of-the-whole.md) | Transfers of several files are one row with the progress, speed and time left of the whole | Accepted |
