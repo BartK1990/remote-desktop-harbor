@@ -122,6 +122,29 @@ public static class RdpFile
         ["autoreconnection enabled"] = "autoreconnection enabled:i:1",
     };
 
+    // Characters Windows does not allow in a file name (on any OS, so the result is the same in tests on Linux).
+    private static readonly char[] InvalidFileNameChars = ['<', '>', ':', '"', '/', '\\', '|', '?', '*'];
+    private const int MaxFileNameLength = 100;
+
+    /// <summary>
+    /// Name (without folder) of the temporary .rdp file for <paramref name="entry"/>, e.g. <c>Web 01 (10.0.0.5).rdp</c>.
+    /// mstsc.exe shows the file name at the start of its window title, so it names the entry and its host (SPEC FR-71).
+    /// </summary>
+    public static string LaunchFileName(ConnectionEntry entry)
+    {
+        var host = entry.Host?.Trim() ?? "";
+        var name = entry.Name?.Trim() ?? "";
+        var title = name.Length == 0 || string.Equals(name, host, StringComparison.OrdinalIgnoreCase) ? host
+            : host.Length == 0 ? name
+            : $"{name} ({host})";
+
+        var chars = title.Select(c => char.IsControl(c) || Array.IndexOf(InvalidFileNameChars, c) >= 0 ? '_' : c).ToArray();
+        var safe = new string(chars);
+        if (safe.Length > MaxFileNameLength) safe = safe[..MaxFileNameLength];
+        safe = safe.Trim().TrimEnd('.', ' ');
+        return (safe.Length == 0 ? "Remote Desktop" : safe) + ".rdp";
+    }
+
     /// <summary>Target name mstsc.exe looks up in Credential Manager for <paramref name="host"/>.</summary>
     public static string CredentialTarget(string host) => $"TERMSRV/{host}";
 

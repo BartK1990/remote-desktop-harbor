@@ -84,4 +84,24 @@ public class RdpFileTests
         Assert.False(entry.CanLaunch);
         Assert.Throws<InvalidOperationException>(() => RdpFile.Build(entry));
     }
+
+    // SPEC FR-71
+    [Theory]
+    [InlineData("Web 01", "10.0.0.5", "Web 01 (10.0.0.5).rdp")]
+    [InlineData("", "10.0.0.5", "10.0.0.5.rdp")]
+    [InlineData("srv01", "SRV01", "SRV01.rdp")]
+    [InlineData("  DB: primary / west?  ", "db.contoso.local", "DB_ primary _ west_ (db.contoso.local).rdp")]
+    [InlineData("Build...", "", "Build.rdp")]
+    public void Launch_file_is_named_after_the_entry_and_its_host(string name, string host, string expected)
+    {
+        var entry = ConnectionEntry.CreateNew(name) with { Host = host };
+        Assert.Equal(expected, RdpFile.LaunchFileName(entry));
+    }
+
+    [Fact]
+    public void Launch_file_name_is_kept_short()
+    {
+        var entry = ConnectionEntry.CreateNew(new string('a', 300)) with { Host = "10.0.0.5" };
+        Assert.True(RdpFile.LaunchFileName(entry).Length <= 104);
+    }
 }
