@@ -24,8 +24,11 @@ public sealed class MstscLauncher(string tempDirectory, bool keepCredential, Act
     public Task<IRdpSession> LaunchAsync(ConnectionEntry entry, string? password, IReadOnlyList<string>? overrides = null,
         CancellationToken cancellationToken = default)
     {
-        Directory.CreateDirectory(tempDirectory);
-        var rdpPath = Path.Combine(tempDirectory, $"{Guid.NewGuid():N}.rdp");
+        // mstsc titles its window with the file name, so the file is named after the entry and its host; a folder of
+        // its own per launch keeps two launches of one entry apart (SPEC FR-71).
+        var launchDirectory = Path.Combine(tempDirectory, Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(launchDirectory);
+        var rdpPath = Path.Combine(launchDirectory, RdpFile.LaunchFileName(entry));
         File.WriteAllText(rdpPath, RdpFile.Build(entry, overrides: overrides));
 
         var target = RdpFile.CredentialTarget(entry.Host!);
@@ -71,6 +74,7 @@ public sealed class MstscLauncher(string tempDirectory, bool keepCredential, Act
         try
         {
             File.Delete(rdpPath);
+            Directory.Delete(Path.GetDirectoryName(rdpPath)!);
             if (credentialTarget is not null)
             {
                 WindowsCredentialStore.Delete(credentialTarget);

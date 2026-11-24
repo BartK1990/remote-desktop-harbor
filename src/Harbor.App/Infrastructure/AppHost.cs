@@ -154,11 +154,22 @@ public sealed class AppHost : IAsyncDisposable
                 return;
             }
 
+            var cutoff = DateTime.UtcNow.AddMinutes(-5);
             foreach (var file in System.IO.Directory.EnumerateFiles(AppPaths.TempDirectory, "*.rdp"))
             {
-                if (System.IO.File.GetLastWriteTimeUtc(file) < DateTime.UtcNow.AddMinutes(-5))
+                if (System.IO.File.GetLastWriteTimeUtc(file) < cutoff)
                 {
                     System.IO.File.Delete(file);
+                }
+            }
+
+            // One folder per launch holds a file named after the entry (SPEC FR-71).
+            foreach (var folder in System.IO.Directory.EnumerateDirectories(AppPaths.TempDirectory))
+            {
+                if (System.IO.Directory.GetLastWriteTimeUtc(folder) < cutoff
+                    && System.IO.Directory.EnumerateFiles(folder).All(f => f.EndsWith(".rdp", StringComparison.OrdinalIgnoreCase)))
+                {
+                    System.IO.Directory.Delete(folder, recursive: true);
                 }
             }
         }
