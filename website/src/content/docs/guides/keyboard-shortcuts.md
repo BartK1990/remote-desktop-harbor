@@ -16,11 +16,13 @@ description: Keyboard shortcuts in the main window.
 | Double-click (in the tree) | Connect to the entry; on a folder, expand or collapse it |
 | <kbd>←</kbd> / <kbd>→</kbd> (in the tree) | Collapse / expand the folder; <kbd>←</kbd> on an entry jumps to its folder |
 | <kbd>↑</kbd> / <kbd>↓</kbd> (in the tree) | Previous / next visible row |
+| <kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Alt</kbd>+<kbd>↓</kbd> (in the tree) | Move the selected entry or folder up / down, in [manual order](../managing-entries/#the-folder-tree) |
 | <kbd>Del</kbd> (in the tree) | Delete the selected entry, or the selected [smart group](../smart-groups/) (after confirmation) |
 | <kbd>F2</kbd> | Edit the selected entry, or the selected smart group |
 | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> | Copy the selected account's password (cleared from the clipboard after 30 s) |
 | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>U</kbd> | Copy the selected account's user name |
 | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd> | Copy the selected entry's host (`host:port` for a non-default port) |
+| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> | [Duplicate](../managing-entries/#duplicate) the selected entry |
 | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> | [Transfer files](../file-transfer/) to or from the selected entry's host |
 | <kbd>Ctrl</kbd>+<kbd>,</kbd> | Open Settings |
 | <kbd>F5</kbd> | Sync with the shared database and refresh presence |

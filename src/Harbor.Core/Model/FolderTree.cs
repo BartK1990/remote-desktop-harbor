@@ -32,9 +32,11 @@ public static class FolderTree
 
     /// <summary>
     /// Groups <paramref name="items"/> into a tree by their folder. Within a folder, sub-folders come first, then items;
-    /// both are sorted by name. Items without a folder end up directly in the returned root.
+    /// both are sorted by name, or by <paramref name="order"/> when given (SPEC FR-72; items need <paramref name="keyOf"/>,
+    /// their <see cref="ManualOrder.EntryKey"/>). Items without a folder end up directly in the returned root.
     /// </summary>
-    public static FolderTreeNode<T> Build<T>(IEnumerable<T> items, Func<T, string?> folderOf, Func<T, string> nameOf)
+    public static FolderTreeNode<T> Build<T>(IEnumerable<T> items, Func<T, string?> folderOf, Func<T, string> nameOf,
+        ManualOrder? order = null, Func<T, string>? keyOf = null)
     {
         var root = new FolderTreeNode<T>("", "");
         foreach (var item in items)
@@ -48,7 +50,13 @@ public static class FolderTree
             node.ItemList.Add(item);
         }
 
-        root.Complete(nameOf);
+        Comparison<FolderTreeNode<T>> folders = order is null
+            ? (a, b) => string.Compare(a.Name, b.Name, StringComparison.CurrentCultureIgnoreCase)
+            : (a, b) => order.Compare(ManualOrder.FolderKey(a.Path), a.Name, ManualOrder.FolderKey(b.Path), b.Name);
+        Comparison<T> itemOrder = order is null || keyOf is null
+            ? (a, b) => string.Compare(nameOf(a), nameOf(b), StringComparison.CurrentCultureIgnoreCase)
+            : (a, b) => order.Compare(keyOf(a), nameOf(a), keyOf(b), nameOf(b));
+        root.Complete(folders, itemOrder);
         return root;
     }
 }
@@ -91,14 +99,14 @@ public sealed class FolderTreeNode<T>
         return folder;
     }
 
-    internal void Complete(Func<T, string> nameOf)
+    internal void Complete(Comparison<FolderTreeNode<T>> folderOrder, Comparison<T> itemOrder)
     {
-        _folders.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.CurrentCultureIgnoreCase));
-        ItemList.Sort((a, b) => string.Compare(nameOf(a), nameOf(b), StringComparison.CurrentCultureIgnoreCase));
+        _folders.Sort(folderOrder);
+        ItemList.Sort(itemOrder);
         TotalCount = ItemList.Count;
         foreach (var folder in _folders)
         {
-            folder.Complete(nameOf);
+            folder.Complete(folderOrder, itemOrder);
             TotalCount += folder.TotalCount;
         }
     }

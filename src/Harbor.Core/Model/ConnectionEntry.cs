@@ -105,6 +105,24 @@ public sealed record ConnectionEntry
         : string.IsNullOrWhiteSpace(domain) || userName.Contains('\\') || userName.Contains('@') ? userName
         : $"{domain}\\{userName}";
 
+    /// <summary>
+    /// The name of a duplicate of an entry named <paramref name="name"/> (SPEC FR-73): <c>Web 01 (copy)</c>, then
+    /// <c>Web 01 (copy 2)</c>… — the first one not in <paramref name="taken"/> (ignoring case). Duplicating a copy counts on
+    /// from its base name instead of adding another "(copy)".
+    /// </summary>
+    public static string CopyName(string name, IEnumerable<string> taken)
+    {
+        var used = new HashSet<string>(taken.Select(t => t.Trim()), StringComparer.CurrentCultureIgnoreCase);
+        var match = System.Text.RegularExpressions.Regex.Match(name.Trim(), @"^(?<base>.*?)\s*\(copy(?:\s+\d+)?\)$",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+        var baseName = match.Success && match.Groups["base"].Length > 0 ? match.Groups["base"].Value : name.Trim();
+        for (var n = 1; ; n++)
+        {
+            var candidate = n == 1 ? $"{baseName} (copy)" : $"{baseName} (copy {n})";
+            if (!used.Contains(candidate)) return candidate;
+        }
+    }
+
     public static ConnectionEntry CreateNew(string name, EntryKind kind = EntryKind.RdpConnection) =>
         new() { Id = Guid.NewGuid(), Name = name, Kind = kind };
 }

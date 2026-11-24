@@ -254,13 +254,15 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     /// <summary>The selected tree row (folder, entry or account); kept in sync with <see cref="Selected"/>.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SelectedAccount), nameof(ConnectText), nameof(TakeoverWarning), nameof(SelectedSmartGroup))]
-    [NotifyCanExecuteChangedFor(nameof(EditCommand), nameof(DeleteCommand), nameof(EditSmartGroupCommand), nameof(DeleteSmartGroupCommand))]
+    [NotifyCanExecuteChangedFor(nameof(EditCommand), nameof(DeleteCommand), nameof(EditSmartGroupCommand), nameof(DeleteSmartGroupCommand),
+        nameof(MoveUpCommand), nameof(MoveDownCommand))]
     private TreeNodeViewModel? _selectedNode;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(ConnectCommand), nameof(EditCommand), nameof(DeleteCommand), nameof(CopyPasswordCommand), nameof(CopyUserNameCommand),
         nameof(CopyHostCommand), nameof(ConnectAsCommand), nameof(ConnectOtherWayCommand),
-        nameof(TogglePinCommand), nameof(MoveToLocalCommand), nameof(MoveToSharedCommand), nameof(TransferFilesCommand))]
+        nameof(TogglePinCommand), nameof(MoveToLocalCommand), nameof(MoveToSharedCommand), nameof(TransferFilesCommand),
+        nameof(DuplicateCommand))]
     [NotifyPropertyChangedFor(nameof(PinText))]
     private EntryViewModel? _selected;
 
@@ -268,18 +270,19 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     [NotifyCanExecuteChangedFor(nameof(AddCommand), nameof(EditCommand), nameof(DeleteCommand), nameof(ImportRdpCommand), nameof(ImportRdmCommand),
         nameof(ConnectCommand), nameof(ConnectAsCommand), nameof(ConnectOtherWayCommand), nameof(MoveToLocalCommand), nameof(MoveToSharedCommand),
         nameof(TransferFilesCommand), nameof(NewSmartGroupCommand), nameof(EditSmartGroupCommand), nameof(DeleteSmartGroupCommand),
-        nameof(ExportBackupCommand), nameof(RestoreBackupCommand), nameof(DeleteShownCommand))]
+        nameof(ExportBackupCommand), nameof(RestoreBackupCommand), nameof(DeleteShownCommand), nameof(DuplicateCommand),
+        nameof(MoveUpCommand), nameof(MoveDownCommand))]
     private bool _isReady;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(AddCommand), nameof(EditCommand), nameof(DeleteCommand), nameof(ImportRdpCommand), nameof(ImportRdmCommand),
-        nameof(MoveToLocalCommand), nameof(MoveToSharedCommand), nameof(RestoreBackupCommand))]
+        nameof(MoveToLocalCommand), nameof(MoveToSharedCommand), nameof(RestoreBackupCommand), nameof(DuplicateCommand))]
     private bool _canWrite;
 
     /// <summary>Shared-database mode with this PC's vault: entries can be kept on this PC only (SPEC FR-29, ADR-0038).</summary>
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(AddCommand), nameof(EditCommand), nameof(DeleteCommand), nameof(ImportRdpCommand),
-        nameof(MoveToLocalCommand), nameof(MoveToSharedCommand))]
+        nameof(MoveToLocalCommand), nameof(MoveToSharedCommand), nameof(DuplicateCommand))]
     private bool _supportsLocalEntries;
 
     // The "This PC" filter is hidden without local-only entries; never leave the tree filtered by it then. SPEC FR-29
@@ -478,7 +481,8 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         var visible = Entries.Where(e => e.Matches(SearchText) && PassesFilter(e)).ToList();
         _shown = visible;
         DeleteShownCommand.NotifyCanExecuteChanged();
-        var root = FolderTree.Build(visible, e => e.Model.Folder, e => e.Name);
+        var root = FolderTree.Build(visible, e => e.Model.Folder, e => e.Name,
+            IsManualOrder ? new ManualOrder(Settings.ManualOrder) : null, e => ManualOrder.EntryKey(e.Model.Id)); // SPEC FR-72
         var previous = _folders;
         _folders = new Dictionary<string, FolderViewModel>(StringComparer.CurrentCultureIgnoreCase);
 
@@ -530,6 +534,9 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         {
             SelectedNode = null;
         }
+
+        MoveUpCommand.NotifyCanExecuteChanged();
+        MoveDownCommand.NotifyCanExecuteChanged();
     }
 
     /// <summary>
@@ -638,6 +645,106 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
             if (_folders.TryGetValue(path, out var vm)) vm.IsExpanded = true;
             else (IsSearching ? _collapsedWhileSearching : _collapsed).Remove(path);
         }
+    }
+
+    // ------------------------------------------------------------------ manual order (SPEC FR-72, ADR-0052)
+
+    /// <summary>The tree is in the user's own order instead of by name.</summary>
+    public bool IsManualOrder
+    {
+        get => Settings.TreeOrder == TreeOrder.Manual;
+        set
+        {
+            if (value == IsManualOrder) return;
+            Settings.TreeOrder = value ? TreeOrder.Manual : TreeOrder.Name;
+            SaveSettingsQuietly("Entry order");
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsNameOrder));
+            RebuildTree();
+            StatusText = value
+                ? "Manual order: move the selected entry or folder with Alt+Up and Alt+Down"
+                : "Sorted by name. Your manual order is kept for when you switch back";
+        }
+    }
+
+    public bool IsNameOrder => !IsManualOrder;
+
+    [RelayCommand]
+    private void SortByName() => IsManualOrder = false;
+
+    [RelayCommand]
+    private void UseManualOrder() => IsManualOrder = true;
+
+    [RelayCommand(CanExecute = nameof(CanMoveUp))]
+    private void MoveUp() => MoveSelection(-1);
+
+    [RelayCommand(CanExecute = nameof(CanMoveDown))]
+    private void MoveDown() => MoveSelection(1);
+
+    private bool CanMoveUp() => CanMoveSelection(-1);
+    private bool CanMoveDown() => CanMoveSelection(1);
+
+    /// <summary>
+    /// The selected entry or folder can move among its siblings: in manual order, while the whole tree is shown (no search,
+    /// filter All), so the rows it passes are its real neighbours. Personal, so also while offline.
+    /// </summary>
+    private bool CanMoveSelection(int offset)
+    {
+        if (!IsReady || !IsManualOrder || IsSearching || TreeFilter != TreeFilter.All) return false;
+        if (SiblingsOfSelection() is not ({ } siblings, { } key)) return false;
+        var index = siblings.ToList().FindIndex(k => string.Equals(k, key, StringComparison.OrdinalIgnoreCase));
+        return index >= 0 && index + offset >= 0 && index + offset < siblings.Count;
+    }
+
+    private void MoveSelection(int offset)
+    {
+        if (!CanMoveSelection(offset) || SiblingsOfSelection() is not ({ } siblings, { } key)) return;
+        Settings.ManualOrder = ManualOrder.Move(Settings.ManualOrder, siblings, key, offset, KnownOrderKeys());
+        SaveSettingsQuietly("Entry order");
+        RebuildTree();
+        if (SelectedNode is EntryViewModel entry) RevealFolder(entry.Model.Folder);
+        StatusText = SelectedNode switch
+        {
+            FolderViewModel f => $"Moved folder {f.Name} {(offset < 0 ? "up" : "down")}",
+            EntryViewModel e => $"Moved {e.Name} {(offset < 0 ? "up" : "down")}",
+            _ => StatusText,
+        };
+    }
+
+    /// <summary>
+    /// The keys of the selected row and of its siblings of the same kind (entries, or sub-folders) as shown; <c>null</c> for
+    /// rows that cannot be moved (accounts, smart groups and the entries they list).
+    /// </summary>
+    private (IReadOnlyList<string> Siblings, string Key)? SiblingsOfSelection() => SelectedNode switch
+    {
+        EntryViewModel e => (EntrySiblingKeys(e.Model.Folder), ManualOrder.EntryKey(e.Model.Id)),
+        FolderViewModel f => (RowsIn(ParentPath(f.Path)).OfType<FolderViewModel>().Select(r => ManualOrder.FolderKey(r.Path)).ToList(),
+            ManualOrder.FolderKey(f.Path)),
+        _ => null,
+    };
+
+    /// <summary>The keys of the entries shown in <paramref name="folder"/>, in the order they are shown.</summary>
+    private List<string> EntrySiblingKeys(string? folder) =>
+        RowsIn(folder).OfType<EntryViewModel>().Select(r => ManualOrder.EntryKey(r.Model.Id)).ToList();
+
+    /// <summary>The rows shown in <paramref name="folder"/> (the top level for none).</summary>
+    private TreeChildren RowsIn(string? folder) => FolderTree.Normalize(folder) is { } path
+        ? _folders.TryGetValue(path, out var vm) ? vm.Children : []
+        : Tree;
+
+    private static string? ParentPath(string path) => FolderTree.AncestorPaths(path) is { Count: > 1 } paths ? paths[^2] : null;
+
+    /// <summary>Keys of every entry and folder; others are dropped from the saved order when it is next changed.</summary>
+    private HashSet<string> KnownOrderKeys()
+    {
+        var keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var entry in Entries)
+        {
+            keys.Add(ManualOrder.EntryKey(entry.Model.Id));
+            foreach (var path in FolderTree.AncestorPaths(entry.Model.Folder)) keys.Add(ManualOrder.FolderKey(path));
+        }
+
+        return keys;
     }
 
     [RelayCommand]
@@ -1085,9 +1192,39 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         return RunEditorAsync(editor);
     }
 
-    private async Task RunEditorAsync(EntryEditorViewModel editor)
+    /// <summary>
+    /// Opens the editor on a duplicate of the selected entry (SPEC FR-73): everything copied, passwords included, named
+    /// "… (copy)", in the same folder and storage. Nothing is stored until it is saved; in manual order (FR-72) it is
+    /// placed right after the original.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanEditSelection))]
+    private async Task DuplicateAsync()
     {
-        if (_host is null) return;
+        if (_host is null || Selected is not { } vm) return;
+        var original = vm.Model;
+        var folder = FolderTree.Normalize(original.Folder);
+        var taken = Entries.Where(e => string.Equals(FolderTree.Normalize(e.Model.Folder), folder, StringComparison.CurrentCultureIgnoreCase))
+            .Select(e => e.Model.Name);
+        var copy = _host.Workspace.Duplicate(original, taken);
+        var editor = new EntryEditorViewModel(copy, isNew: true, _dialogs, Folders(), copyOf: original.Name);
+        if (SupportsLocalEntries) editor.OfferLocalStorage(sharedAvailable: CanWrite);
+
+        // Where the duplicate goes in the user's own order, worked out before saving changes the folder's rows; only
+        // while the whole tree is shown, so the rows are all of the folder's entries.
+        var siblings = !IsSearching && TreeFilter == TreeFilter.All ? EntrySiblingKeys(original.Folder) : null;
+        if (await RunEditorAsync(editor) is { } saved && IsManualOrder && siblings is not null
+            && string.Equals(FolderTree.Normalize(saved.Folder), folder, StringComparison.CurrentCultureIgnoreCase))
+        {
+            Settings.ManualOrder = ManualOrder.PlaceAfter(Settings.ManualOrder, siblings,
+                ManualOrder.EntryKey(saved.Id), ManualOrder.EntryKey(original.Id));
+            SaveSettingsQuietly("Entry order");
+            RebuildTree();
+        }
+    }
+
+    private async Task<ConnectionEntry?> RunEditorAsync(EntryEditorViewModel editor)
+    {
+        if (_host is null) return null;
         while (_dialogs.EditEntry(editor))
         {
             try
@@ -1097,13 +1234,13 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
                 Selected = Entries.FirstOrDefault(e => e.Model.Id == saved.Id);
                 RevealFolder(saved.Folder); // also when an already selected entry moved to another folder
                 StatusText = $"Saved {saved.Name}";
-                return;
+                return saved;
             }
             catch (Exception ex) when (ex is ConcurrencyConflictException or WorkspaceOfflineException)
             {
                 _dialogs.ShowError("Not saved", ex.Message);
                 if (ex is ConcurrencyConflictException) await SyncAsync();
-                return;
+                return null;
             }
             catch (Exception ex)
             {
@@ -1111,6 +1248,8 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
                 editor.Error = ex.Message; // reopen the editor with the message, keeping the user's input
             }
         }
+
+        return null;
     }
 
     [RelayCommand(CanExecute = nameof(CanEditSelectionOrGroup))]

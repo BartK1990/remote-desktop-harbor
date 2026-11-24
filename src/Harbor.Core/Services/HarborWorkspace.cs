@@ -428,6 +428,24 @@ public sealed class HarborWorkspace : IDisposable
     }
 
     /// <summary>
+    /// A new, unsaved duplicate of <paramref name="entry"/> (SPEC FR-73) to open in the editor: same folder, kind, host,
+    /// settings, notes and accounts, kept in the same place (shared database or this PC, FR-29), named by
+    /// <see cref="ConnectionEntry.CopyName"/>. It gets new ids and its passwords are re-encrypted bound to them (NFR-11),
+    /// so saving it with <see cref="SecretUpdate.Keep"/> keeps the original's passwords; the plaintext only lives in memory.
+    /// </summary>
+    public ConnectionEntry Duplicate(ConnectionEntry entry, IEnumerable<string> takenNames)
+    {
+        var cipher = CipherFor(entry);
+        return Recrypt(entry, cipher, cipher) with
+        {
+            Name = ConnectionEntry.CopyName(entry.Name, takenNames),
+            CreatedUtc = default,
+            UpdatedUtc = default,
+            UpdatedBy = null,
+        };
+    }
+
+    /// <summary>
     /// A new, unsaved copy of <paramref name="entry"/> with new ids whose passwords are decrypted with <paramref name="from"/>
     /// and encrypted with <paramref name="to"/>, bound to the new ids (NFR-11). The plaintext only lives in memory.
     /// </summary>
