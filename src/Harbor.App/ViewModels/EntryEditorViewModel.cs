@@ -16,8 +16,10 @@ public sealed partial class EntryEditorViewModel : ObservableValidator
     /// The name of the entry <paramref name="original"/> duplicates (SPEC FR-73): a new entry that already has the
     /// original's passwords, re-encrypted for it, and stays where the original is stored.
     /// </param>
+    /// <param name="personal">What this user keeps for the entry on this PC (SPEC FR-76); the form shows the settings as
+    /// this PC connects with them.</param>
     public EntryEditorViewModel(ConnectionEntry original, bool isNew, IDialogService dialogs, IEnumerable<string> folders,
-        string? copyOf = null)
+        string? copyOf = null, PersonalRdpSettings? personal = null)
     {
         _original = original;
         _dialogs = dialogs;
@@ -31,7 +33,11 @@ public sealed partial class EntryEditorViewModel : ObservableValidator
         _port = original.Port;
         _domain = original.Domain;
         _userName = original.UserName;
-        RdpSettings = new RdpSettingsEditorViewModel(original.RdpSettings);
+        RdpSettings = new RdpSettingsEditorViewModel(PersonalRdp.Merge(original.RdpSettings, personal))
+        {
+            OwnDisplay = personal?.OwnDisplay == true,
+            OwnResources = personal?.OwnResources == true,
+        };
         _notes = original.Notes;
         _isLocalOnly = original.IsLocalOnly;
         _changePassword = (IsNew && !IsCopy) || !original.HasPassword;
@@ -264,11 +270,17 @@ public sealed partial class EntryEditorViewModel : ObservableValidator
         Port = Port,
         Domain = string.IsNullOrWhiteSpace(Domain) ? null : Domain.Trim(),
         UserName = string.IsNullOrWhiteSpace(UserName) ? null : UserName.Trim(),
-        RdpSettings = !IsRdpConnection ? null : RdpSettings.Build() is { Length: > 0 } rdp ? rdp : null,
+        RdpSettings = !IsRdpConnection ? null : SplitRdpSettings().Shared,
         Notes = string.IsNullOrWhiteSpace(Notes) ? null : Notes,
         Accounts = Accounts.Select(a => a.Build()).ToList(),
         IsLocalOnly = IsNew ? IsLocalOnly : _original.IsLocalOnly,
     };
+
+    /// <summary>What is kept for this user on this PC only (SPEC FR-76); <c>null</c> for nothing.</summary>
+    public PersonalRdpSettings? BuildPersonalRdp() => IsRdpConnection ? SplitRdpSettings().Personal : null;
+
+    private (string? Shared, PersonalRdpSettings? Personal) SplitRdpSettings() =>
+        PersonalRdp.Split(RdpSettings.Build(), RdpSettings.OwnDisplay, _original.RdpSettings, RdpSettings.OwnResources);
 
     public SecretUpdate BuildSecretUpdate() => ToSecretUpdate(ChangePassword, Password);
 

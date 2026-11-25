@@ -176,4 +176,10 @@ public sealed class HarborSettings
     /// Personal, like pins: never written to a shared database. Kept while <see cref="TreeOrder"/> is by name.
     /// </summary>
     public List<string> ManualOrder { get; set; } = [];
+
+    /// <summary>
+    /// What this user keeps for an entry on this PC only, by entry id (SPEC FR-76, ADR-0054): the monitors a session uses
+    /// and, if chosen, the entry's whole display group. Personal: never written to a shared database.
+    /// </summary>
+    public Dictionary<Guid, Rdp.PersonalRdpSettings> PersonalRdp { get; set; } = [];
 }

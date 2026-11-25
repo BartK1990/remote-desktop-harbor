@@ -117,4 +117,34 @@ public class DuplicateAndOrderTests
         vm.SearchText = "a";
         Assert.False(vm.CanDrag(a)); // only while the whole tree is shown
     }
+
+    // SPEC FR-76: the editor shows the settings as this PC connects and splits them again on save.
+    [Fact]
+    public void Editor_keeps_own_display_settings_for_this_pc()
+    {
+        var entry = ConnectionEntry.CreateNew("srv") with { Host = "srv", RdpSettings = "screen mode id:i:1\naudiomode:i:2" };
+        var personal = new Harbor.Core.Rdp.PersonalRdpSettings { OwnDisplay = true, Lines = "use multimon:i:1" };
+        var editor = new EntryEditorViewModel(entry, isNew: false, new NoDialogs(), [], personal: personal);
+
+        Assert.True(editor.RdpSettings.OwnDisplay);
+        Assert.True(editor.RdpSettings.UseAllMonitors);
+        Assert.Equal(Harbor.Core.Rdp.RdpDisplayMode.FullScreen, editor.RdpSettings.DisplayMode); // this PC's, not the entry's window
+
+        Assert.Contains("screen mode id:i:1", editor.BuildEntry().RdpSettings, StringComparison.Ordinal); // unchanged for others
+        Assert.DoesNotContain("use multimon", editor.BuildEntry().RdpSettings, StringComparison.Ordinal);
+        Assert.Contains("use multimon:i:1", editor.BuildPersonalRdp()!.Lines, StringComparison.Ordinal);
+
+        editor.RdpSettings.OwnDisplay = false; // back to the entry's settings, edited for everyone
+        Assert.Contains("use multimon:i:1", editor.BuildEntry().RdpSettings, StringComparison.Ordinal);
+        Assert.Null(editor.BuildPersonalRdp());
+    }
+
+    [Fact]
+    public void Personal_settings_survive_a_round_trip()
+    {
+        var id = Guid.NewGuid();
+        var settings = new HarborSettings { PersonalRdp = { [id] = new() { OwnDisplay = true, OwnResources = true, Lines = "selectedmonitors:s:0,1" } } };
+        var read = SettingsStore.Deserialize(SettingsStore.Serialize(settings));
+        Assert.Equal(settings.PersonalRdp[id], read.PersonalRdp[id]);
+    }
 }

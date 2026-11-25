@@ -447,6 +447,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
             var vm = byId.TryGetValue(entry.Id, out var existing) ? existing : new EntryViewModel(entry);
             vm.Model = entry;
             vm.IsPinned = _pinned.Contains(entry.Id);
+            vm.PersonalRdp = PersonalFor(entry.Id); // SPEC FR-76
             Entries.Add(vm);
         }
 
@@ -923,7 +924,8 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         Func<ConnectionEntry, string?, Task<Core.Rdp.IRdpSession>>? launch = null)
     {
         if (_host is null) return false;
-        var entry = vm.Model;
+        // SPEC FR-76: as it connects on this PC, with this user's own monitors and display settings.
+        var entry = Core.Rdp.PersonalRdp.Apply(vm.Model, PersonalFor(vm.Model.Id));
         var account = entry.FindAccount(accountId);
         var accountName = entry.QualifiedUserNameFor(account);
 
@@ -1249,7 +1251,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         }
 
         if (Selected is not { } vm) return Task.CompletedTask;
-        var editor = new EntryEditorViewModel(vm.Model, isNew: false, _dialogs, Folders());
+        var editor = new EntryEditorViewModel(vm.Model, isNew: false, _dialogs, Folders(), personal: PersonalFor(vm.Model.Id));
         if (SupportsLocalEntries) editor.OfferLocalStorage(sharedAvailable: CanWrite);
         return RunEditorAsync(editor);
     }
@@ -1268,7 +1270,8 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         var taken = Entries.Where(e => string.Equals(FolderTree.Normalize(e.Model.Folder), folder, StringComparison.CurrentCultureIgnoreCase))
             .Select(e => e.Model.Name);
         var copy = _host.Workspace.Duplicate(original, taken);
-        var editor = new EntryEditorViewModel(copy, isNew: true, _dialogs, Folders(), copyOf: original.Name);
+        var editor = new EntryEditorViewModel(copy, isNew: true, _dialogs, Folders(), copyOf: original.Name,
+            personal: PersonalFor(original.Id));
         if (SupportsLocalEntries) editor.OfferLocalStorage(sharedAvailable: CanWrite);
 
         // Where the duplicate goes in the user's own order, worked out before saving changes the folder's rows; only
@@ -1298,6 +1301,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
                 var entry = editor.BuildEntry();
                 if (prepare is not null) entry = prepare(entry);
                 var saved = await _host.Workspace.SaveAsync(entry, editor.BuildSecretUpdate(), editor.BuildAccountSecretUpdates());
+                SetPersonal(saved.Id, editor.BuildPersonalRdp()); // SPEC FR-76: before the reload shows it
                 await ReloadAsync();
                 Selected = Entries.FirstOrDefault(e => e.Model.Id == saved.Id);
                 RevealFolder(saved.Folder); // also when an already selected entry moved to another folder
@@ -1339,6 +1343,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         try
         {
             await _host.Workspace.DeleteAsync(vm.Model);
+            SetPersonal(vm.Model.Id, null);
             Selected = null;
             await ReloadAsync();
         }
@@ -1397,6 +1402,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         }
 
         Log.Info($"Deleted {result.Deleted.Count} shown entries, {result.Failed.Count} not deleted");
+        foreach (var deleted in result.Deleted) SetPersonal(deleted.Id, null);
         if (Selected is { } selected && result.Deleted.Any(e => e.Id == selected.Model.Id)) Selected = null;
         await ReloadAsync();
         if (result.Failed.Count > 0)
@@ -1464,7 +1470,24 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         }
 
         Settings.RecentEntryIds = Settings.RecentEntryIds.Select(id => id == from ? to : id).ToList();
+
+        // SPEC FR-72, FR-76: its place in the manual order and its settings for this PC move with it.
+        var (fromKey, toKey) = (ManualOrder.EntryKey(from), ManualOrder.EntryKey(to));
+        Settings.ManualOrder = Settings.ManualOrder.Select(k => string.Equals(k, fromKey, StringComparison.OrdinalIgnoreCase) ? toKey : k).ToList();
+        if (Settings.PersonalRdp.Remove(from, out var personal)) Settings.PersonalRdp[to] = personal;
         SaveSettingsQuietly("Pinned and recent entries");
+    }
+
+    // ------------------------------------------------------------------ settings kept on this PC (SPEC FR-76, ADR-0054)
+
+    private Core.Rdp.PersonalRdpSettings? PersonalFor(Guid entryId) => Settings.PersonalRdp.GetValueOrDefault(entryId);
+
+    /// <summary>Keeps (or, for <c>null</c>, forgets) what this user keeps for an entry on this PC.</summary>
+    private void SetPersonal(Guid entryId, Core.Rdp.PersonalRdpSettings? personal)
+    {
+        var changed = personal is null ? Settings.PersonalRdp.Remove(entryId) : !Equals(PersonalFor(entryId), personal);
+        if (personal is not null) Settings.PersonalRdp[entryId] = personal;
+        if (changed) SaveSettingsQuietly("Settings kept on this PC");
     }
 
     // ------------------------------------------------------------------ smart groups (SPEC FR-62, ADR-0040)

@@ -59,3 +59,4 @@ Process: see [spec/README.md](../spec/README.md).
 | [0051](0051-faster-resumable-copies.md) | Resumable copies save progress every second or two, not after every chunk, and read ahead | Accepted |
 | [0052](0052-personal-manual-tree-order.md) | The manual order of the entry tree is personal and kept in the settings, not in the database | Accepted |
 | [0053](0053-harbor-window-full-screen.md) | Harbor's Remote Desktop window goes full screen with the control's own full screen, as mstsc | Accepted |
+| [0054](0054-personal-display-settings.md) | Monitors, and optionally display, audio and drives, are kept per user and PC, not in the entry | Accepted |

@@ -66,6 +66,15 @@ public sealed partial class RdpSettingsEditorViewModel : ObservableObject
         new("Connect without warning", RdpServerAuthentication.ConnectWithoutWarning),
     ];
 
+    /// <summary>
+    /// The display settings (mode, size, monitors, dynamic resolution, smart sizing) are kept for this user on this PC
+    /// instead of in the entry (SPEC FR-76). The monitors picked are always kept on this PC.
+    /// </summary>
+    [ObservableProperty] private bool _ownDisplay;
+
+    /// <summary>Remote audio, microphone and local drives are kept for this user on this PC (SPEC FR-76).</summary>
+    [ObservableProperty] private bool _ownResources;
+
     [ObservableProperty] private RdpDisplayMode _displayMode;
 
     [ObservableProperty]
