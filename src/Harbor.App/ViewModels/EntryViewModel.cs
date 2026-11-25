@@ -63,8 +63,26 @@ public sealed partial class EntryViewModel : TreeNodeViewModel
 
     public bool HasNotes => !string.IsNullOrWhiteSpace(Model.Notes);
 
-    /// <summary>How the connection opens, for the details pane; empty for credentials only. SPEC FR-47</summary>
-    public IReadOnlyList<RdpSummaryLine> RdpSummary => !IsRdpConnection ? [] : Core.Rdp.RdpSummary.Describe(Model.RdpSettings);
+    /// <summary>What this user keeps for the entry on this PC (SPEC FR-76); set by the main window.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(RdpSummary))]
+    private PersonalRdpSettings? _personalRdp;
+
+    /// <summary>
+    /// How the connection opens on this PC, for the details pane; empty for credentials only. SPEC FR-47, FR-76: with the
+    /// user's own display settings the Display line says it is for this PC.
+    /// </summary>
+    public IReadOnlyList<RdpSummaryLine> RdpSummary
+    {
+        get
+        {
+            if (!IsRdpConnection) return [];
+            var lines = Core.Rdp.RdpSummary.Describe(Core.Rdp.PersonalRdp.Merge(Model.RdpSettings, PersonalRdp));
+            return PersonalRdp?.OwnDisplay == true
+                ? [.. lines.Select(l => l.Label == "Display" ? l with { Value = $"{l.Value} (this PC)" } : l)]
+                : lines;
+        }
+    }
 
     /// <summary>Rows of the active-sessions table in the details pane. SPEC FR-33, FR-47</summary>
     public IReadOnlyList<SessionRow> Sessions => ActiveSessions.Select(s => new SessionRow(

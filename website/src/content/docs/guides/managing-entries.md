@@ -101,9 +101,17 @@ Settings imported from an `.rdp` file land in the matching fields.
 and keep the third for your own work. Turn on **Use several monitors (full screen)** in the **Display** section;
 one check box per monitor of this PC appears, all checked (= all monitors). Uncheck the ones the session should
 leave free. **Show monitor numbers** opens Remote Desktop Connection's own list of your monitors with their numbers,
-which are the numbers the check boxes use; pick monitors that are next to each other. The choice is stored as
-`selectedmonitors:s:0,1` and applies when the entry opens in Remote Desktop Connection (mstsc); Harbor's own window
-always uses one screen.
+which are the numbers the check boxes use; pick monitors that are next to each other. The choice applies when the
+entry opens in Remote Desktop Connection (mstsc); Harbor's own window always uses one screen. Monitor numbers belong to
+your PC, so the choice is **kept for you on this PC**, not in the entry: with a shared database each colleague picks
+their own monitors.
+
+**Your own display settings on this PC.** Turn on **Use my own display settings on this PC** at the top of the
+**Display** section to keep the whole page — full screen or window, resolution, monitors, dynamic resolution and
+smart sizing — for yourself on this PC. The entry keeps its own display settings for everyone else; your other edits
+(local resources, connection) are saved in the entry as usual. The details pane then shows *(this PC)* next to the
+display summary. These settings live in your settings file, so they are not in a backup and do not follow you to
+another PC.
 
 See
 [RDP settings format](../importing-rdp-files/#rdp-settings-format).

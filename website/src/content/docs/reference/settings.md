@@ -89,6 +89,7 @@ Explorer.
 | (connecting) | `RecentEntryIds` | `[]` | Ids of the last 10 entries you connected to, most recent first. Personal. |
 | Tree context menu → Order | `TreeOrder` | `"Name"` | `"Name"` sorts the entry tree by name, `"Manual"` uses your own order (`ManualOrder`). |
 | Move up / Move down (<kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Alt</kbd>+<kbd>↓</kbd>) | `ManualOrder` | `[]` | Your own order of the entry tree: entry ids and `folder:<path>`, earlier first among siblings. Personal: never written to the shared database; kept while the tree is sorted by name. |
+| Entry editor → Display: monitors, **Use my own display settings on this PC** | `PersonalRdp` | `{}` | By entry id: `OwnDisplay` and `.rdp` display lines kept for you on this PC (the monitors you pick always; with `OwnDisplay` the whole display page). Personal: never written to the shared database. |
 | File transfer → Copy over | `TransferMethod` | `0` | `0` Remote Desktop (port 3389), `1` Network share (port 445). The last choice. |
 | File transfer → Folder on the server | `TransferServerFolder` | `%USERPROFILE%\Downloads` | Folder on the server for transfers through Remote Desktop, as the server sees it. The last one used. |
 | File transfer → Chunk size | `TransferChunkSizeMiB` | `4` | MB read and recorded at a time by new transfers: `1`, `2`, `4`, `8` or `16`. Bigger is usually faster over slow links; smaller loses less after a dropped connection. |
