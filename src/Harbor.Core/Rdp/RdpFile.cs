@@ -127,23 +127,28 @@ public static class RdpFile
     private const int MaxFileNameLength = 100;
 
     /// <summary>
-    /// Name (without folder) of the temporary .rdp file for <paramref name="entry"/>, e.g. <c>Web 01 (10.0.0.5).rdp</c>.
-    /// mstsc.exe shows the file name at the start of its window title, so it names the entry and its host (SPEC FR-71).
+    /// Name (without folder) of the temporary .rdp file for <paramref name="entry"/>, e.g. <c>Web 01.rdp</c> (SPEC FR-71).
+    /// mstsc.exe titles its window <c>&lt;file name&gt; - &lt;host&gt; - Remote Desktop Connection</c>, so the file is named
+    /// after the entry and the title reads <c>Web 01 - 10.0.0.5 - …</c>. mstsc cuts the file name at its first dot, so dots
+    /// become the look-alike one dot leader (U+2024). An entry without a name of its own (none, or the host) gives
+    /// <c>Remote Desktop Harbor</c>, as the host follows anyway.
     /// </summary>
     public static string LaunchFileName(ConnectionEntry entry)
     {
         var host = entry.Host?.Trim() ?? "";
         var name = entry.Name?.Trim() ?? "";
-        var title = name.Length == 0 || string.Equals(name, host, StringComparison.OrdinalIgnoreCase) ? host
-            : host.Length == 0 ? name
-            : $"{name} ({host})";
+        if (string.Equals(name, host, StringComparison.OrdinalIgnoreCase)) name = "";
 
-        var chars = title.Select(c => char.IsControl(c) || Array.IndexOf(InvalidFileNameChars, c) >= 0 ? '_' : c).ToArray();
+        var chars = name.Select(c => c == '.' ? DotLeader
+            : char.IsControl(c) || Array.IndexOf(InvalidFileNameChars, c) >= 0 ? '_' : c).ToArray();
         var safe = new string(chars);
         if (safe.Length > MaxFileNameLength) safe = safe[..MaxFileNameLength];
-        safe = safe.Trim().TrimEnd('.', ' ');
-        return (safe.Length == 0 ? "Remote Desktop" : safe) + ".rdp";
+        safe = safe.Trim().TrimEnd(DotLeader, ' ');
+        return (safe.Length == 0 ? "Remote Desktop Harbor" : safe) + ".rdp";
     }
+
+    // Looks like a full stop, but mstsc does not take it for the start of the file extension.
+    private const char DotLeader = '\u2024';
 
     /// <summary>Target name mstsc.exe looks up in Credential Manager for <paramref name="host"/>.</summary>
     public static string CredentialTarget(string host) => $"TERMSRV/{host}";

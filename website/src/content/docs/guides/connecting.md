@@ -82,9 +82,10 @@ mentions production instead — you are asked once. Turn it off under
    - the entry's own RDP settings (RDP connections only),
    - the app-managed keys `full address` and `username`.
 
-   Password keys are always stripped — the file never contains a secret. The file is named after the entry and its
-   host, e.g. `Web 01 (10.0.0.5).rdp`, because Remote Desktop Connection shows the file name at the start of its window
-   title — so you can tell the windows apart.
+   Password keys are always stripped — the file never contains a secret. The file is named after the entry, e.g.
+   `Web 01.rdp`, because Remote Desktop Connection titles its window with the file name and the host — *Web 01 -
+   10.0.0.5 - Remote Desktop Connection* — so you can tell the windows apart. (Dots in the name are written as a
+   look-alike character, as Remote Desktop Connection would cut the name at a dot.)
 2. **The password goes to Windows Credential Manager** as a domain credential named `TERMSRV/<host>`, which is where
    `mstsc.exe` looks for saved credentials. It is never passed on a command line (where other processes could read
    it) and never written to the `.rdp` file.
