@@ -70,7 +70,7 @@ public sealed partial class EntryViewModel : TreeNodeViewModel
 
     /// <summary>
     /// How the connection opens on this PC, for the details pane; empty for credentials only. SPEC FR-47, FR-76: with the
-    /// user's own display settings the Display line says it is for this PC.
+    /// user's own display settings, or own audio and drives, the Display or Redirect line says it is for this PC.
     /// </summary>
     public IReadOnlyList<RdpSummaryLine> RdpSummary
     {
@@ -78,9 +78,11 @@ public sealed partial class EntryViewModel : TreeNodeViewModel
         {
             if (!IsRdpConnection) return [];
             var lines = Core.Rdp.RdpSummary.Describe(Core.Rdp.PersonalRdp.Merge(Model.RdpSettings, PersonalRdp));
-            return PersonalRdp?.OwnDisplay == true
-                ? [.. lines.Select(l => l.Label == "Display" ? l with { Value = $"{l.Value} (this PC)" } : l)]
-                : lines;
+            if (PersonalRdp is not { } personal) return lines;
+            return [.. lines.Select(l =>
+                (l.Label == "Display" && personal.OwnDisplay) || (l.Label == "Redirect" && personal.OwnResources)
+                    ? l with { Value = $"{l.Value} (this PC)" }
+                    : l)];
         }
     }
 

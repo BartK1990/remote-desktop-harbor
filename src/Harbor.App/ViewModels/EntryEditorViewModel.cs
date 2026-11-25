@@ -36,6 +36,7 @@ public sealed partial class EntryEditorViewModel : ObservableValidator
         RdpSettings = new RdpSettingsEditorViewModel(PersonalRdp.Merge(original.RdpSettings, personal))
         {
             OwnDisplay = personal?.OwnDisplay == true,
+            OwnResources = personal?.OwnResources == true,
         };
         _notes = original.Notes;
         _isLocalOnly = original.IsLocalOnly;
@@ -279,7 +280,7 @@ public sealed partial class EntryEditorViewModel : ObservableValidator
     public PersonalRdpSettings? BuildPersonalRdp() => IsRdpConnection ? SplitRdpSettings().Personal : null;
 
     private (string? Shared, PersonalRdpSettings? Personal) SplitRdpSettings() =>
-        PersonalRdp.Split(RdpSettings.Build(), RdpSettings.OwnDisplay, _original.RdpSettings);
+        PersonalRdp.Split(RdpSettings.Build(), RdpSettings.OwnDisplay, _original.RdpSettings, RdpSettings.OwnResources);
 
     public SecretUpdate BuildSecretUpdate() => ToSecretUpdate(ChangePassword, Password);
 

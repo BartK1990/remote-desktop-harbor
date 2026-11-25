@@ -65,4 +65,20 @@ public class PersonalRdpTests
         var (_, personal) = PersonalRdp.Split("audiomode:i:2", ownDisplay: false, sharedBefore: null);
         Assert.Null(personal);
     }
+
+    [Fact]
+    public void Own_audio_and_drives_are_kept_on_this_pc()
+    {
+        var before = Lines("audiomode:i:2", "drivestoredirect:s:*", "redirectprinters:i:0");
+        var edited = Lines("audiocapturemode:i:1", "redirectprinters:i:1");
+
+        var (shared, personal) = PersonalRdp.Split(edited, ownDisplay: false, sharedBefore: before, ownResources: true);
+
+        Assert.Equal(Lines("redirectprinters:i:1", "audiomode:i:2", "drivestoredirect:s:*"), shared); // printers stay shared
+        Assert.True(personal!.OwnResources);
+        Assert.Equal("audiocapturemode:i:1", personal.Lines);
+
+        // On this PC: none of the entry's audio and drive lines, only the user's.
+        Assert.Equal(Lines("redirectprinters:i:1", "audiocapturemode:i:1"), PersonalRdp.Merge(shared, personal));
+    }
 }

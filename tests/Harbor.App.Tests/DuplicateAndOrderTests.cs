@@ -143,7 +143,7 @@ public class DuplicateAndOrderTests
     public void Personal_settings_survive_a_round_trip()
     {
         var id = Guid.NewGuid();
-        var settings = new HarborSettings { PersonalRdp = { [id] = new() { OwnDisplay = true, Lines = "selectedmonitors:s:0,1" } } };
+        var settings = new HarborSettings { PersonalRdp = { [id] = new() { OwnDisplay = true, OwnResources = true, Lines = "selectedmonitors:s:0,1" } } };
         var read = SettingsStore.Deserialize(SettingsStore.Serialize(settings));
         Assert.Equal(settings.PersonalRdp[id], read.PersonalRdp[id]);
     }

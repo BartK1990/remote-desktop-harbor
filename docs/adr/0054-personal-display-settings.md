@@ -1,4 +1,4 @@
-# ADR-0054: Monitors, and optionally all display settings, are kept per user and PC
+# ADR-0054: Monitors, and optionally display, audio and drives, are kept per user and PC
 
 * Status: Accepted
 * Date: 2026-11-25
@@ -9,7 +9,8 @@
 An entry's `.rdp` settings are part of the entry, so with a shared database every user connects with the same ones.
 Some of them describe the user's own PC rather than the server: which monitors a full screen session covers (FR-75)
 uses monitor numbers that only mean something on one PC, and full screen or window, resolution and scaling are often a
-matter of the user's screens.
+matter of the user's screens. Likewise, whether sound plays here, the microphone is used and which local drives are
+shared depend on the user's PC.
 
 ## Options considered
 
@@ -24,10 +25,11 @@ matter of the user's screens.
 
 Option 3. `HarborSettings.PersonalRdp` maps an entry id to `PersonalRdpSettings` (`OwnDisplay`, `.rdp` lines). The
 monitors line (`selectedmonitors`) is always personal. **Use my own display settings on this PC** makes the whole
-display group personal (mode, size, several monitors, monitors, dynamic resolution, smart sizing): at launch the
-entry's display lines are dropped and the personal ones used, so a default (full screen at the local size) needs no line
-at all. Everything else stays in the entry. The editor shows the merged settings and splits them again on save; the
-entry's own display lines are left as they were.
+display group personal (mode, size, several monitors, monitors, dynamic resolution, smart sizing), and **Use my own
+audio and drives on this PC** the audio and drives group (`audiomode`, `audiocapturemode`, `drivestoredirect`;
+`OwnResources`). At launch the entry's lines of a personal group are dropped and the personal ones used, so a default
+(e.g. full screen at the local size, no drives) needs no line at all. Everything else stays in the entry. The editor
+shows the merged settings and splits them again on save; the entry's own lines of those groups are left as they were.
 
 ## Consequences
 

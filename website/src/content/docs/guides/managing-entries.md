@@ -110,8 +110,13 @@ their own monitors.
 **Display** section to keep the whole page — full screen or window, resolution, monitors, dynamic resolution and
 smart sizing — for yourself on this PC. The entry keeps its own display settings for everyone else; your other edits
 (local resources, connection) are saved in the entry as usual. The details pane then shows *(this PC)* next to the
-display summary. These settings live in your settings file, so they are not in a backup and do not follow you to
-another PC.
+display summary.
+
+**Your own audio and drives on this PC.** Likewise, **Use my own audio and drives on this PC** at the top of the
+**Local resources** section keeps remote audio, the microphone and local drives for yourself on this PC (e.g. sound
+and your drives on your desk PC, nothing on a laptop). Clipboard, printers, smart cards and Windows key combinations
+stay in the entry. These personal settings live in your settings file, so they are not in a backup and do not follow
+you to another PC.
 
 See
 [RDP settings format](../importing-rdp-files/#rdp-settings-format).

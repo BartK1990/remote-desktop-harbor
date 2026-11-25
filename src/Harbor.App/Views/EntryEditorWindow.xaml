@@ -321,6 +321,11 @@
       <TabItem Header="Local resources" Style="{StaticResource RdpTab}">
         <ScrollViewer Style="{StaticResource TabScroller}">
           <StackPanel Style="{StaticResource TabPage}" DataContext="{Binding RdpSettings}">
+            <!-- SPEC FR-76, ADR-0054: audio and drives for this user on this PC only -->
+            <CheckBox Content="Use my own audio and drives on this PC" IsChecked="{Binding OwnResources}"
+                      ToolTip="Remote audio, microphone and local drives are saved for you on this PC only. Others keep the entry's settings." />
+            <TextBlock TextWrapping="Wrap" FontSize="12" Margin="26,0,0,10" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                       Text="When on, remote audio, the microphone and local drives below are kept in your settings on this PC; the entry keeps its own for everyone else. The other settings on this page stay in the entry." />
             <Grid>
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
