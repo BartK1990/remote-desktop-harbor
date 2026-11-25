@@ -1,4 +1,6 @@
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Harbor.Core.Rdp;
 
 namespace Harbor.App.ViewModels;
@@ -18,6 +20,21 @@ public sealed partial class RdpSettingsEditorViewModel : ObservableObject
     private static readonly Choice<RdpResolution?> MatchScreen = new("Match local screen", null);
 
     public RdpSettingsEditorViewModel(string? rdpSettings) => Load(rdpSettings);
+
+    /// <summary>How many monitors this PC has; set by the app at start (SPEC FR-75).</summary>
+    public static Func<int> LocalMonitorCount { get; set; } = () => 1;
+
+    /// <summary>Shows Remote Desktop's own numbers of this PC's monitors (<c>mstsc /l</c>); set by the app at start.</summary>
+    public static Action? ShowMonitorIds { get; set; }
+
+    /// <summary>
+    /// The monitors a full screen session may use with <see cref="UseAllMonitors"/> (SPEC FR-75): one per monitor of this
+    /// PC (and per id the entry names beyond them), by Remote Desktop's monitor id. All checked = all monitors.
+    /// </summary>
+    public ObservableCollection<MonitorChoice> Monitors { get; } = [];
+
+    [RelayCommand]
+    private void ShowMonitorNumbers() => ShowMonitorIds?.Invoke();
 
     public IReadOnlyList<Choice<RdpDisplayMode>> DisplayModes { get; } =
         [new("Full screen", RdpDisplayMode.FullScreen), new("Window", RdpDisplayMode.Window)];
@@ -97,6 +114,13 @@ public sealed partial class RdpSettingsEditorViewModel : ObservableObject
         }
 
         UseAllMonitors = o.UseAllMonitors;
+        Monitors.Clear();
+        var count = Math.Max(LocalMonitorCount(), o.SelectedMonitors.Count > 0 ? o.SelectedMonitors.Max() + 1 : 0);
+        for (var id = 0; id < count; id++)
+        {
+            Monitors.Add(new MonitorChoice(id) { IsSelected = o.SelectedMonitors.Count == 0 || o.SelectedMonitors.Contains(id) });
+        }
+
         DynamicResolution = o.DynamicResolution;
         SmartSizing = o.SmartSizing;
         ColorDepth = o.ColorDepth;
@@ -118,7 +142,13 @@ public sealed partial class RdpSettingsEditorViewModel : ObservableObject
     public string? Validate() =>
         IsCustomResolution && !(RdpOptions.IsDesktopSize(CustomWidth) && RdpOptions.IsDesktopSize(CustomHeight))
             ? $"Width and height must be between {RdpOptions.MinDesktopSize} and {RdpOptions.MaxDesktopSize}."
-            : null;
+            : UseAllMonitors && Monitors.Count > 0 && !Monitors.Any(m => m.IsSelected)
+                ? "Pick at least one monitor, or turn off \"Use several monitors\"."
+                : null;
+
+    /// <summary>The monitors picked, or none when all are (SPEC FR-75); only with <see cref="UseAllMonitors"/>.</summary>
+    private IReadOnlyList<int> SelectedMonitors() =>
+        UseAllMonitors && Monitors.Any(m => !m.IsSelected) ? [.. Monitors.Where(m => m.IsSelected).Select(m => m.Id)] : [];
 
     /// <summary>The entry's <c>.rdp</c> settings text: the form's non-default values, then the other lines.</summary>
     public string Build() => RdpOptions.Format(new RdpOptions
@@ -126,6 +156,7 @@ public sealed partial class RdpSettingsEditorViewModel : ObservableObject
         DisplayMode = DisplayMode,
         Resolution = IsCustomResolution ? new RdpResolution(CustomWidth, CustomHeight) : Resolution.Value,
         UseAllMonitors = UseAllMonitors,
+        SelectedMonitors = SelectedMonitors(),
         DynamicResolution = DynamicResolution,
         SmartSizing = SmartSizing,
         ColorDepth = ColorDepth,
@@ -140,4 +171,12 @@ public sealed partial class RdpSettingsEditorViewModel : ObservableObject
         ServerAuthentication = ServerAuthentication,
         AdminSession = AdminSession,
     }, OtherSettings);
+}
+
+/// <summary>A monitor in the editor's monitor picker (SPEC FR-75), by Remote Desktop's monitor id.</summary>
+public sealed partial class MonitorChoice(int id) : ObservableObject
+{
+    public int Id { get; } = id;
+    public string Label => $"Monitor {Id}";
+    [ObservableProperty] private bool _isSelected;
 }

@@ -46,4 +46,33 @@ public class RdpSettingsEditorViewModelTests
         Assert.Equal("", vm.Build());
         Assert.False(vm.ShowOtherSettings);
     }
+
+    // SPEC FR-75: the monitor picker.
+    [Fact]
+    public void Monitor_picker_writes_only_a_subset()
+    {
+        RdpSettingsEditorViewModel.LocalMonitorCount = () => 3;
+        try
+        {
+            var vm = new RdpSettingsEditorViewModel("use multimon:i:1");
+            Assert.Equal([0, 1, 2], vm.Monitors.Select(m => m.Id));
+            Assert.All(vm.Monitors, m => Assert.True(m.IsSelected));
+            Assert.DoesNotContain("selectedmonitors", vm.Build(), StringComparison.Ordinal);
+
+            vm.Monitors[0].IsSelected = false;
+            Assert.Contains("selectedmonitors:s:1,2", vm.Build(), StringComparison.Ordinal);
+
+            vm.Monitors[1].IsSelected = false;
+            vm.Monitors[2].IsSelected = false;
+            Assert.NotNull(vm.Validate());
+
+            var loaded = new RdpSettingsEditorViewModel("use multimon:i:1\nselectedmonitors:s:1,4");
+            Assert.Equal(5, loaded.Monitors.Count); // an id beyond this PC's monitors is still shown
+            Assert.Equal([1, 4], loaded.Monitors.Where(m => m.IsSelected).Select(m => m.Id));
+        }
+        finally
+        {
+            RdpSettingsEditorViewModel.LocalMonitorCount = () => 1;
+        }
+    }
 }

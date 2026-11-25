@@ -38,7 +38,10 @@ public static class RdpSummary
     {
         var parts = new List<string> { o.DisplayMode == RdpDisplayMode.Window ? "window" : "full screen" };
         parts.Add(o.Resolution is { } r ? $"{r.Width}×{r.Height}" : "local size");
-        if (o.UseAllMonitors) parts.Add("all monitors");
+        if (o.UseAllMonitors)
+        {
+            parts.Add(o.SelectedMonitors.Count > 0 ? $"monitors {string.Join(", ", o.SelectedMonitors)}" : "all monitors"); // SPEC FR-75
+        }
         if (o.ColorDepth != RdpColorDepth.Highest32) parts.Add($"{(int)o.ColorDepth}-bit");
         if (o.SmartSizing) parts.Add("smart sizing");
         return string.Join(" · ", parts);

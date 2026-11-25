@@ -81,4 +81,27 @@ public class RdpOptionsTests
         Assert.Contains("redirectclipboard:i:0\r\n", rdp);
         Assert.DoesNotContain("screen mode id:i:2", rdp);
     }
+
+    // SPEC FR-75: the monitors a full screen session uses.
+    [Fact]
+    public void Selected_monitors_are_a_field_written_in_order()
+    {
+        var (options, other) = RdpOptions.Parse("use multimon:i:1\nselectedmonitors:s:2, 0");
+        Assert.True(options.UseAllMonitors);
+        Assert.Equal([0, 2], options.SelectedMonitors);
+        Assert.Equal("", other);
+        Assert.Equal("use multimon:i:1\nselectedmonitors:s:0,2".Replace("\n", Environment.NewLine), RdpOptions.Format(options, other));
+        Assert.Contains(RdpSummary.Describe("use multimon:i:1\nselectedmonitors:s:0,2"), l => l.Value.Contains("monitors 0, 2", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("selectedmonitors:s:")]
+    [InlineData("selectedmonitors:s:0,x")]
+    [InlineData("selectedmonitors:s:-1")]
+    public void Selected_monitors_the_form_cannot_show_are_kept_as_text(string line)
+    {
+        var (options, other) = RdpOptions.Parse(line);
+        Assert.Empty(options.SelectedMonitors);
+        Assert.Equal(line, other);
+    }
 }

@@ -88,14 +88,24 @@ For an RDP connection the editor shows the usual Remote Desktop options as field
 
 | Tab | Settings |
 |---|---|
-| **Display** | **Mode** (full screen or window), **Resolution** (*Match local screen*, common sizes such as 1920 × 1080, or *Custom…* with a width and height of 200–8192 pixels), **Colour depth**, **Use all my monitors**, update the resolution when the window is resized, scale to fit the window (smart sizing) |
+| **Display** | **Mode** (full screen or window), **Resolution** (*Match local screen*, common sizes such as 1920 × 1080, or *Custom…* with a width and height of 200–8192 pixels), **Colour depth**, **Use several monitors** with the monitors to use (see below), update the resolution when the window is resized, scale to fit the window (smart sizing) |
 | **Local resources** | **Remote audio** (play here, on the remote computer, or not at all), where **Windows key combinations** apply, microphone, **Clipboard**, **Printers**, **Smart cards**, **All local drives** |
 | **Connection** | What to do **if server authentication fails**, reconnect automatically, connect to the administrative (console) session, **Other .rdp settings (advanced)** |
 
 New entries start with the defaults (full screen, clipboard on, warn on authentication problems, …); only the
 settings you change are stored. Anything else — a Remote Desktop Gateway, specific drives, … — goes into
 **Other .rdp settings (advanced)** in the **Connection** section as ordinary `.rdp` lines; it opens by itself when the entry has such lines.
-Settings imported from an `.rdp` file land in the matching fields. See
+Settings imported from an `.rdp` file land in the matching fields.
+
+**Full screen on some of your monitors.** With three monitors you can, for example, let a session cover two of them
+and keep the third for your own work. Turn on **Use several monitors (full screen)** in the **Display** section;
+one check box per monitor of this PC appears, all checked (= all monitors). Uncheck the ones the session should
+leave free. **Show monitor numbers** opens Remote Desktop Connection's own list of your monitors with their numbers,
+which are the numbers the check boxes use; pick monitors that are next to each other. The choice is stored as
+`selectedmonitors:s:0,1` and applies when the entry opens in Remote Desktop Connection (mstsc); Harbor's own window
+always uses one screen.
+
+See
 [RDP settings format](../importing-rdp-files/#rdp-settings-format).
 
 ## The folder tree
