@@ -60,4 +60,25 @@ public class DuplicateEntryTests
         Assert.Equal("pw", ws.RevealPassword(saved));
         Assert.Empty(await remote.Store.ListAsync(includeDeleted: true));
     }
+
+    [Fact]
+    public async Task Duplicate_of_a_shared_entry_can_be_kept_on_this_pc_instead()
+    {
+        using var remote = new TempDb();
+        using var cache = new TempDb();
+        using var vault = new TempDb();
+        using var ws = HarborWorkspace.CreateRemote(Users.Alice, cache.Store, remote.Store, AliceLocal, Shared, Resolver, true, vault.Store);
+        await ws.OpenAsync();
+        var ops = ConnectionAccount.CreateNew("ops");
+        var ours = await ws.SaveAsync(ConnectionEntry.CreateNew("srv") with { Host = "srv", Accounts = [ops] }, SecretUpdate.Set("pw"),
+            new Dictionary<Guid, SecretUpdate> { [ops.Id] = SecretUpdate.Set("ops-pw") });
+
+        var copy = ws.Duplicate(ours, ["srv"]) with { IsLocalOnly = true }; // changed in the editor
+        var saved = await ws.SaveAsync(ws.RehomeDuplicate(copy, fromLocal: false), SecretUpdate.Keep);
+
+        Assert.True(saved.IsLocalOnly);
+        Assert.Equal("pw", ws.RevealPassword(saved));
+        Assert.Equal("ops-pw", ws.RevealPassword(saved, saved.Accounts[0].Id));
+        Assert.Equal(["srv"], (await remote.Store.ListAsync()).Select(e => e.Name)); // only the original is shared
+    }
 }

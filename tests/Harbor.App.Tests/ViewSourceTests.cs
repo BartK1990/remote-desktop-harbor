@@ -183,7 +183,8 @@ public class ViewSourceTests
         var doc = XDocument.Load(Source("MainWindow.xaml"));
         var tree = doc.Descendants(Wpf + "TreeView").Single(t => (string?)t.Attribute(Xaml + "Name") == "EntryTree");
         var commands = tree.Descendants(Wpf + "MenuItem").Select(m => (string?)m.Attribute("Command")).ToList();
-        foreach (var command in new[] { "DuplicateCommand", "MoveUpCommand", "MoveDownCommand", "SortByNameCommand", "UseManualOrderCommand" })
+        foreach (var command in new[] { "DuplicateCommand", "MoveUpCommand", "MoveDownCommand", "SortByNameCommand", "UseManualOrderCommand",
+                     "ResetManualOrderCommand" })
         {
             Assert.Contains($"{{Binding {command}}}", commands);
         }
@@ -191,7 +192,15 @@ public class ViewSourceTests
         var more = doc.Descendants(Wpf + "Button").Single(b => (string?)b.Attribute(Xaml + "Name") == "MoreButton");
         Assert.Contains(more.Descendants(Wpf + "MenuItem"), m => (string?)m.Attribute("Command") == "{Binding DuplicateCommand}");
 
+        // The Order item names the order in use; arrow buttons above the tree and drag and drop move rows too.
+        Assert.Contains(tree.Descendants(Wpf + "MenuItem"), m => (string?)m.Attribute("Header") == "{Binding OrderText}");
+        var buttons = doc.Descendants(Wpf + "Button").Select(b => (string?)b.Attribute("Command")).ToList();
+        Assert.Contains("{Binding MoveUpCommand}", buttons);
+        Assert.Contains("{Binding MoveDownCommand}", buttons);
+        Assert.Equal("True", (string?)tree.Attribute("AllowDrop"));
+
         var code = File.ReadAllText(Source("MainWindow.xaml.cs"));
+        Assert.Contains("DoDragDrop", code, StringComparison.Ordinal);
         Assert.Contains("MoveUpCommand", code, StringComparison.Ordinal);
         Assert.Contains("MoveDownCommand", code, StringComparison.Ordinal);
     }

@@ -131,12 +131,14 @@ and host. Entries with
 - Click the arrow next to a folder, double-click it, or press <kbd>←</kbd>/<kbd>→</kbd> to collapse or expand it.
 - Right-click the tree for **Expand all** and **Collapse all** (and the actions for the selected entry).
 - **Your own order.** The tree is sorted by name. To put entries and folders in your own order, right-click the tree
-  and choose **Order → Manual**, then select an entry or folder and press <kbd>Alt</kbd>+<kbd>↑</kbd> /
-  <kbd>Alt</kbd>+<kbd>↓</kbd> (or **Move up** / **Move down** in the context menu). An entry moves among the
-  entries of its folder, a folder among its sibling folders; folders stay before entries, and smart groups first.
-  Moving works while no search or filter (other than **All**) narrows the list. Entries you never moved — such as new
-  ones — follow by name. The order is personal (kept in your settings, not in a shared database) and stays when you
-  switch back to **Order → By name**.
+  and choose **Order → Manual** (the menu item shows the order in use: **Order: By name** or **Order: Manual**). Then
+  **drag** an entry or folder to where you want it — a line shows where it goes — or select it and use the **↑ / ↓**
+  buttons above the tree, <kbd>Alt</kbd>+<kbd>↑</kbd> / <kbd>Alt</kbd>+<kbd>↓</kbd>, or **Move up** / **Move down**
+  in the context menu. An entry moves among the entries of its folder, a folder among its sibling folders; folders
+  stay before entries, and smart groups first. (To put an entry in another folder, edit its folder.) Moving works
+  while no search or filter (other than **All**) narrows the list. Entries you never moved — such as new ones —
+  follow by name. **Order → Reset manual order…** puts everything back in name order. The order is personal (kept in
+  your settings, not in a shared database) and stays when you switch back to **Order → By name**.
 - Folders are matched regardless of case; entries without a folder are listed at the root, after the folders.
 - Collapsed folders are remembered the next time you start the app.
 - **Row size.** The **−** and **+** buttons above the tree (or <kbd>Ctrl</kbd>+<kbd>Plus</kbd> /
@@ -157,8 +159,9 @@ To create an entry like an existing one, select it and choose **Duplicate…** i
 **⋯** menu (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd>). The editor opens on a copy named *&lt;name&gt; (copy)*
 with everything of the original — host, port, account and its password, additional accounts and their passwords,
 RDP settings and notes — in the same folder. Change what differs (typically the name and host) and save; nothing is
-stored if you cancel. The copy is kept where the original is (shared database or this PC). In manual order it is
-placed right after the original.
+stored if you cancel. With a shared database the copy is shared, like the original, unless you choose
+**This PC only** in the editor's **Stored in** choice (its passwords are then encrypted for this PC). In manual order
+it is placed right after the original.
 
 ## Edit
 

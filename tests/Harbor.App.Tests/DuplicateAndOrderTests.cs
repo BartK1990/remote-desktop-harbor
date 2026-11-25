@@ -44,12 +44,20 @@ public class DuplicateAndOrderTests
     }
 
     [Fact]
-    public void Duplicate_of_a_shared_entry_is_not_moved_to_this_pc_while_offline()
+    public void Duplicate_of_a_shared_entry_is_shared_by_default_and_can_be_kept_on_this_pc()
     {
         var copy = ConnectionEntry.CreateNew("Web 01 (copy)") with { Host = "web01" };
         var editor = new EntryEditorViewModel(copy, isNew: true, new NoDialogs(), [], copyOf: "Web 01");
-        editor.OfferLocalStorage(sharedAvailable: false);
+        editor.OfferLocalStorage(sharedAvailable: true);
+        Assert.True(editor.CanChangeStorage);
         Assert.False(editor.BuildEntry().IsLocalOnly);
+
+        editor.IsLocalOnly = true;
+        Assert.True(editor.BuildEntry().IsLocalOnly);
+
+        var offline = new EntryEditorViewModel(copy, isNew: true, new NoDialogs(), [], copyOf: "Web 01");
+        offline.OfferLocalStorage(sharedAvailable: false);
+        Assert.True(offline.BuildEntry().IsLocalOnly); // like a new entry while the shared database is offline
     }
 
     [Fact]
@@ -83,5 +91,30 @@ public class DuplicateAndOrderTests
         Assert.True(vm.MoveDownCommand.CanExecute(null));
         vm.SearchText = "a";
         Assert.False(vm.MoveDownCommand.CanExecute(null)); // only while the whole tree is shown
+    }
+
+    [Fact]
+    public void Rows_can_be_dropped_only_next_to_siblings_of_the_same_kind()
+    {
+        var a = new EntryViewModel(ConnectionEntry.CreateNew("alpha") with { Host = "a", Folder = "Web" });
+        var b = new EntryViewModel(ConnectionEntry.CreateNew("bravo") with { Host = "b", Folder = "Web" });
+        var c = new EntryViewModel(ConnectionEntry.CreateNew("charlie") with { Host = "c", Folder = "DB" });
+        var vm = new MainViewModel(new HarborSettings { TreeOrder = TreeOrder.Manual }, new NoDialogs());
+        foreach (var e in new[] { a, b, c }) vm.Entries.Add(e);
+        vm.TreeFilter = TreeFilter.Pinned; // rebuilds the tree
+        vm.TreeFilter = TreeFilter.All;
+        vm.IsReady = true;
+        var folders = vm.Tree.OfType<FolderViewModel>().ToList();
+
+        Assert.Equal("Order: Manual", vm.OrderText);
+        Assert.True(vm.CanDrop(a, b));
+        Assert.False(vm.CanDrop(a, c)); // another folder
+        Assert.False(vm.CanDrop(a, folders[0])); // a folder is not an entry's sibling
+        Assert.True(vm.CanDrop(folders[0], folders[1]));
+        Assert.False(vm.CanDrop(a, a));
+        Assert.False(vm.ResetManualOrderCommand.CanExecute(null)); // nothing moved yet
+
+        vm.SearchText = "a";
+        Assert.False(vm.CanDrag(a)); // only while the whole tree is shown
     }
 }

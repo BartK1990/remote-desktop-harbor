@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -276,6 +277,136 @@ public partial class MainWindow : Window
         row.IsSelected = true;
         e.Handled = true;
     }
+
+    // ------------------------------------------------------------------ drag and drop in manual order (SPEC FR-72)
+
+    private Point? _dragStart;
+    private TreeNodeViewModel? _dragRow;
+    private DropMarker? _dropMarker;
+
+    private void EntryTree_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        var row = RowAt(e.OriginalSource, out var onExpander);
+        (_dragRow, _dragStart) = row is { DataContext: TreeNodeViewModel node } && !onExpander
+            ? (node, e.GetPosition(EntryTree))
+            : ((TreeNodeViewModel?)null, (Point?)null);
+    }
+
+    private void EntryTree_PreviewMouseMove(object sender, MouseEventArgs e)
+    {
+        if (e.LeftButton != MouseButtonState.Pressed || _dragRow is not { } row || _dragStart is not { } start) return;
+        var moved = e.GetPosition(EntryTree) - start;
+        if (Math.Abs(moved.X) < SystemParameters.MinimumHorizontalDragDistance
+            && Math.Abs(moved.Y) < SystemParameters.MinimumVerticalDragDistance) return;
+
+        (_dragRow, _dragStart) = (null, null);
+        if (!_viewModel.CanDrag(row)) return;
+        try
+        {
+            DragDrop.DoDragDrop(EntryTree, new DataObject(typeof(TreeNodeViewModel), row), DragDropEffects.Move);
+        }
+        finally
+        {
+            ClearDropMarker();
+        }
+    }
+
+    private void EntryTree_DragOver(object sender, DragEventArgs e)
+    {
+        if (DropTarget(e) is ({ }, { } row, { }, var after))
+        {
+            e.Effects = DragDropEffects.Move;
+            ShowDropMarker(row, after);
+        }
+        else
+        {
+            e.Effects = DragDropEffects.None;
+            ClearDropMarker();
+        }
+
+        ScrollWhileDragging(e.GetPosition(EntryTree).Y);
+        e.Handled = true;
+    }
+
+    private void EntryTree_DragLeave(object sender, DragEventArgs e) => ClearDropMarker();
+
+    private void EntryTree_Drop(object sender, DragEventArgs e)
+    {
+        ClearDropMarker();
+        if (DropTarget(e) is not ({ } source, { }, { } target, var after)) return;
+        _viewModel.Drop(source, target, after);
+        e.Handled = true;
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, FocusSelectedRow);
+    }
+
+    /// <summary>
+    /// The dragged row, the row under the mouse and whether it goes after it (lower half of that row's own line), when
+    /// the dragged row may be dropped there: next to a sibling of the same kind.
+    /// </summary>
+    private (TreeNodeViewModel Source, TreeViewItem Row, TreeNodeViewModel Target, bool After)? DropTarget(DragEventArgs e)
+    {
+        if (e.Data.GetData(typeof(TreeNodeViewModel)) is not TreeNodeViewModel source
+            || RowAt(e.OriginalSource) is not { DataContext: TreeNodeViewModel target } row
+            || !_viewModel.CanDrop(source, target)) return null;
+        var line = row.Template?.FindName("Row", row) as FrameworkElement ?? row;
+        var after = e.GetPosition(line).Y > line.ActualHeight / 2;
+        return (source, row, target, after);
+    }
+
+    private void ShowDropMarker(TreeViewItem row, bool after)
+    {
+        if (_dropMarker is { } current && ReferenceEquals(current.AdornedElement, row) && current.After == after) return;
+        ClearDropMarker();
+        if (AdornerLayer.GetAdornerLayer(row) is not { } layer) return;
+        var brush = TryFindResource("AccentFillColorDefaultBrush") as Brush ?? SystemColors.HighlightBrush;
+        _dropMarker = new DropMarker(row, after, brush);
+        layer.Add(_dropMarker);
+    }
+
+    private void ClearDropMarker()
+    {
+        if (_dropMarker is null) return;
+        AdornerLayer.GetAdornerLayer(_dropMarker.AdornedElement)?.Remove(_dropMarker);
+        _dropMarker = null;
+    }
+
+    /// <summary>Scrolls the tree while a row is dragged near its top or bottom edge.</summary>
+    private void ScrollWhileDragging(double y)
+    {
+        const double edge = 24;
+        if (FindScrollViewer(EntryTree) is not { } scroll) return;
+        if (y < edge) scroll.LineUp();
+        else if (y > EntryTree.ActualHeight - edge) scroll.LineDown();
+    }
+
+    private static ScrollViewer? FindScrollViewer(DependencyObject parent)
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+            if (child is ScrollViewer scroll) return scroll;
+            if (FindScrollViewer(child) is { } found) return found;
+        }
+
+        return null;
+    }
+
+    /// <summary>A line above or below a tree row where a dragged row will go.</summary>
+    private sealed class DropMarker(TreeViewItem row, bool after, Brush brush) : Adorner(row)
+    {
+        public bool After { get; } = after;
+
+        protected override void OnRender(DrawingContext drawingContext)
+        {
+            // After an expanded folder the line goes below its children: the row moves after the whole folder.
+            var y = After ? AdornedElement.RenderSize.Height - 1 : 1;
+            drawingContext.DrawRectangle(brush, null, new Rect(4, y - 1, Math.Max(0, AdornedElement.RenderSize.Width - 8), 2));
+        }
+    }
+
+    // The arrow buttons above the tree (SPEC FR-72): keep the moved row focused, as Alt+Up / Alt+Down do.
+    private void MoveButton_Click(object sender, RoutedEventArgs e) =>
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, FocusSelectedRow);
 
     /// <summary>Focuses the selected row, wherever it is in the tree (its container may be new after a move).</summary>
     private void FocusSelectedRow()

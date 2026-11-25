@@ -73,8 +73,11 @@ public sealed partial class EntryEditorViewModel : ObservableValidator
     public bool ShowsStorage { get; private set; }
 
     /// <summary>A new entry can go to the shared database or this PC; an existing one is moved from the details pane.</summary>
-    /// <remarks>A duplicate stays with its original: its passwords are encrypted with that vault's key (SPEC FR-73).</remarks>
-    public bool CanChangeStorage => IsNew && !IsCopy && ShowsStorage && _sharedAvailable;
+    /// <remarks>
+    /// A duplicate starts where its original is and can be kept on this PC (or shared) instead; its copied passwords are
+    /// then re-encrypted for the vault it goes to when it is saved (SPEC FR-73).
+    /// </remarks>
+    public bool CanChangeStorage => IsNew && ShowsStorage && _sharedAvailable;
 
     private bool _sharedAvailable = true;
 
@@ -89,10 +92,10 @@ public sealed partial class EntryEditorViewModel : ObservableValidator
         set { if (value) IsLocalOnly = false; }
     }
 
-    public string StorageHint => IsCopy
+    public string StorageHint => IsCopy && _sharedAvailable
         ? IsLocalOnly
-            ? "Kept in this PC's local vault only, like the original. You can move it to the shared database later."
-            : "In the shared database, like the original. You can move it to this PC only later."
+            ? "The copy is kept in this PC's local vault only; nobody else sees it. Its passwords are encrypted for this PC."
+            : "The copy is shared with everyone using the shared database."
         : IsLocalOnly
         ? IsNew
             ? _sharedAvailable
@@ -111,7 +114,7 @@ public sealed partial class EntryEditorViewModel : ObservableValidator
     {
         ShowsStorage = true;
         _sharedAvailable = sharedAvailable;
-        if (IsNew && !IsCopy && !sharedAvailable) IsLocalOnly = true;
+        if (IsNew && !sharedAvailable) IsLocalOnly = true;
         OnPropertyChanged(nameof(ShowsStorage));
         OnPropertyChanged(nameof(CanChangeStorage));
         OnPropertyChanged(nameof(StorageHint));
