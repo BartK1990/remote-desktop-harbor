@@ -88,14 +88,24 @@ For an RDP connection the editor shows the usual Remote Desktop options as field
 
 | Tab | Settings |
 |---|---|
-| **Display** | **Mode** (full screen or window), **Resolution** (*Match local screen*, common sizes such as 1920 × 1080, or *Custom…* with a width and height of 200–8192 pixels), **Colour depth**, **Use all my monitors**, update the resolution when the window is resized, scale to fit the window (smart sizing) |
+| **Display** | **Mode** (full screen or window), **Resolution** (*Match local screen*, common sizes such as 1920 × 1080, or *Custom…* with a width and height of 200–8192 pixels), **Colour depth**, **Use several monitors** with the monitors to use (see below), update the resolution when the window is resized, scale to fit the window (smart sizing) |
 | **Local resources** | **Remote audio** (play here, on the remote computer, or not at all), where **Windows key combinations** apply, microphone, **Clipboard**, **Printers**, **Smart cards**, **All local drives** |
 | **Connection** | What to do **if server authentication fails**, reconnect automatically, connect to the administrative (console) session, **Other .rdp settings (advanced)** |
 
 New entries start with the defaults (full screen, clipboard on, warn on authentication problems, …); only the
 settings you change are stored. Anything else — a Remote Desktop Gateway, specific drives, … — goes into
 **Other .rdp settings (advanced)** in the **Connection** section as ordinary `.rdp` lines; it opens by itself when the entry has such lines.
-Settings imported from an `.rdp` file land in the matching fields. See
+Settings imported from an `.rdp` file land in the matching fields.
+
+**Full screen on some of your monitors.** With three monitors you can, for example, let a session cover two of them
+and keep the third for your own work. Turn on **Use several monitors (full screen)** in the **Display** section;
+one check box per monitor of this PC appears, all checked (= all monitors). Uncheck the ones the session should
+leave free. **Show monitor numbers** opens Remote Desktop Connection's own list of your monitors with their numbers,
+which are the numbers the check boxes use; pick monitors that are next to each other. The choice is stored as
+`selectedmonitors:s:0,1` and applies when the entry opens in Remote Desktop Connection (mstsc); Harbor's own window
+always uses one screen.
+
+See
 [RDP settings format](../importing-rdp-files/#rdp-settings-format).
 
 ## The folder tree
@@ -120,6 +130,13 @@ and host. Entries with
   Entries stay in their folders. See [Smart groups](../smart-groups/).
 - Click the arrow next to a folder, double-click it, or press <kbd>←</kbd>/<kbd>→</kbd> to collapse or expand it.
 - Right-click the tree for **Expand all** and **Collapse all** (and the actions for the selected entry).
+- **Your own order.** The tree is sorted by name. To put entries and folders in your own order, right-click the tree
+  and choose **Order → Manual**, then select an entry or folder and press <kbd>Alt</kbd>+<kbd>↑</kbd> /
+  <kbd>Alt</kbd>+<kbd>↓</kbd> (or **Move up** / **Move down** in the context menu). An entry moves among the
+  entries of its folder, a folder among its sibling folders; folders stay before entries, and smart groups first.
+  Moving works while no search or filter (other than **All**) narrows the list. Entries you never moved — such as new
+  ones — follow by name. The order is personal (kept in your settings, not in a shared database) and stays when you
+  switch back to **Order → By name**.
 - Folders are matched regardless of case; entries without a folder are listed at the root, after the folders.
 - Collapsed folders are remembered the next time you start the app.
 - **Row size.** The **−** and **+** buttons above the tree (or <kbd>Ctrl</kbd>+<kbd>Plus</kbd> /
@@ -133,6 +150,15 @@ and host. Entries with
 
 Click **New** (<kbd>Ctrl</kbd>+<kbd>N</kbd>). The new entry starts in the selected folder, or in the folder of the
 selected entry.
+
+## Duplicate
+
+To create an entry like an existing one, select it and choose **Duplicate…** in the context menu or the details pane
+**⋯** menu (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd>). The editor opens on a copy named *&lt;name&gt; (copy)*
+with everything of the original — host, port, account and its password, additional accounts and their passwords,
+RDP settings and notes — in the same folder. Change what differs (typically the name and host) and save; nothing is
+stored if you cancel. The copy is kept where the original is (shared database or this PC). In manual order it is
+placed right after the original.
 
 ## Edit
 

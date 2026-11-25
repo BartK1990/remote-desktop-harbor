@@ -28,10 +28,19 @@ public sealed class RdpWindowHost : IRdpWindowHost
     }
 }
 
-/// <summary>The connection window: the remote desktop, with a status bar while connecting or disconnected.</summary>
+/// <summary>
+/// The connection window: the remote desktop, with a status bar while connecting or disconnected. Once signed in it can go
+/// full screen and back (SPEC FR-74, ADR-0053): the window menu's <b>Full screen</b> or Ctrl+Alt+Break; the control's
+/// connection bar at the top of the screen (or Ctrl+Alt+Break again) brings the window back.
+/// </summary>
 [SupportedOSPlatform("windows")]
-internal sealed class RdpWindowForm : Form, IRdpControlEvents
+internal sealed partial class RdpWindowForm : Form, IRdpControlEvents
 {
+    private const int WmSysCommand = 0x0112;
+    private const int WmInitMenuPopup = 0x0117;
+    private const uint MfString = 0x0, MfGrayed = 0x1, MfSeparator = 0x800;
+    private const int FullScreenCommand = 0x0F10; // a window menu command of our own: below 0xF000, low four bits zero
+
     // Resizing a session is not free (the server redraws the desktop and moves its windows): nothing changes while the
     // border is dragged, and the window has to keep its new size for a while first (SPEC FR-67, ADR-0045).
     private static readonly TimeSpan ResizeDelay = RdpWindowSettings.ResizeDelay;
@@ -54,6 +63,7 @@ internal sealed class RdpWindowForm : Form, IRdpControlEvents
     private Size _sessionSize;
     private int _sessionDpi;
     private bool _closing;
+    private bool _fullScreen;
 
     public RdpWindowForm(string clsid, RdpWindowSettings settings, string? password, Task closed)
     {
@@ -120,6 +130,9 @@ internal sealed class RdpWindowForm : Form, IRdpControlEvents
         RdpControl.Try(() => rdp.ColorDepth = _settings.ColorDepth);
         RdpControl.Try(() => rdp.FullScreen = false);
 
+        // SPEC FR-74: the control's own full screen, as mstsc's, with its connection bar to minimize or restore the window.
+        RdpControl.Try(() => rdp.FullScreenTitle = Text);
+
         var advanced = RdpControl.Advanced(rdp);
         advanced.RDPPort = _settings.Port;
         RdpControl.Try(() => advanced.RedirectClipboard = _settings.RedirectClipboard);
@@ -132,6 +145,10 @@ internal sealed class RdpWindowForm : Form, IRdpControlEvents
         RdpControl.Try(() => advanced.ConnectToAdministerServer = _settings.AdministrativeSession);
         RdpControl.Try(() => advanced.AudioCaptureRedirectionMode = _settings.RecordAudio);
         RdpControl.Try(() => advanced.SmartSizing = _settings.SmartSizing);
+        RdpControl.Try(() => advanced.ContainerHandledFullScreen = 0);
+        RdpControl.Try(() => advanced.DisplayConnectionBar = true);
+        RdpControl.Try(() => advanced.ConnectionBarShowRestoreButton = true);
+        RdpControl.Try(() => advanced.ConnectionBarShowMinimizeButton = true);
         RdpControl.Try(() => rdp.SecuredSettings2.KeyboardHookMode = _settings.KeyboardHook);
         RdpControl.Try(() => rdp.SecuredSettings2.AudioRedirectionMode = _settings.Audio);
     }
@@ -178,6 +195,7 @@ internal sealed class RdpWindowForm : Form, IRdpControlEvents
     {
         _resizeTimer.Stop();
         _signedIn = false;
+        _fullScreen = false; // the control leaves full screen when the connection ends
         if (_closing) return;
 
         // 1 = closed here, 2 = signed out or disconnected in the session: the window closes, as mstsc's does.
@@ -191,6 +209,67 @@ internal sealed class RdpWindowForm : Form, IRdpControlEvents
         ShowBar($"Disconnected: {error}", reconnect: true);
     }
 
+    // ------------------------------------------------------------------ full screen (SPEC FR-74, ADR-0053)
+
+    /// <summary>Adds <b>Full screen</b> to the window menu (Alt+Space, or right-click the title bar).</summary>
+    protected override void OnHandleCreated(EventArgs e)
+    {
+        base.OnHandleCreated(e);
+        var menu = GetSystemMenu(Handle, false);
+        if (menu == IntPtr.Zero) return;
+        _ = AppendMenu(menu, MfSeparator, 0, null);
+        _ = AppendMenu(menu, MfString, FullScreenCommand, "Full screen\tCtrl+Alt+Break");
+    }
+
+    protected override void WndProc(ref Message m)
+    {
+        if (m.Msg == WmSysCommand && ((int)m.WParam & 0xFFF0) == FullScreenCommand)
+        {
+            EnterFullScreen();
+            return;
+        }
+
+        if (m.Msg == WmInitMenuPopup && GetSystemMenu(Handle, false) is var menu && menu == m.WParam)
+        {
+            _ = EnableMenuItem(menu, FullScreenCommand, _signedIn ? MfString : MfGrayed); // only once signed in
+        }
+
+        base.WndProc(ref m);
+    }
+
+    private void EnterFullScreen()
+    {
+        if (!_signedIn || _fullScreen) return;
+        RdpControl.Try(() => _rdp.Control.FullScreen = true);
+    }
+
+    public void OnControlFullScreenChanged(bool fullScreen)
+    {
+        _fullScreen = fullScreen;
+        if (!fullScreen)
+        {
+            Activate();
+            _rdp.Focus();
+        }
+
+        // The remote desktop takes the size of the screen, or of the window again, once the switch has settled.
+        if (!_signedIn) return;
+        _forceResize = true;
+        _resizeTimer.Stop();
+        _resizeTimer.Interval = (int)RetryDelay.TotalMilliseconds;
+        _resizeTimer.Start();
+    }
+
+    [LibraryImport("user32.dll")]
+    private static partial IntPtr GetSystemMenu(IntPtr hWnd, [MarshalAs(UnmanagedType.Bool)] bool bRevert);
+
+    [LibraryImport("user32.dll", EntryPoint = "AppendMenuW", StringMarshalling = StringMarshalling.Utf16)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool AppendMenu(IntPtr hMenu, uint uFlags, nint uIDNewItem, string? lpNewItem);
+
+    [LibraryImport("user32.dll")]
+    private static partial int EnableMenuItem(IntPtr hMenu, uint uIDEnableItem, uint uEnable);
+
     protected override void OnActivated(EventArgs e)
     {
         base.OnActivated(e);
@@ -200,7 +279,7 @@ internal sealed class RdpWindowForm : Form, IRdpControlEvents
     protected override void OnSizeChanged(EventArgs e)
     {
         base.OnSizeChanged(e);
-        if (!_signedIn || WindowState == FormWindowState.Minimized || _dragging) return;
+        if (!_signedIn || WindowState == FormWindowState.Minimized || _dragging || _fullScreen) return;
         RestartResizeTimer(); // maximized, restored, snapped: wait until it stays that size
     }
 
@@ -239,14 +318,16 @@ internal sealed class RdpWindowForm : Form, IRdpControlEvents
     /// </summary>
     private void ResizeSession(bool force)
     {
-        if (!_signedIn || WindowState == FormWindowState.Minimized || _rdp.ClientSize.Width <= 0) return;
+        if (!_signedIn || (!_fullScreen && (WindowState == FormWindowState.Minimized || _rdp.ClientSize.Width <= 0))) return;
         if (!_settings.DynamicResolution || !_canResizeSession)
         {
             ScaleToWindow();
             return;
         }
 
-        var (width, height) = RdpWindowSettings.DesktopSizeFor(_rdp.ClientSize.Width, _rdp.ClientSize.Height);
+        // In full screen the desktop fills the screen the window is on; otherwise the window.
+        var area = _fullScreen ? Screen.FromHandle(Handle).Bounds.Size : _rdp.ClientSize;
+        var (width, height) = RdpWindowSettings.DesktopSizeFor(area.Width, area.Height);
         var dpi = DeviceDpi > 0 ? DeviceDpi : 96;
         if (!force && _sessionSize == new Size(width, height) && _sessionDpi == dpi) return;
 

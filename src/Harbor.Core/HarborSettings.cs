@@ -167,4 +167,13 @@ public sealed class HarborSettings
 
     /// <summary>Entries this user connected to, most recent first, at most <see cref="Model.RecentList.Capacity"/> (SPEC FR-50).</summary>
     public List<Guid> RecentEntryIds { get; set; } = [];
+
+    /// <summary>How the entry tree orders folders and entries: by name, or in the user's own order (SPEC FR-72, ADR-0052).</summary>
+    public Model.TreeOrder TreeOrder { get; set; } = Model.TreeOrder.Name;
+
+    /// <summary>
+    /// The user's own order of the entry tree (SPEC FR-72, ADR-0052): keys of <see cref="Model.ManualOrder"/>, earlier first.
+    /// Personal, like pins: never written to a shared database. Kept while <see cref="TreeOrder"/> is by name.
+    /// </summary>
+    public List<string> ManualOrder { get; set; } = [];
 }

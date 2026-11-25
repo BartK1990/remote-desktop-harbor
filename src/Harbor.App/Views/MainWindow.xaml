@@ -91,6 +91,7 @@
     <KeyBinding Key="U" Modifiers="Ctrl+Shift" Command="{Binding CopyUserNameCommand}" />
     <KeyBinding Key="H" Modifiers="Ctrl+Shift" Command="{Binding CopyHostCommand}" />
     <KeyBinding Key="T" Modifiers="Ctrl+Shift" Command="{Binding TransferFilesCommand}" />
+    <KeyBinding Key="D" Modifiers="Ctrl+Shift" Command="{Binding DuplicateCommand}" />
     <!-- Entry list size (SPEC FR-55, ADR-0034): Ctrl+Plus / Ctrl+Minus zoom the rows, Ctrl+0 resets to 100 %. -->
     <KeyBinding Key="OemPlus" Modifiers="Ctrl" Command="{Binding ZoomTreeInCommand}" />
     <KeyBinding Key="Add" Modifiers="Ctrl" Command="{Binding ZoomTreeInCommand}" />
@@ -512,6 +513,8 @@
             <MenuItem Header="Copy user" Command="{Binding CopyUserNameCommand}" />
             <MenuItem Header="{Binding PinText}" Command="{Binding TogglePinCommand}" InputGestureText="Ctrl+D" />
             <MenuItem Header="Edit" Command="{Binding EditCommand}" InputGestureText="F2" />
+            <!-- SPEC FR-73 -->
+            <MenuItem Header="Duplicate…" Command="{Binding DuplicateCommand}" InputGestureText="Ctrl+Shift+D" />
             <MenuItem Header="Delete" Command="{Binding DeleteCommand}" />
             <!-- SPEC FR-69, ADR-0048, ADR-0049: the shown entries, only while something narrows the list; never shared ones -->
             <MenuItem Header="Delete shown entries…" Command="{Binding DeleteShownCommand}"
@@ -528,6 +531,18 @@
             <MenuItem Header="New smart group…" Command="{Binding NewSmartGroupCommand}" />
             <MenuItem Header="Edit smart group…" Command="{Binding EditSmartGroupCommand}" />
             <MenuItem Header="Delete smart group" Command="{Binding DeleteSmartGroupCommand}" />
+            <Separator />
+            <!-- SPEC FR-72, ADR-0052: the user's own order -->
+            <MenuItem Header="Move up" Command="{Binding MoveUpCommand}" InputGestureText="Alt+Up"
+                      ToolTip="Pick Order → Manual first. Works while no search or filter narrows the list"
+                      ToolTipService.ShowOnDisabled="True" />
+            <MenuItem Header="Move down" Command="{Binding MoveDownCommand}" InputGestureText="Alt+Down"
+                      ToolTip="Pick Order → Manual first. Works while no search or filter narrows the list"
+                      ToolTipService.ShowOnDisabled="True" />
+            <MenuItem Header="Order">
+              <MenuItem Header="By name" Command="{Binding SortByNameCommand}" IsChecked="{Binding IsNameOrder, Mode=OneWay}" />
+              <MenuItem Header="Manual" Command="{Binding UseManualOrderCommand}" IsChecked="{Binding IsManualOrder, Mode=OneWay}" />
+            </MenuItem>
             <Separator />
             <MenuItem Header="Expand all" Command="{Binding ExpandAllCommand}" />
             <MenuItem Header="Collapse all" Command="{Binding CollapseAllCommand}" />
@@ -656,6 +671,7 @@
                   <ContextMenu>
                     <MenuItem Header="{Binding ConnectOtherWayText}" Command="{Binding ConnectOtherWayCommand}" InputGestureText="Shift+Enter" />
                     <MenuItem Header="Copy host" Command="{Binding CopyHostCommand}" InputGestureText="Ctrl+Shift+H" />
+                    <MenuItem Header="Duplicate…" Command="{Binding DuplicateCommand}" InputGestureText="Ctrl+Shift+D" />
                     <MenuItem Header="Transfer files…" Command="{Binding TransferFilesCommand}" InputGestureText="Ctrl+Shift+T" />
                     <Separator />
                     <MenuItem Header="Move to this PC only…" Command="{Binding MoveToLocalCommand}"

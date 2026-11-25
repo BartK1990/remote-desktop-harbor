@@ -175,6 +175,27 @@ public class ViewSourceTests
         Assert.Equal("ApplicationCommands.Save", (string?)save.Attribute("Command"));
     }
 
+    // SPEC FR-72, FR-73, ADR-0052: the tree menu duplicates entries, moves rows and switches the order; the More menu
+    // duplicates too, and Alt+Up / Alt+Down move the selected row.
+    [Fact]
+    public void Tree_menu_duplicates_entries_and_sets_the_manual_order()
+    {
+        var doc = XDocument.Load(Source("MainWindow.xaml"));
+        var tree = doc.Descendants(Wpf + "TreeView").Single(t => (string?)t.Attribute(Xaml + "Name") == "EntryTree");
+        var commands = tree.Descendants(Wpf + "MenuItem").Select(m => (string?)m.Attribute("Command")).ToList();
+        foreach (var command in new[] { "DuplicateCommand", "MoveUpCommand", "MoveDownCommand", "SortByNameCommand", "UseManualOrderCommand" })
+        {
+            Assert.Contains($"{{Binding {command}}}", commands);
+        }
+
+        var more = doc.Descendants(Wpf + "Button").Single(b => (string?)b.Attribute(Xaml + "Name") == "MoreButton");
+        Assert.Contains(more.Descendants(Wpf + "MenuItem"), m => (string?)m.Attribute("Command") == "{Binding DuplicateCommand}");
+
+        var code = File.ReadAllText(Source("MainWindow.xaml.cs"));
+        Assert.Contains("MoveUpCommand", code, StringComparison.Ordinal);
+        Assert.Contains("MoveDownCommand", code, StringComparison.Ordinal);
+    }
+
     // SPEC FR-48: the Quick connect results keep a right gutter too, so the scroll bar does not cover the in-use marker.
     [Fact]
     public void Quick_connect_results_keep_a_gutter_for_the_scroll_bar()
@@ -254,7 +275,7 @@ public class ViewSourceTests
                      ["F2"] = "EditCommand", ["Ctrl+Shift+C"] = "CopyPasswordCommand", ["Ctrl+Shift+U"] = "CopyUserNameCommand",
                      ["Ctrl+Shift+H"] = "CopyHostCommand", ["Ctrl+OemComma"] = "OpenSettingsCommand",
                      ["Ctrl+OemPlus"] = "ZoomTreeInCommand", ["Ctrl+OemMinus"] = "ZoomTreeOutCommand", ["Ctrl+D0"] = "ResetTreeZoomCommand",
-                     ["Ctrl+Shift+T"] = "TransferFilesCommand",
+                     ["Ctrl+Shift+T"] = "TransferFilesCommand", ["Ctrl+Shift+D"] = "DuplicateCommand",
                  })
         {
             Assert.True(bound.TryGetValue(gesture, out var binding), gesture);

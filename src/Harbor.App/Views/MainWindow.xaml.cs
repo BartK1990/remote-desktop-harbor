@@ -182,6 +182,21 @@ public partial class MainWindow : Window
             return;
         }
 
+        // Alt+Up / Alt+Down move the selected entry or folder in the manual order (SPEC FR-72); the row keeps the focus.
+        var key = e.Key == Key.System ? e.SystemKey : e.Key;
+        if (Keyboard.Modifiers == ModifierKeys.Alt && key is Key.Up or Key.Down)
+        {
+            var command = key == Key.Up ? _viewModel.MoveUpCommand : _viewModel.MoveDownCommand;
+            if (command.CanExecute(null))
+            {
+                command.Execute(null);
+                Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, FocusSelectedRow);
+            }
+
+            e.Handled = true;
+            return;
+        }
+
         if (e.Key != Key.Enter) return;
         if (_viewModel.SelectedNode is FolderViewModel folder)
         {
@@ -260,6 +275,27 @@ public partial class MainWindow : Window
         row.Focus();
         row.IsSelected = true;
         e.Handled = true;
+    }
+
+    /// <summary>Focuses the selected row, wherever it is in the tree (its container may be new after a move).</summary>
+    private void FocusSelectedRow()
+    {
+        if (_viewModel.SelectedNode is { } node && ContainerOf(EntryTree, node) is { } row) row.Focus();
+    }
+
+    private static TreeViewItem? ContainerOf(ItemsControl parent, object item)
+    {
+        if (parent.ItemContainerGenerator.ContainerFromItem(item) is TreeViewItem direct) return direct;
+        foreach (var child in parent.Items)
+        {
+            if (parent.ItemContainerGenerator.ContainerFromItem(child) is TreeViewItem { IsExpanded: true } container
+                && ContainerOf(container, item) is { } found)
+            {
+                return found;
+            }
+        }
+
+        return null;
     }
 
     private static TreeViewItem? RowAt(object source) => RowAt(source, out _);

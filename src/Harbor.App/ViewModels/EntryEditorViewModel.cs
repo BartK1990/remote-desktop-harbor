@@ -12,11 +12,17 @@ public sealed partial class EntryEditorViewModel : ObservableValidator
     private readonly ConnectionEntry _original;
     private readonly IDialogService _dialogs;
 
-    public EntryEditorViewModel(ConnectionEntry original, bool isNew, IDialogService dialogs, IEnumerable<string> folders)
+    /// <param name="copyOf">
+    /// The name of the entry <paramref name="original"/> duplicates (SPEC FR-73): a new entry that already has the
+    /// original's passwords, re-encrypted for it, and stays where the original is stored.
+    /// </param>
+    public EntryEditorViewModel(ConnectionEntry original, bool isNew, IDialogService dialogs, IEnumerable<string> folders,
+        string? copyOf = null)
     {
         _original = original;
         _dialogs = dialogs;
-        IsNew = isNew;
+        IsNew = isNew || copyOf is not null;
+        CopyOf = copyOf;
         Folders = folders.ToList();
         _name = original.Name;
         _folder = original.Folder;
@@ -28,14 +34,19 @@ public sealed partial class EntryEditorViewModel : ObservableValidator
         RdpSettings = new RdpSettingsEditorViewModel(original.RdpSettings);
         _notes = original.Notes;
         _isLocalOnly = original.IsLocalOnly;
-        _changePassword = isNew || !original.HasPassword;
+        _changePassword = (IsNew && !IsCopy) || !original.HasPassword;
         Accounts = new ObservableCollection<AccountEditorViewModel>(original.Accounts.Select(a => new AccountEditorViewModel(a)));
     }
 
     public bool IsNew { get; }
+
+    /// <summary>The name of the duplicated entry, or <c>null</c> when this is not a duplicate (SPEC FR-73).</summary>
+    public string? CopyOf { get; }
+
+    public bool IsCopy => CopyOf is not null;
     public bool HadPassword => _original.HasPassword;
     public IReadOnlyList<string> Folders { get; }
-    public string Title => IsNew ? "New entry" : $"Edit – {_original.Name}";
+    public string Title => IsCopy ? $"Duplicate – {CopyOf}" : IsNew ? "New entry" : $"Edit – {_original.Name}";
 
     [ObservableProperty] private string _name;
     [ObservableProperty] private string? _folder;
@@ -62,7 +73,8 @@ public sealed partial class EntryEditorViewModel : ObservableValidator
     public bool ShowsStorage { get; private set; }
 
     /// <summary>A new entry can go to the shared database or this PC; an existing one is moved from the details pane.</summary>
-    public bool CanChangeStorage => IsNew && ShowsStorage && _sharedAvailable;
+    /// <remarks>A duplicate stays with its original: its passwords are encrypted with that vault's key (SPEC FR-73).</remarks>
+    public bool CanChangeStorage => IsNew && !IsCopy && ShowsStorage && _sharedAvailable;
 
     private bool _sharedAvailable = true;
 
@@ -77,7 +89,11 @@ public sealed partial class EntryEditorViewModel : ObservableValidator
         set { if (value) IsLocalOnly = false; }
     }
 
-    public string StorageHint => IsLocalOnly
+    public string StorageHint => IsCopy
+        ? IsLocalOnly
+            ? "Kept in this PC's local vault only, like the original. You can move it to the shared database later."
+            : "In the shared database, like the original. You can move it to this PC only later."
+        : IsLocalOnly
         ? IsNew
             ? _sharedAvailable
                 ? "Kept in this PC's local vault only; nobody else sees it. You can move it to the shared database later."
@@ -95,7 +111,7 @@ public sealed partial class EntryEditorViewModel : ObservableValidator
     {
         ShowsStorage = true;
         _sharedAvailable = sharedAvailable;
-        if (IsNew && !sharedAvailable) IsLocalOnly = true;
+        if (IsNew && !IsCopy && !sharedAvailable) IsLocalOnly = true;
         OnPropertyChanged(nameof(ShowsStorage));
         OnPropertyChanged(nameof(CanChangeStorage));
         OnPropertyChanged(nameof(StorageHint));

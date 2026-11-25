@@ -74,6 +74,12 @@ public sealed record RdpOptions
     public RdpResolution? Resolution { get; init; }
 
     public bool UseAllMonitors { get; init; }
+
+    /// <summary>
+    /// With <see cref="UseAllMonitors"/>: only these local monitors, by mstsc's monitor ids (<c>mstsc /l</c>), ascending;
+    /// empty uses all of them (<c>selectedmonitors</c>). SPEC FR-75
+    /// </summary>
+    public IReadOnlyList<int> SelectedMonitors { get; init; } = [];
     public bool DynamicResolution { get; init; } = true;
     public bool SmartSizing { get; init; }
     public RdpColorDepth ColorDepth { get; init; } = RdpColorDepth.Highest32;
@@ -123,6 +129,8 @@ public sealed record RdpOptions
     ];
 
     private const string WidthKey = "desktopwidth", HeightKey = "desktopheight", DrivesKey = "drivestoredirect";
+    private const string MonitorsKey = "selectedmonitors";
+    private const int MaxMonitorId = 63;
 
     /// <summary>Splits an entry's <c>.rdp</c> settings into form fields and the lines the form does not cover.</summary>
     public static (RdpOptions Options, string Other) Parse(string? rdpSettings)
@@ -149,6 +157,10 @@ public sealed record RdpOptions
             else if (IsKey(key, DrivesKey) && type == "s" && value.Trim() is "*" or "")
             {
                 options = options with { RedirectDrives = value.Trim() == "*" };
+            }
+            else if (IsKey(key, MonitorsKey) && type == "s" && ParseMonitors(value) is { } monitors)
+            {
+                options = options with { SelectedMonitors = monitors };
             }
             else
             {
@@ -188,6 +200,11 @@ public sealed record RdpOptions
         }
 
         if (options.RedirectDrives) lines.Add($"{DrivesKey}:s:*");
+        if (options.SelectedMonitors.Count > 0)
+        {
+            var ids = options.SelectedMonitors.Distinct().Order().Select(i => i.ToString(CultureInfo.InvariantCulture));
+            lines.Add($"{MonitorsKey}:s:{string.Join(',', ids)}");
+        }
 
         var sb = new StringBuilder(string.Join(Environment.NewLine, lines));
         if (!string.IsNullOrWhiteSpace(other))
@@ -197,6 +214,19 @@ public sealed record RdpOptions
         }
 
         return sb.ToString();
+    }
+
+    /// <summary>"0,2" → [0, 2]; <c>null</c> when the value is not a list of monitor ids the form can show.</summary>
+    private static List<int>? ParseMonitors(string value)
+    {
+        var ids = new SortedSet<int>();
+        foreach (var part in value.Split(',', StringSplitOptions.TrimEntries))
+        {
+            if (!TryInt(part, out var id) || id is < 0 or > MaxMonitorId) return null;
+            ids.Add(id);
+        }
+
+        return ids.Count > 0 ? [.. ids] : null;
     }
 
     public static bool IsDesktopSize(int value) => value is >= MinDesktopSize and <= MaxDesktopSize;
