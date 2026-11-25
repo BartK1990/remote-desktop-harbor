@@ -24,8 +24,8 @@ public sealed class MstscLauncher(string tempDirectory, bool keepCredential, Act
     public Task<IRdpSession> LaunchAsync(ConnectionEntry entry, string? password, IReadOnlyList<string>? overrides = null,
         CancellationToken cancellationToken = default)
     {
-        // mstsc titles its window with the file name, so the file is named after the entry and its host; a folder of
-        // its own per launch keeps two launches of one entry apart (SPEC FR-71).
+        // mstsc titles its window "<file name> - <host> - Remote Desktop Connection", so the file is named after the
+        // entry; a folder of its own per launch keeps two launches of one entry apart (SPEC FR-71).
         var launchDirectory = Path.Combine(tempDirectory, Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(launchDirectory);
         var rdpPath = Path.Combine(launchDirectory, RdpFile.LaunchFileName(entry));

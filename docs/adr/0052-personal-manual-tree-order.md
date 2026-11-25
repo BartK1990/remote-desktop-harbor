@@ -28,11 +28,12 @@ lists all its siblings in their shown order and drops keys of entries and folder
 stay first and by name; folders stay before entries.
 
 Moving is offered only while the whole tree is shown (no search, filter All), so the neighbours a row passes are its
-real siblings, and only by keyboard and the context menu (Alt+Up / Alt+Down, Move up / Move down).
+real siblings: by keyboard (Alt+Up / Alt+Down), the context menu, arrow buttons above the tree, and drag and drop among
+siblings. Dragging never moves an entry to another folder, which would change the entry itself (shared with the team).
 
 ## Consequences
 
 * No migration, nothing in the shared database; teammates keep their own order.
 * The order is not part of a backup: restored entries get new ids (FR-68), so their keys would not match anyway.
 * Renaming a folder, or moving an entry to another folder, loses its place: it follows the moved rows by name.
-* Dragging rows with the mouse could be added later on top of the same list.
+* **Reset manual order…** empties the list, which is all it takes to get back to name order.

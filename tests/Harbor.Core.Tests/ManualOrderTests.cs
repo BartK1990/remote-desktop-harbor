@@ -66,6 +66,16 @@ public class ManualOrderTests
     }
 
     [Fact]
+    public void Move_to_drops_a_key_before_or_after_another()
+    {
+        List<string> siblings = ["a", "b", "c", "d"];
+        Assert.Equal(["x", "b", "c", "a", "d"], ManualOrder.MoveTo(["x"], siblings, "a", "c", after: true));
+        Assert.Equal(["d", "a", "b", "c"], ManualOrder.MoveTo([], siblings, "d", "a", after: false));
+        Assert.Equal(["x"], ManualOrder.MoveTo(["x"], siblings, "a", "b", after: false)); // already there
+        Assert.Equal(["x"], ManualOrder.MoveTo(["x"], siblings, "a", "z", after: false)); // not a sibling
+    }
+
+    [Fact]
     public void Place_after_puts_a_new_key_right_after_another()
     {
         Assert.Equal(["x", "a", "copy", "b"], ManualOrder.PlaceAfter(["x", "b", "a"], ["a", "b"], "copy", "a"));

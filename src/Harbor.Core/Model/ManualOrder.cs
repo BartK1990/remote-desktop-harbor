@@ -71,6 +71,31 @@ public sealed class ManualOrder
     }
 
     /// <summary>
+    /// The order after dropping <paramref name="key"/> just before (or, with <paramref name="after"/>, just after)
+    /// <paramref name="target"/>, both among <paramref name="siblings"/> given in the order they are shown (drag and drop,
+    /// SPEC FR-72). Like <see cref="Move"/>, all siblings are listed afterwards and unknown keys dropped. Returns
+    /// <paramref name="order"/> unchanged when either key is not a sibling or nothing would move.
+    /// </summary>
+    public static List<string> MoveTo(IReadOnlyList<string> order, IReadOnlyList<string> siblings, string key, string target,
+        bool after, IReadOnlySet<string>? known = null)
+    {
+        var comparer = StringComparer.OrdinalIgnoreCase;
+        var index = siblings.ToList().FindIndex(s => comparer.Equals(s, key));
+        var targetIndex = siblings.ToList().FindIndex(s => comparer.Equals(s, target));
+        if (index < 0 || targetIndex < 0 || index == targetIndex) return [.. order];
+
+        var moved = siblings.Where(s => !comparer.Equals(s, key)).ToList();
+        var at = moved.FindIndex(s => comparer.Equals(s, target)) + (after ? 1 : 0);
+        moved.Insert(at, siblings[index]);
+        if (moved.SequenceEqual(siblings, comparer)) return [.. order];
+
+        var inSiblings = new HashSet<string>(siblings, comparer);
+        var result = order.Where(k => !inSiblings.Contains(k) && (known is null || known.Contains(k))).ToList();
+        result.AddRange(moved);
+        return result.Distinct(comparer).ToList();
+    }
+
+    /// <summary>
     /// The order with <paramref name="key"/> placed right after <paramref name="after"/> among
     /// <paramref name="siblings"/> (given in the order they are shown), e.g. a duplicated entry next to its original
     /// (SPEC FR-73). <paramref name="key"/> need not be among the siblings yet.

@@ -85,17 +85,21 @@ public class RdpFileTests
         Assert.Throws<InvalidOperationException>(() => RdpFile.Build(entry));
     }
 
-    // SPEC FR-71
+    // SPEC FR-71: mstsc titles its window "<file name> - <host> - Remote Desktop Connection" and cuts the file name at
+    // its first dot.
     [Theory]
-    [InlineData("Web 01", "10.0.0.5", "Web 01 (10.0.0.5).rdp")]
-    [InlineData("", "10.0.0.5", "10.0.0.5.rdp")]
-    [InlineData("srv01", "SRV01", "SRV01.rdp")]
-    [InlineData("  DB: primary / west?  ", "db.contoso.local", "DB_ primary _ west_ (db.contoso.local).rdp")]
+    [InlineData("SCADA Specialists Test Server 2 PL", "10.64.2.143", "SCADA Specialists Test Server 2 PL.rdp")]
+    [InlineData("", "10.0.0.5", "Remote Desktop Harbor.rdp")]
+    [InlineData("srv01", "SRV01", "Remote Desktop Harbor.rdp")]
+    [InlineData("web01.contoso.local", "10.0.0.5", "web01\u2024contoso\u2024local.rdp")]
+    [InlineData("  DB: primary / west?  ", "db.contoso.local", "DB_ primary _ west_.rdp")]
     [InlineData("Build...", "", "Build.rdp")]
-    public void Launch_file_is_named_after_the_entry_and_its_host(string name, string host, string expected)
+    public void Launch_file_is_named_after_the_entry_without_dots(string name, string host, string expected)
     {
         var entry = ConnectionEntry.CreateNew(name) with { Host = host };
-        Assert.Equal(expected, RdpFile.LaunchFileName(entry));
+        var fileName = RdpFile.LaunchFileName(entry);
+        Assert.Equal(expected, fileName);
+        Assert.DoesNotContain('.', System.IO.Path.GetFileNameWithoutExtension(fileName));
     }
 
     [Fact]

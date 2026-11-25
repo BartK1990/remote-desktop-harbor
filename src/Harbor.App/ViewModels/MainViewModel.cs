@@ -660,6 +660,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
             SaveSettingsQuietly("Entry order");
             OnPropertyChanged();
             OnPropertyChanged(nameof(IsNameOrder));
+            OnPropertyChanged(nameof(OrderText));
             RebuildTree();
             StatusText = value
                 ? "Manual order: move the selected entry or folder with Alt+Up and Alt+Down"
@@ -668,6 +669,64 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     }
 
     public bool IsNameOrder => !IsManualOrder;
+
+    /// <summary>The context menu's Order item names the order in use.</summary>
+    public string OrderText => IsManualOrder ? "Order: Manual" : "Order: By name";
+
+    /// <summary>
+    /// Forgets the user's own order (after confirmation): every folder goes back to name order, and manual order stays on
+    /// so rows can be moved again from there.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(HasManualOrder))]
+    private void ResetManualOrder()
+    {
+        if (!_dialogs.ConfirmRisky("Reset manual order",
+                "Put every folder and entry back in name order? Your own order is forgotten.", "Reset order")) return;
+        Settings.ManualOrder = [];
+        SaveSettingsQuietly("Entry order");
+        RebuildTree();
+        StatusText = "Manual order reset to name order";
+    }
+
+    private bool HasManualOrder() => Settings.ManualOrder.Count > 0;
+
+    /// <summary>
+    /// Drag and drop in the tree (SPEC FR-72): <paramref name="row"/> can be dragged in manual order while the whole tree
+    /// is shown, like Move up / Move down.
+    /// </summary>
+    public bool CanDrag(TreeNodeViewModel row) =>
+        IsReady && IsManualOrder && !IsSearching && TreeFilter == TreeFilter.All && SiblingsOf(row) is not null;
+
+    /// <summary>Whether <paramref name="source"/> may be dropped next to <paramref name="target"/>: its sibling of the same kind.</summary>
+    public bool CanDrop(TreeNodeViewModel source, TreeNodeViewModel target) =>
+        !ReferenceEquals(source, target) && CanDrag(source) && SiblingsOf(source) is ({ } siblings, _)
+        && KeyOf(target) is { } key && siblings.Contains(key, StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Drops <paramref name="source"/> just before (or after) <paramref name="target"/>.</summary>
+    public void Drop(TreeNodeViewModel source, TreeNodeViewModel target, bool after)
+    {
+        if (!CanDrop(source, target) || SiblingsOf(source) is not ({ } siblings, { } key) || KeyOf(target) is not { } targetKey) return;
+        var order = ManualOrder.MoveTo(Settings.ManualOrder, siblings, key, targetKey, after, KnownOrderKeys());
+        if (order.SequenceEqual(Settings.ManualOrder)) return;
+        Settings.ManualOrder = order;
+        SaveSettingsQuietly("Entry order");
+        SelectedNode = source;
+        RebuildTree();
+        ResetManualOrderCommand.NotifyCanExecuteChanged();
+        StatusText = source switch
+        {
+            FolderViewModel f => $"Moved folder {f.Name}",
+            EntryViewModel e => $"Moved {e.Name}",
+            _ => StatusText,
+        };
+    }
+
+    private static string? KeyOf(TreeNodeViewModel row) => row switch
+    {
+        EntryViewModel e => ManualOrder.EntryKey(e.Model.Id),
+        FolderViewModel f => ManualOrder.FolderKey(f.Path),
+        _ => null,
+    };
 
     [RelayCommand]
     private void SortByName() => IsManualOrder = false;
@@ -702,6 +761,7 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         Settings.ManualOrder = ManualOrder.Move(Settings.ManualOrder, siblings, key, offset, KnownOrderKeys());
         SaveSettingsQuietly("Entry order");
         RebuildTree();
+        ResetManualOrderCommand.NotifyCanExecuteChanged();
         if (SelectedNode is EntryViewModel entry) RevealFolder(entry.Model.Folder);
         StatusText = SelectedNode switch
         {
@@ -715,7 +775,9 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     /// The keys of the selected row and of its siblings of the same kind (entries, or sub-folders) as shown; <c>null</c> for
     /// rows that cannot be moved (accounts, smart groups and the entries they list).
     /// </summary>
-    private (IReadOnlyList<string> Siblings, string Key)? SiblingsOfSelection() => SelectedNode switch
+    private (IReadOnlyList<string> Siblings, string Key)? SiblingsOfSelection() => SiblingsOf(SelectedNode);
+
+    private (IReadOnlyList<string> Siblings, string Key)? SiblingsOf(TreeNodeViewModel? row) => row switch
     {
         EntryViewModel e => (EntrySiblingKeys(e.Model.Folder), ManualOrder.EntryKey(e.Model.Id)),
         FolderViewModel f => (RowsIn(ParentPath(f.Path)).OfType<FolderViewModel>().Select(r => ManualOrder.FolderKey(r.Path)).ToList(),
@@ -1212,7 +1274,10 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         // Where the duplicate goes in the user's own order, worked out before saving changes the folder's rows; only
         // while the whole tree is shown, so the rows are all of the folder's entries.
         var siblings = !IsSearching && TreeFilter == TreeFilter.All ? EntrySiblingKeys(original.Folder) : null;
-        if (await RunEditorAsync(editor) is { } saved && IsManualOrder && siblings is not null
+        // SPEC FR-73: kept on this PC (or shared) instead of where the original is: re-encrypt the copied passwords.
+        var host = _host;
+        var saved = await RunEditorAsync(editor, entry => host.Workspace.RehomeDuplicate(entry, fromLocal: copy.IsLocalOnly));
+        if (saved is not null && IsManualOrder && siblings is not null
             && string.Equals(FolderTree.Normalize(saved.Folder), folder, StringComparison.CurrentCultureIgnoreCase))
         {
             Settings.ManualOrder = ManualOrder.PlaceAfter(Settings.ManualOrder, siblings,
@@ -1222,14 +1287,17 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
-    private async Task<ConnectionEntry?> RunEditorAsync(EntryEditorViewModel editor)
+    /// <param name="prepare">Applied to the edited entry before it is saved, e.g. re-encrypting a duplicate (FR-73).</param>
+    private async Task<ConnectionEntry?> RunEditorAsync(EntryEditorViewModel editor, Func<ConnectionEntry, ConnectionEntry>? prepare = null)
     {
         if (_host is null) return null;
         while (_dialogs.EditEntry(editor))
         {
             try
             {
-                var saved = await _host.Workspace.SaveAsync(editor.BuildEntry(), editor.BuildSecretUpdate(), editor.BuildAccountSecretUpdates());
+                var entry = editor.BuildEntry();
+                if (prepare is not null) entry = prepare(entry);
+                var saved = await _host.Workspace.SaveAsync(entry, editor.BuildSecretUpdate(), editor.BuildAccountSecretUpdates());
                 await ReloadAsync();
                 Selected = Entries.FirstOrDefault(e => e.Model.Id == saved.Id);
                 RevealFolder(saved.Folder); // also when an already selected entry moved to another folder

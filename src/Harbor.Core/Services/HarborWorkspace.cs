@@ -446,12 +446,26 @@ public sealed class HarborWorkspace : IDisposable
     }
 
     /// <summary>
+    /// An unsaved duplicate (<see cref="Duplicate"/>) whose storage was changed in the editor (SPEC FR-73, FR-29): its
+    /// passwords, encrypted for where the original is (<paramref name="fromLocal"/>), are re-encrypted with the key of
+    /// where <paramref name="copy"/> now goes (<see cref="ConnectionEntry.IsLocalOnly"/>), bound to the same ids. A copy
+    /// that stays where the original is comes back unchanged. The plaintext only lives in memory.
+    /// </summary>
+    public ConnectionEntry RehomeDuplicate(ConnectionEntry copy, bool fromLocal)
+    {
+        if (copy.Version != 0) throw new InvalidOperationException("Only an unsaved duplicate can change where it is stored.");
+        if (copy.IsLocalOnly == fromLocal) return copy;
+        var from = CipherFor(copy with { IsLocalOnly = fromLocal });
+        return Recrypt(copy, from, CipherFor(copy), newIds: false);
+    }
+
+    /// <summary>
     /// A new, unsaved copy of <paramref name="entry"/> with new ids whose passwords are decrypted with <paramref name="from"/>
     /// and encrypted with <paramref name="to"/>, bound to the new ids (NFR-11). The plaintext only lives in memory.
     /// </summary>
-    private static ConnectionEntry Recrypt(ConnectionEntry entry, SecretCipher from, SecretCipher to)
+    private static ConnectionEntry Recrypt(ConnectionEntry entry, SecretCipher from, SecretCipher to, bool newIds = true)
     {
-        var id = Guid.NewGuid();
+        var id = newIds ? Guid.NewGuid() : entry.Id;
         return entry with
         {
             Id = id,
@@ -460,7 +474,7 @@ public sealed class HarborWorkspace : IDisposable
             PasswordCipher = entry.PasswordCipher is { Length: > 0 } c ? to.Encrypt(from.Decrypt(c, entry.Id), id) : null,
             Accounts = entry.Accounts.Select(a =>
             {
-                var accountId = Guid.NewGuid();
+                var accountId = newIds ? Guid.NewGuid() : a.Id;
                 return a with
                 {
                     Id = accountId,

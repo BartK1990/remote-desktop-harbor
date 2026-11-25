@@ -259,6 +259,14 @@
               BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
       <DockPanel>
       <DockPanel DockPanel.Dock="Top" Margin="6,6,6,4">
+      <!-- SPEC FR-72: in manual order, arrows move the selected entry or folder (like Alt+Up / Alt+Down). -->
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="0,0,8,0" AutomationProperties.Name="Manual order"
+                  Visibility="{Binding IsManualOrder, Converter={StaticResource BoolToVisibility}}">
+        <Button Style="{StaticResource Harbor.TreeZoomButton}" Command="{Binding MoveUpCommand}" Content="&#xE74A;"
+                Click="MoveButton_Click" ToolTip="Move the selected entry or folder up (Alt+Up)" AutomationProperties.Name="Move up" />
+        <Button Style="{StaticResource Harbor.TreeZoomButton}" Command="{Binding MoveDownCommand}" Content="&#xE74B;"
+                Click="MoveButton_Click" ToolTip="Move the selected entry or folder down (Alt+Down)" AutomationProperties.Name="Move down" />
+      </StackPanel>
       <!-- Entry list size (SPEC FR-55, ADR-0034): smaller, the current size (click to reset to 100 %), larger. -->
       <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" AutomationProperties.Name="Entry list size">
         <Button Style="{StaticResource Harbor.TreeZoomButton}" Command="{Binding ZoomTreeOutCommand}" Content="&#xE738;"
@@ -301,7 +309,9 @@
                 VirtualizingPanel.ScrollUnit="Pixel" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                 Padding="2" SelectedItemChanged="EntryTree_SelectedItemChanged" TreeViewItem.Selected="EntryTree_ItemSelected"
                 PreviewMouseDoubleClick="EntryTree_PreviewMouseDoubleClick" KeyDown="EntryTree_KeyDown"
-                PreviewMouseRightButtonDown="EntryTree_PreviewMouseRightButtonDown" PreviewMouseWheel="EntryTree_PreviewMouseWheel">
+                PreviewMouseRightButtonDown="EntryTree_PreviewMouseRightButtonDown" PreviewMouseWheel="EntryTree_PreviewMouseWheel"
+                AllowDrop="True" PreviewMouseLeftButtonDown="EntryTree_PreviewMouseLeftButtonDown" PreviewMouseMove="EntryTree_PreviewMouseMove"
+                DragOver="EntryTree_DragOver" DragLeave="EntryTree_DragLeave" Drop="EntryTree_Drop">
         <TreeView.Resources>
           <!-- Expand/collapse chevron. -->
           <Style x:Key="TreeChevron" TargetType="ToggleButton">
@@ -539,9 +549,13 @@
             <MenuItem Header="Move down" Command="{Binding MoveDownCommand}" InputGestureText="Alt+Down"
                       ToolTip="Pick Order → Manual first. Works while no search or filter narrows the list"
                       ToolTipService.ShowOnDisabled="True" />
-            <MenuItem Header="Order">
+            <MenuItem Header="{Binding OrderText}">
               <MenuItem Header="By name" Command="{Binding SortByNameCommand}" IsChecked="{Binding IsNameOrder, Mode=OneWay}" />
-              <MenuItem Header="Manual" Command="{Binding UseManualOrderCommand}" IsChecked="{Binding IsManualOrder, Mode=OneWay}" />
+              <MenuItem Header="Manual (drag rows, or Alt+Up / Alt+Down)" Command="{Binding UseManualOrderCommand}"
+                        IsChecked="{Binding IsManualOrder, Mode=OneWay}" />
+              <Separator />
+              <MenuItem Header="Reset manual order…" Command="{Binding ResetManualOrderCommand}"
+                        ToolTip="Puts every folder and entry back in name order" />
             </MenuItem>
             <Separator />
             <MenuItem Header="Expand all" Command="{Binding ExpandAllCommand}" />
