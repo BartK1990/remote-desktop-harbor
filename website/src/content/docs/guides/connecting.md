@@ -30,14 +30,20 @@ size.
 The window uses the entry's host, port, account and password (handed to the Remote Desktop control in memory only;
 no credential is written to Credential Manager), and these of its RDP settings: fixed desktop size, dynamic
 resolution, smart sizing, colour depth, audio and recording, clipboard, printers, smart cards, *all* drives, where
-Windows key combinations apply, automatic reconnection, server authentication and administrative session. Full screen
-and multiple monitors are ignored — it is always a window. A selection of single drives is not shared in this window;
+Windows key combinations apply, automatic reconnection, server authentication and administrative session. The
+entry's full screen and multiple monitors settings are ignored — it opens as a window, and you switch it to full
+screen when you want (below). A selection of single drives is not shared in this window;
 use mstsc for that.
 
 - With **dynamic resolution off** and a fixed size in the entry, the desktop keeps that size (scaled to the window if
   the entry turns smart sizing on).
 - Servers older than Windows 8.1 / Server 2012 R2 cannot change the size of a session: the picture is scaled to the
   window instead, and the next connection starts at the window's size.
+- **Full screen and back.** Once signed in, press <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>Break</kbd>, or open the window
+  menu (<kbd>Alt</kbd>+<kbd>Space</kbd>, or right-click the title bar) and choose **Full screen**. The session fills
+  the screen the window is on, with the usual Remote Desktop bar at the top of the screen; click **Restore** on that
+  bar, or press <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>Break</kbd> again, to get the window back. With dynamic
+  resolution the remote desktop takes the screen's size, and the window's size again when you come back.
 - Closing the window disconnects; the session stays on the server, as with mstsc. Signing out in the session closes
   the window. After a dropped connection the window shows the reason and a **Reconnect** button.
 - Entries behind a **Remote Desktop Gateway**, and PCs without the Remote Desktop control, always open in mstsc.

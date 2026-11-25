@@ -135,6 +135,11 @@ internal interface IRdpControlEvents
     void OnControlConnecting();
     void OnControlLoginComplete();
     void OnControlDisconnected(int reason);
+
+    /// <summary>The control entered or left its full screen mode (SPEC FR-74).</summary>
+    void OnControlFullScreenChanged(bool fullScreen)
+    {
+    }
 }
 
 /// <summary>Events of the Remote Desktop control (dispinterface <c>IMsTscAxEvents</c>), the ones the windows use.</summary>
@@ -147,6 +152,8 @@ internal interface IMsTscAxEvents
     [DispId(2)] void OnConnected();
     [DispId(3)] void OnLoginComplete();
     [DispId(4)] void OnDisconnected(int discReason);
+    [DispId(5)] void OnEnterFullScreenMode();
+    [DispId(6)] void OnLeaveFullScreenMode();
     [DispId(10)] void OnFatalError(int errorCode);
 }
 
@@ -159,6 +166,8 @@ internal sealed class RdpEventSink(IRdpControlEvents target) : IMsTscAxEvents
     public void OnConnected() { }
     public void OnLoginComplete() => target.OnControlLoginComplete();
     public void OnDisconnected(int discReason) => target.OnControlDisconnected(discReason);
+    public void OnEnterFullScreenMode() => target.OnControlFullScreenChanged(true);
+    public void OnLeaveFullScreenMode() => target.OnControlFullScreenChanged(false);
     public void OnFatalError(int errorCode) => target.OnControlDisconnected(-errorCode);
 }
 

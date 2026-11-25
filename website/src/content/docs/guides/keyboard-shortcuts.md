@@ -25,6 +25,7 @@ description: Keyboard shortcuts in the main window.
 | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> | [Duplicate](../managing-entries/#duplicate) the selected entry |
 | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>T</kbd> | [Transfer files](../file-transfer/) to or from the selected entry's host |
 | <kbd>Ctrl</kbd>+<kbd>,</kbd> | Open Settings |
+| <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>Break</kbd> (in [Harbor's Remote Desktop window](../connecting/#harbors-remote-desktop-window)) | Full screen and back |
 | <kbd>F5</kbd> | Sync with the shared database and refresh presence |
 | <kbd>Ctrl</kbd>+<kbd>Plus</kbd> / <kbd>Ctrl</kbd>+<kbd>Minus</kbd> (or <kbd>Ctrl</kbd>+wheel over the tree) | Larger / smaller rows in the entry list |
 | <kbd>Ctrl</kbd>+<kbd>0</kbd> | Entry list rows back to the default size (100 %) |
