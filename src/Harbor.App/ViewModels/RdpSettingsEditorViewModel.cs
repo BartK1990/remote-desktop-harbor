@@ -72,7 +72,7 @@ public sealed partial class RdpSettingsEditorViewModel : ObservableObject
     /// </summary>
     [ObservableProperty] private bool _ownDisplay;
 
-    /// <summary>Remote audio, microphone, local drives, printers and clipboard are kept for this user on this PC (SPEC FR-76).</summary>
+    /// <summary>Remote audio, microphone, local drives, printers, clipboard and smart cards are kept for this user on this PC (SPEC FR-76).</summary>
     [ObservableProperty] private bool _ownResources;
 
     [ObservableProperty] private RdpDisplayMode _displayMode;

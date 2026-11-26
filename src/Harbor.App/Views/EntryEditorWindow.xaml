@@ -322,10 +322,10 @@
         <ScrollViewer Style="{StaticResource TabScroller}">
           <StackPanel Style="{StaticResource TabPage}" DataContext="{Binding RdpSettings}">
             <!-- SPEC FR-76, ADR-0054: audio and drives for this user on this PC only -->
-            <CheckBox Content="Use my own audio, drives, printers and clipboard on this PC" IsChecked="{Binding OwnResources}"
-                      ToolTip="Remote audio, microphone, local drives, printers and clipboard are saved for you on this PC only. Others keep the entry's settings." />
+            <CheckBox Content="Use my own local resources on this PC" IsChecked="{Binding OwnResources}"
+                      ToolTip="Remote audio, microphone, local drives, printers, clipboard and smart cards are saved for you on this PC only. Others keep the entry's settings." />
             <TextBlock TextWrapping="Wrap" FontSize="12" Margin="26,0,0,10" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                       Text="When on, remote audio, the microphone, local drives, printers and the clipboard below are kept in your settings on this PC; the entry keeps its own for everyone else. Smart cards and Windows key combinations stay in the entry." />
+                       Text="When on, remote audio, the microphone, local drives, printers, the clipboard and smart cards below are kept in your settings on this PC; the entry keeps its own for everyone else. Windows key combinations stay in the entry." />
             <Grid>
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />

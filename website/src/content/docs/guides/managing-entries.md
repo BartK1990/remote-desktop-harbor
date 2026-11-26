@@ -117,10 +117,10 @@ smart sizing — for yourself on this PC. The entry keeps its own display settin
 (local resources, connection) are saved in the entry as usual. The details pane then shows *(this PC)* next to the
 display summary.
 
-**Your own local resources on this PC.** Likewise, **Use my own audio, drives, printers and clipboard on this PC**
-at the top of the **Local resources** section keeps remote audio, the microphone, local drives, printers and the
-clipboard for yourself on this PC (e.g. sound, drives and printers on your desk PC, nothing on a laptop). Smart cards
-and Windows key combinations stay in the entry. These personal settings live in your settings file, so they are not in a backup and do not follow
+**Your own local resources on this PC.** Likewise, **Use my own local resources on this PC** at the top of the
+**Local resources** section keeps remote audio, the microphone, local drives, printers, the clipboard and smart cards
+for yourself on this PC (e.g. sound, drives, printers and your smart card reader on your desk PC, nothing on a
+laptop). Windows key combinations stay in the entry. These personal settings live in your settings file, so they are not in a backup and do not follow
 you to another PC.
 
 See
