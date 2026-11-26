@@ -7,7 +7,4 @@ public static class Monitors
 {
     /// <summary>This PC's monitors now, with Remote Desktop's numbers. Empty when they cannot be read (and in tests).</summary>
     public static Func<IReadOnlyList<LocalMonitor>> Current { get; set; } = () => [];
-
-    /// <summary>Shows Remote Desktop's own list of this PC's monitors (<c>mstsc /l</c>).</summary>
-    public static Action? ShowIds { get; set; }
 }

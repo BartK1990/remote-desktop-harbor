@@ -23,12 +23,15 @@ public sealed partial class RdpSettingsEditorViewModel : ObservableObject
 
     /// <summary>
     /// The monitors a full screen session may use with <see cref="UseAllMonitors"/> (SPEC FR-75): one per monitor of this
-    /// PC now, named by size and place, with Remote Desktop's number. All checked = all monitors.
+    /// PC now, left to right, named by size and place, with Remote Desktop's number. All checked = all monitors.
     /// </summary>
     public ObservableCollection<MonitorChoice> Monitors { get; } = [];
 
-    [RelayCommand]
-    private void ShowMonitorNumbers() => Infrastructure.Monitors.ShowIds?.Invoke();
+    public bool HasMonitors => Monitors.Count > 0;
+
+    /// <summary>This PC's monitors as <c>mstsc /l</c> lists them, by number, one per line (SPEC FR-75).</summary>
+    public string MonitorList => string.Join(Environment.NewLine,
+        Monitors.Select(m => m.Monitor).OrderBy(m => m.Id).Select(MonitorSelection.MstscLine));
 
     /// <summary>The monitors picked, by position and size, or <c>null</c> for all (SPEC FR-75).</summary>
     public IReadOnlyList<MonitorRef>? PickedMonitors() =>
@@ -125,13 +128,16 @@ public sealed partial class RdpSettingsEditorViewModel : ObservableObject
         UseAllMonitors = o.UseAllMonitors;
         Monitors.Clear();
         var current = Infrastructure.Monitors.Current();
-        foreach (var monitor in current)
+        foreach (var monitor in MonitorSelection.ByPlace(current))
         {
             Monitors.Add(new MonitorChoice(monitor, MonitorSelection.Describe(monitor, current))
             {
                 IsSelected = o.SelectedMonitors.Count == 0 || o.SelectedMonitors.Contains(monitor.Id),
             });
         }
+
+        OnPropertyChanged(nameof(HasMonitors));
+        OnPropertyChanged(nameof(MonitorList));
 
         DynamicResolution = o.DynamicResolution;
         SmartSizing = o.SmartSizing;

@@ -19,8 +19,28 @@ public sealed record MonitorRef(int X, int Y, int Width, int Height);
 public static partial class MonitorSelection
 {
     /// <summary>
-    /// Remote Desktop's number of a monitor from its Windows device name: <c>\\.\DISPLAY5</c> is 4 (as <c>mstsc /l</c>
-    /// lists them); <c>null</c> for another name.
+    /// Remote Desktop's number of a monitor (as <c>mstsc /l</c> lists them): the place of its display device
+    /// (<paramref name="deviceName"/>, e.g. <c>\\.\DISPLAY9</c>) in Windows' list of display devices
+    /// (<paramref name="displayDevices"/>, in <c>EnumDisplayDevices</c> order, attached or not). The list has gaps in its
+    /// names — <c>DISPLAY1</c>…<c>DISPLAY4</c>, then <c>DISPLAY9</c>, <c>DISPLAY10</c> — so <c>DISPLAY9</c> is 4, not 8.
+    /// Without the list (or a device not in it) the number in the name less one is the best guess.
+    /// </summary>
+    public static int? IdFor(string? deviceName, IReadOnlyList<string>? displayDevices)
+    {
+        if (deviceName is not null && displayDevices is not null)
+        {
+            for (var i = 0; i < displayDevices.Count; i++)
+            {
+                if (string.Equals(displayDevices[i], deviceName, StringComparison.OrdinalIgnoreCase)) return i;
+            }
+        }
+
+        return IdFromDeviceName(deviceName);
+    }
+
+    /// <summary>
+    /// The number in a Windows display device name less one (<c>\\.\DISPLAY5</c> is 4); only a guess for
+    /// <see cref="IdFor"/>; <c>null</c> for another name.
     /// </summary>
     public static int? IdFromDeviceName(string? deviceName) =>
         deviceName is not null && DisplayNumber().Match(deviceName) is { Success: true } m
@@ -29,6 +49,17 @@ public static partial class MonitorSelection
             : null;
 
     public static MonitorRef RefOf(LocalMonitor monitor) => new(monitor.X, monitor.Y, monitor.Width, monitor.Height);
+
+    /// <summary>
+    /// A monitor as <c>mstsc /l</c> lists it, e.g. <c>4: 1920 x 1080; (3840, 0, 5759, 1079)</c> (left, top, right,
+    /// bottom), for the editor's list of this PC's monitors (SPEC FR-75).
+    /// </summary>
+    public static string MstscLine(LocalMonitor m) => string.Create(CultureInfo.InvariantCulture,
+        $"{m.Id}: {m.Width} x {m.Height}; ({m.X}, {m.Y}, {m.X + m.Width - 1}, {m.Y + m.Height - 1})");
+
+    /// <summary>Monitors in the order they stand on the desk: left to right, then top to bottom.</summary>
+    public static IReadOnlyList<LocalMonitor> ByPlace(IEnumerable<LocalMonitor> monitors) =>
+        [.. monitors.OrderBy(m => m.X).ThenBy(m => m.Y)];
 
     /// <summary>
     /// The current numbers of the <paramref name="wanted"/> monitors, ascending: each is the monitor with the same bounds,

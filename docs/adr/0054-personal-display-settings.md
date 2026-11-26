@@ -11,8 +11,9 @@ Some of them describe the user's own PC rather than the server: which monitors a
 uses monitor numbers that only mean something on one PC, and full screen or window, resolution and scaling are often a
 matter of the user's screens. Likewise, whether sound plays here, the microphone is used and which local drives,
 printers, clipboard and smart cards are shared depend on the user's PC. And Remote Desktop's monitor numbers are not even stable
-on one PC: they are the Windows display device numbers less one (`\\.\DISPLAY5` = 4), which change when a monitor
-is plugged into another port or dock (a PC listed its monitors as 0, 4 and 5).
+on one PC: they are the places of the monitors' display devices in Windows' list of display devices
+(`EnumDisplayDevices`), which change when a monitor is plugged into another port or dock (a PC listed its monitors as
+0, 4 and 5; its screens were `DISPLAY1`, `DISPLAY9` and `DISPLAY10`, so the device names are no guide).
 
 ## Options considered
 

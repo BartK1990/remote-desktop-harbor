@@ -20,6 +20,30 @@ public class MonitorSelectionTests
     public void Number_comes_from_the_device_name(string? name, int? expected) =>
         Assert.Equal(expected, MonitorSelection.IdFromDeviceName(name));
 
+    // A PC whose mstsc /l showed 0: (0, 0), 4: (3840, 0), 5: (1920, 0) while the screens were DISPLAY1, DISPLAY9 and
+    // DISPLAY10: the numbers are places in Windows' list of display devices, which skips DISPLAY5 to DISPLAY8.
+    [Theory]
+    [InlineData(@"\\.\DISPLAY1", 0)]
+    [InlineData(@"\\.\DISPLAY9", 4)]
+    [InlineData(@"\\.\display10", 5)]
+    [InlineData(@"\\.\DISPLAY7", 6)] // not in the list: the name less one
+    public void Number_is_the_place_in_the_display_device_list(string name, int expected)
+    {
+        string[] devices = [@"\\.\DISPLAY1", @"\\.\DISPLAY2", @"\\.\DISPLAY3", @"\\.\DISPLAY4", @"\\.\DISPLAY9", @"\\.\DISPLAY10"];
+        Assert.Equal(expected, MonitorSelection.IdFor(name, devices));
+    }
+
+    [Fact]
+    public void Monitors_are_listed_like_mstsc_and_ordered_by_place()
+    {
+        LocalMonitor middle = new(5, 1920, 0, 1920, 1080, false), right = new(4, 3840, 0, 1920, 1080, false);
+        LocalMonitor primary = new(0, 0, 0, 1920, 1200, true);
+        Assert.Equal("4: 1920 x 1080; (3840, 0, 5759, 1079)", MonitorSelection.MstscLine(right));
+        Assert.Equal("0: 1920 x 1200; (0, 0, 1919, 1199)", MonitorSelection.MstscLine(primary));
+        Assert.Equal([primary, middle, right], MonitorSelection.ByPlace([right, primary, middle]));
+        Assert.Equal("1920 × 1080 · 1st right · no. 5", MonitorSelection.Describe(middle, [primary, middle, right]));
+    }
+
     [Fact]
     public void Picked_monitors_get_their_numbers_of_the_moment()
     {

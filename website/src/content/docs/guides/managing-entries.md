@@ -100,9 +100,10 @@ Settings imported from an `.rdp` file land in the matching fields.
 **Full screen on some of your monitors.** With three monitors you can, for example, let a session cover two of them
 and keep the third for your own work. Turn on **Use several monitors (full screen)** in the **Display** section;
 one check box per monitor of this PC appears, all checked (= all monitors), each named by size, place and Remote
-Desktop's number, e.g. *2560 × 1080 · 1st left · no. 4*. Uncheck the ones the session should leave free, and pick
-monitors that are next to each other. **Show monitor numbers** opens Remote Desktop Connection's own list
-(`mstsc /l`) with the same numbers.
+Desktop's number, e.g. *1920 × 1080 · 1st right · no. 5*, left to right as they stand. Uncheck the ones the session
+should leave free, and pick monitors that are next to each other. Below them a box lists your monitors the way
+Remote Desktop Connection's `mstsc /l` does (e.g. `5: 1920 x 1080; (1920, 0, 3839, 1079)`), so you can see which
+number is which screen without leaving the editor.
 
 Those numbers are not fixed — they can jump (e.g. 0, 4, 5) when you plug a monitor into another port or dock — so
 Harbor remembers the monitors you picked **by position and size** and looks their numbers up again every time you
