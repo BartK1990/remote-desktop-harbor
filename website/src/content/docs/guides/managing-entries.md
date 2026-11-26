@@ -100,9 +100,10 @@ Settings imported from an `.rdp` file land in the matching fields.
 **Full screen on some of your monitors.** With three monitors you can, for example, let a session cover two of them
 and keep the third for your own work. Turn on **Use several monitors (full screen)** in the **Display** section;
 one check box per monitor of this PC appears, all checked (= all monitors), each named by size, place and Remote
-Desktop's number, e.g. *2560 × 1080 · 1st left · no. 4*. Uncheck the ones the session should leave free, and pick
-monitors that are next to each other. **Show monitor numbers** opens Remote Desktop Connection's own list
-(`mstsc /l`) with the same numbers.
+Desktop's number, e.g. *1920 × 1080 · 1st right · no. 5*, left to right as they stand. Uncheck the ones the session
+should leave free, and pick monitors that are next to each other. Below them a box lists your monitors the way
+Remote Desktop Connection's `mstsc /l` does (e.g. `5: 1920 x 1080; (1920, 0, 3839, 1079)`), so you can see which
+number is which screen without leaving the editor.
 
 Those numbers are not fixed — they can jump (e.g. 0, 4, 5) when you plug a monitor into another port or dock — so
 Harbor remembers the monitors you picked **by position and size** and looks their numbers up again every time you
@@ -117,10 +118,10 @@ smart sizing — for yourself on this PC. The entry keeps its own display settin
 (local resources, connection) are saved in the entry as usual. The details pane then shows *(this PC)* next to the
 display summary.
 
-**Your own local resources on this PC.** Likewise, **Use my own audio, drives, printers and clipboard on this PC**
-at the top of the **Local resources** section keeps remote audio, the microphone, local drives, printers and the
-clipboard for yourself on this PC (e.g. sound, drives and printers on your desk PC, nothing on a laptop). Smart cards
-and Windows key combinations stay in the entry. These personal settings live in your settings file, so they are not in a backup and do not follow
+**Your own local resources on this PC.** Likewise, **Use my own local resources on this PC** at the top of the
+**Local resources** section keeps remote audio, the microphone, local drives, printers, the clipboard and smart cards
+for yourself on this PC (e.g. sound, drives, printers and your smart card reader on your desk PC, nothing on a
+laptop). Windows key combinations stay in the entry. These personal settings live in your settings file, so they are not in a backup and do not follow
 you to another PC.
 
 See

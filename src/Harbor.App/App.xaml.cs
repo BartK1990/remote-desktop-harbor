@@ -16,16 +16,16 @@ public partial class App : Application
         // Show the window first and do sign-in / database work afterwards: fast perceived startup (SPEC NFR-01).
         var settings = SettingsStore.Load();
         // SPEC FR-75: the editor's monitor picker lists this PC's monitors, numbered as Remote Desktop numbers them.
-        Monitors.Current = Harbor.Windows.Rdp.LocalMonitors.Current;
-        Monitors.ShowIds = () =>
+        Monitors.Current = () =>
         {
             try
             {
-                Harbor.Windows.Rdp.LocalMonitors.ShowIds();
+                return Harbor.Windows.Rdp.LocalMonitors.Current();
             }
-            catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
+            catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException or EntryPointNotFoundException)
             {
-                Log.Error("mstsc /l could not be started", ex);
+                Log.Error("This PC's monitors could not be read", ex);
+                return [];
             }
         };
         ThemeService.Apply(settings.Theme); // SPEC FR-08: before the first window, so it never flashes the wrong theme.

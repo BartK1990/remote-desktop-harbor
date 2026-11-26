@@ -47,11 +47,11 @@ public class RdpSettingsEditorViewModelTests
         Assert.False(vm.ShowOtherSettings);
     }
 
-    // SPEC FR-75: the monitor picker lists this PC's monitors with Remote Desktop's numbers (0, 4, 5 like mstsc /l
-    // shows them on a PC with a dock) and keeps the picked ones by position and size.
+    // SPEC FR-75: the monitor picker lists this PC's monitors left to right with Remote Desktop's numbers (0, 5, 4 on a
+    // PC whose mstsc /l shows 0: (0, 0), 5: (1920, 0), 4: (3840, 0)) and keeps the picked ones by position and size.
     private static readonly Harbor.Core.Rdp.LocalMonitor[] ThreeMonitors =
     [
-        new(0, 0, 0, 1920, 1200, true), new(4, -2560, 0, 2560, 1080, false), new(5, -4480, 0, 1920, 1080, false),
+        new(0, 0, 0, 1920, 1200, true), new(4, 3840, 0, 1920, 1080, false), new(5, 1920, 0, 1920, 1080, false),
     ];
 
     [Fact]
@@ -61,21 +61,24 @@ public class RdpSettingsEditorViewModelTests
         try
         {
             var vm = new RdpSettingsEditorViewModel("use multimon:i:1");
-            Assert.Equal([0, 4, 5], vm.Monitors.Select(m => m.Id));
-            Assert.Equal("2560 × 1080 · 1st left · no. 4", vm.Monitors[1].Label);
+            Assert.Equal([0, 5, 4], vm.Monitors.Select(m => m.Id)); // left to right
+            Assert.Equal("1920 × 1080 · 1st right · no. 5", vm.Monitors[1].Label);
+            Assert.Equal("1920 × 1080 · 2nd right · no. 4", vm.Monitors[2].Label);
+            Assert.Equal(string.Join(Environment.NewLine, "0: 1920 x 1200; (0, 0, 1919, 1199)",
+                "4: 1920 x 1080; (3840, 0, 5759, 1079)", "5: 1920 x 1080; (1920, 0, 3839, 1079)"), vm.MonitorList);
             Assert.All(vm.Monitors, m => Assert.True(m.IsSelected));
             Assert.Null(vm.PickedMonitors());
 
-            vm.Monitors[2].IsSelected = false;
-            Assert.Contains("selectedmonitors:s:0,4", vm.Build(), StringComparison.Ordinal);
-            Assert.Equal([new(0, 0, 1920, 1200), new(-2560, 0, 2560, 1080)], vm.PickedMonitors()!);
-
             vm.Monitors[0].IsSelected = false;
+            Assert.Contains("selectedmonitors:s:4,5", vm.Build(), StringComparison.Ordinal);
+            Assert.Equal([new(1920, 0, 1920, 1080), new(3840, 0, 1920, 1080)], vm.PickedMonitors()!);
+
             vm.Monitors[1].IsSelected = false;
+            vm.Monitors[2].IsSelected = false;
             Assert.NotNull(vm.Validate());
 
             var loaded = new RdpSettingsEditorViewModel("use multimon:i:1\nselectedmonitors:s:4,5");
-            Assert.Equal([4, 5], loaded.Monitors.Where(m => m.IsSelected).Select(m => m.Id));
+            Assert.Equal([5, 4], loaded.Monitors.Where(m => m.IsSelected).Select(m => m.Id));
         }
         finally
         {

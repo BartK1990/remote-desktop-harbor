@@ -69,17 +69,18 @@ public class PersonalRdpTests
     [Fact]
     public void Own_local_resources_are_kept_on_this_pc()
     {
-        var before = Lines("audiomode:i:2", "drivestoredirect:s:*", "redirectprinters:i:0", "redirectsmartcards:i:0");
-        var edited = Lines("audiocapturemode:i:1", "redirectclipboard:i:0", "redirectsmartcards:i:1");
+        var before = Lines("audiomode:i:2", "drivestoredirect:s:*", "redirectprinters:i:0", "redirectsmartcards:i:0", "keyboardhook:i:1");
+        var edited = Lines("audiocapturemode:i:1", "redirectclipboard:i:0", "keyboardhook:i:0");
 
         var (shared, personal) = PersonalRdp.Split(edited, ownDisplay: false, sharedBefore: before, ownResources: true);
 
-        // Smart cards stay in the entry; audio, microphone, drives, printers and clipboard are kept on this PC.
-        Assert.Equal(Lines("redirectsmartcards:i:1", "audiomode:i:2", "drivestoredirect:s:*", "redirectprinters:i:0"), shared);
+        // Windows key combinations stay in the entry; audio, microphone, drives, printers, clipboard and smart cards
+        // are kept on this PC.
+        Assert.Equal(Lines("keyboardhook:i:0", "audiomode:i:2", "drivestoredirect:s:*", "redirectprinters:i:0", "redirectsmartcards:i:0"), shared);
         Assert.True(personal!.OwnResources);
         Assert.Equal(Lines("audiocapturemode:i:1", "redirectclipboard:i:0"), personal.Lines);
 
-        // On this PC: none of the entry's lines of that group, only the user's (printers back to the default: on).
-        Assert.Equal(Lines("redirectsmartcards:i:1", "audiocapturemode:i:1", "redirectclipboard:i:0"), PersonalRdp.Merge(shared, personal));
+        // On this PC: none of the entry's lines of that group, only the user's (printers and smart cards back to on).
+        Assert.Equal(Lines("keyboardhook:i:0", "audiocapturemode:i:1", "redirectclipboard:i:0"), PersonalRdp.Merge(shared, personal));
     }
 }

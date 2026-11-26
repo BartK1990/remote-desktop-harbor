@@ -6,7 +6,8 @@ namespace Harbor.Core.Rdp;
 /// What a user keeps for an entry on this PC only (SPEC FR-76, ADR-0054), in their own settings and never in a shared
 /// database: the monitors a full screen session uses (always; monitor numbers belong to this PC), and — with
 /// <see cref="OwnDisplay"/> — the entry's whole display group (mode, size, monitors, dynamic resolution, smart sizing),
-/// and with <see cref="OwnResources"/> its local resources (remote audio, microphone, local drives, printers, clipboard).
+/// and with <see cref="OwnResources"/> its local resources (remote audio, microphone, local drives, printers, clipboard,
+/// smart cards).
 /// </summary>
 public sealed record PersonalRdpSettings
 {
@@ -43,7 +44,7 @@ public static class PersonalRdp
 
     /// <summary>The local resources group, personal with <see cref="PersonalRdpSettings.OwnResources"/>.</summary>
     public static IReadOnlyList<string> ResourceKeys { get; } =
-        ["audiomode", "audiocapturemode", "drivestoredirect", "redirectprinters", "redirectclipboard"];
+        ["audiomode", "audiocapturemode", "drivestoredirect", "redirectprinters", "redirectclipboard", "redirectsmartcards"];
 
     public static bool IsDisplayKey(string key) => DisplayKeys.Contains(key, StringComparer.OrdinalIgnoreCase);
 
