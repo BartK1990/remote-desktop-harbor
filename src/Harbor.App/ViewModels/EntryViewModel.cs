@@ -77,7 +77,7 @@ public sealed partial class EntryViewModel : TreeNodeViewModel
         get
         {
             if (!IsRdpConnection) return [];
-            var lines = Core.Rdp.RdpSummary.Describe(Core.Rdp.PersonalRdp.Merge(Model.RdpSettings, PersonalRdp));
+            var lines = Core.Rdp.RdpSummary.Describe(Core.Rdp.PersonalRdp.Merge(Model.RdpSettings, PersonalRdp, Infrastructure.Monitors.Current()));
             if (PersonalRdp is not { } personal) return lines;
             return [.. lines.Select(l =>
                 (l.Label == "Display" && personal.OwnDisplay) || (l.Label == "Redirect" && personal.OwnResources)

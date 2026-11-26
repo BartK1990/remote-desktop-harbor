@@ -6,7 +6,7 @@ namespace Harbor.Core.Rdp;
 /// What a user keeps for an entry on this PC only (SPEC FR-76, ADR-0054), in their own settings and never in a shared
 /// database: the monitors a full screen session uses (always; monitor numbers belong to this PC), and — with
 /// <see cref="OwnDisplay"/> — the entry's whole display group (mode, size, monitors, dynamic resolution, smart sizing),
-/// and with <see cref="OwnResources"/> its audio and drives (remote audio, microphone, local drives).
+/// and with <see cref="OwnResources"/> its local resources (remote audio, microphone, local drives, printers, clipboard).
 /// </summary>
 public sealed record PersonalRdpSettings
 {
@@ -19,7 +19,13 @@ public sealed record PersonalRdpSettings
     /// <summary><c>.rdp</c> lines (<c>key:type:value</c>) of the personal keys only.</summary>
     public string? Lines { get; init; }
 
-    public bool IsEmpty => !OwnDisplay && !OwnResources && string.IsNullOrWhiteSpace(Lines);
+    /// <summary>
+    /// The monitors a full screen session uses, by position and size (SPEC FR-75); their Remote Desktop numbers are looked
+    /// up when connecting (<see cref="MonitorSelection.Resolve"/>). <c>null</c> = all monitors.
+    /// </summary>
+    public List<MonitorRef>? Monitors { get; init; }
+
+    public bool IsEmpty => !OwnDisplay && !OwnResources && string.IsNullOrWhiteSpace(Lines) && Monitors is not { Count: > 0 };
 
     /// <summary>Whether <paramref name="key"/> is kept on this PC with these settings.</summary>
     public bool IsPersonal(string key) => PersonalRdp.IsPersonal(key, OwnDisplay, OwnResources);
@@ -35,8 +41,9 @@ public static class PersonalRdp
     public static IReadOnlyList<string> DisplayKeys { get; } =
         ["screen mode id", "desktopwidth", "desktopheight", "use multimon", MonitorsKey, "dynamic resolution", "smart sizing"];
 
-    /// <summary>The audio and drives group, personal with <see cref="PersonalRdpSettings.OwnResources"/>.</summary>
-    public static IReadOnlyList<string> ResourceKeys { get; } = ["audiomode", "audiocapturemode", "drivestoredirect"];
+    /// <summary>The local resources group, personal with <see cref="PersonalRdpSettings.OwnResources"/>.</summary>
+    public static IReadOnlyList<string> ResourceKeys { get; } =
+        ["audiomode", "audiocapturemode", "drivestoredirect", "redirectprinters", "redirectclipboard"];
 
     public static bool IsDisplayKey(string key) => DisplayKeys.Contains(key, StringComparer.OrdinalIgnoreCase);
 
@@ -52,21 +59,50 @@ public static class PersonalRdp
     /// The settings an entry connects with on this PC: the shared <paramref name="shared"/> lines with the personal ones
     /// in place of theirs — the monitors line, and every line of the groups the user keeps (display, audio and drives).
     /// </summary>
-    public static string? Merge(string? shared, PersonalRdpSettings? personal)
+    /// <remarks>
+    /// Picked <see cref="PersonalRdpSettings.Monitors"/> become a <c>selectedmonitors</c> line with the numbers of
+    /// <paramref name="monitors"/>, this PC's monitors now; none of them still there (or no <paramref name="monitors"/>)
+    /// gives no line, so the session uses all monitors.
+    /// </remarks>
+    public static string? Merge(string? shared, PersonalRdpSettings? personal, IReadOnlyList<LocalMonitor>? monitors = null)
     {
         if (personal is null || personal.IsEmpty) return shared;
         Func<string, bool> replaced = personal.IsPersonal;
         var lines = RdpFile.Parse(shared ?? "").Where(l => !replaced(l.Key)).Select(l => l.Raw)
             .Concat(RdpFile.Parse(personal.Lines ?? "").Where(l => replaced(l.Key)).Select(l => l.Raw))
             .ToList();
+        if (personal.Monitors is { Count: > 0 } picked)
+        {
+            lines.RemoveAll(l => RdpFile.Parse(l).Any(p => IsMonitorsKey(p.Key)));
+            if (monitors is { Count: > 0 } && MonitorSelection.Resolve(picked, monitors) is { Count: > 0 } ids)
+            {
+                lines.Add($"{MonitorsKey}:s:{string.Join(',', ids.Select(i => i.ToString(System.Globalization.CultureInfo.InvariantCulture)))}");
+            }
+        }
+
         return lines.Count == 0 ? null : string.Join(Environment.NewLine, lines);
     }
 
     /// <summary><paramref name="entry"/> as it connects on this PC (see <see cref="Merge"/>).</summary>
-    public static ConnectionEntry Apply(ConnectionEntry entry, PersonalRdpSettings? personal) =>
+    public static ConnectionEntry Apply(ConnectionEntry entry, PersonalRdpSettings? personal, IReadOnlyList<LocalMonitor>? monitors = null) =>
         personal is null || personal.IsEmpty || entry.Kind != EntryKind.RdpConnection
             ? entry
-            : entry with { RdpSettings = Merge(entry.RdpSettings, personal) };
+            : entry with { RdpSettings = Merge(entry.RdpSettings, personal, monitors) };
+
+    /// <summary>
+    /// <paramref name="personal"/> with the monitors picked stored by position and size (<paramref name="picked"/>;
+    /// <c>null</c> = all) instead of a <c>selectedmonitors</c> line of numbers, which change (SPEC FR-75).
+    /// </summary>
+    public static PersonalRdpSettings? WithMonitors(PersonalRdpSettings? personal, IReadOnlyList<MonitorRef>? picked)
+    {
+        var lines = RdpFile.Parse(personal?.Lines ?? "").Where(l => !IsMonitorsKey(l.Key)).Select(l => l.Raw).ToList();
+        var result = (personal ?? new PersonalRdpSettings()) with
+        {
+            Lines = lines.Count == 0 ? null : string.Join(Environment.NewLine, lines),
+            Monitors = picked is { Count: > 0 } ? [.. picked] : null,
+        };
+        return result.IsEmpty ? null : result;
+    }
 
     /// <summary>
     /// Splits the settings edited in the form (<paramref name="edited"/>, as this PC connects) into what is stored in the

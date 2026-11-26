@@ -295,7 +295,7 @@
             <CheckBox Content="Use several monitors (full screen)" IsChecked="{Binding UseAllMonitors}" Margin="0,8,0,0" />
             <!-- SPEC FR-75: which of this PC's monitors, by Remote Desktop's own numbers (mstsc /l) -->
             <StackPanel Margin="26,2,0,4" Visibility="{Binding UseAllMonitors, Converter={StaticResource BoolToVisibility}}">
-              <TextBlock Text="Monitors to use, kept for you on this PC (Remote Desktop Connection only; all checked = all monitors)" Style="{StaticResource SmallLabel}" Margin="0,0,0,2" />
+              <TextBlock Text="This PC's monitors to use, kept for you by position and size (Remote Desktop Connection only; all checked = all monitors)" Style="{StaticResource SmallLabel}" Margin="0,0,0,2" />
               <ItemsControl ItemsSource="{Binding Monitors}" AutomationProperties.Name="Monitors to use">
                 <ItemsControl.ItemsPanel>
                   <ItemsPanelTemplate>
@@ -310,7 +310,7 @@
               </ItemsControl>
               <Button Content="Show monitor numbers" Command="{Binding ShowMonitorNumbersCommand}" Style="{StaticResource Harbor.SubtleButton}"
                       HorizontalAlignment="Left" Margin="0,4,0,0"
-                      ToolTip="Opens Remote Desktop Connection's list of this PC's monitors with their numbers. Pick monitors that are next to each other." />
+                      ToolTip="Opens Remote Desktop Connection's list of this PC's monitors; its numbers are the no. shown with each monitor here. They can change after re-plugging or docking, so Harbor looks them up again on every connection. Pick monitors that are next to each other." />
             </StackPanel>
             <CheckBox Content="Update the remote resolution when the window is resized" IsChecked="{Binding DynamicResolution}" />
             <CheckBox Content="Scale the remote desktop to fit the window (smart sizing)" IsChecked="{Binding SmartSizing}" />
@@ -322,10 +322,10 @@
         <ScrollViewer Style="{StaticResource TabScroller}">
           <StackPanel Style="{StaticResource TabPage}" DataContext="{Binding RdpSettings}">
             <!-- SPEC FR-76, ADR-0054: audio and drives for this user on this PC only -->
-            <CheckBox Content="Use my own audio and drives on this PC" IsChecked="{Binding OwnResources}"
-                      ToolTip="Remote audio, microphone and local drives are saved for you on this PC only. Others keep the entry's settings." />
+            <CheckBox Content="Use my own audio, drives, printers and clipboard on this PC" IsChecked="{Binding OwnResources}"
+                      ToolTip="Remote audio, microphone, local drives, printers and clipboard are saved for you on this PC only. Others keep the entry's settings." />
             <TextBlock TextWrapping="Wrap" FontSize="12" Margin="26,0,0,10" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                       Text="When on, remote audio, the microphone and local drives below are kept in your settings on this PC; the entry keeps its own for everyone else. The other settings on this page stay in the entry." />
+                       Text="When on, remote audio, the microphone, local drives, printers and the clipboard below are kept in your settings on this PC; the entry keeps its own for everyone else. Smart cards and Windows key combinations stay in the entry." />
             <Grid>
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
