@@ -33,7 +33,7 @@ public sealed partial class EntryEditorViewModel : ObservableValidator
         _port = original.Port;
         _domain = original.Domain;
         _userName = original.UserName;
-        RdpSettings = new RdpSettingsEditorViewModel(PersonalRdp.Merge(original.RdpSettings, personal))
+        RdpSettings = new RdpSettingsEditorViewModel(PersonalRdp.Merge(original.RdpSettings, personal, Infrastructure.Monitors.Current()))
         {
             OwnDisplay = personal?.OwnDisplay == true,
             OwnResources = personal?.OwnResources == true,
@@ -277,7 +277,9 @@ public sealed partial class EntryEditorViewModel : ObservableValidator
     };
 
     /// <summary>What is kept for this user on this PC only (SPEC FR-76); <c>null</c> for nothing.</summary>
-    public PersonalRdpSettings? BuildPersonalRdp() => IsRdpConnection ? SplitRdpSettings().Personal : null;
+    /// <remarks>The monitors picked are kept by position and size, not by number (SPEC FR-75).</remarks>
+    public PersonalRdpSettings? BuildPersonalRdp() =>
+        IsRdpConnection ? PersonalRdp.WithMonitors(SplitRdpSettings().Personal, RdpSettings.PickedMonitors()) : null;
 
     private (string? Shared, PersonalRdpSettings? Personal) SplitRdpSettings() =>
         PersonalRdp.Split(RdpSettings.Build(), RdpSettings.OwnDisplay, _original.RdpSettings, RdpSettings.OwnResources);

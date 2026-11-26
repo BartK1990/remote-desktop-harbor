@@ -99,11 +99,16 @@ Settings imported from an `.rdp` file land in the matching fields.
 
 **Full screen on some of your monitors.** With three monitors you can, for example, let a session cover two of them
 and keep the third for your own work. Turn on **Use several monitors (full screen)** in the **Display** section;
-one check box per monitor of this PC appears, all checked (= all monitors). Uncheck the ones the session should
-leave free. **Show monitor numbers** opens Remote Desktop Connection's own list of your monitors with their numbers,
-which are the numbers the check boxes use; pick monitors that are next to each other. The choice applies when the
-entry opens in Remote Desktop Connection (mstsc); Harbor's own window always uses one screen. Monitor numbers belong to
-your PC, so the choice is **kept for you on this PC**, not in the entry: with a shared database each colleague picks
+one check box per monitor of this PC appears, all checked (= all monitors), each named by size, place and Remote
+Desktop's number, e.g. *2560 × 1080 · 1st left · no. 4*. Uncheck the ones the session should leave free, and pick
+monitors that are next to each other. **Show monitor numbers** opens Remote Desktop Connection's own list
+(`mstsc /l`) with the same numbers.
+
+Those numbers are not fixed — they can jump (e.g. 0, 4, 5) when you plug a monitor into another port or dock — so
+Harbor remembers the monitors you picked **by position and size** and looks their numbers up again every time you
+connect. If a picked monitor is not there (say, on the road), it is left out; if none is, the session uses all
+monitors. The choice applies when the entry opens in Remote Desktop Connection (mstsc); Harbor's own window always
+uses one screen. It is **kept for you on this PC**, not in the entry: with a shared database each colleague picks
 their own monitors.
 
 **Your own display settings on this PC.** Turn on **Use my own display settings on this PC** at the top of the
@@ -112,10 +117,10 @@ smart sizing — for yourself on this PC. The entry keeps its own display settin
 (local resources, connection) are saved in the entry as usual. The details pane then shows *(this PC)* next to the
 display summary.
 
-**Your own audio and drives on this PC.** Likewise, **Use my own audio and drives on this PC** at the top of the
-**Local resources** section keeps remote audio, the microphone and local drives for yourself on this PC (e.g. sound
-and your drives on your desk PC, nothing on a laptop). Clipboard, printers, smart cards and Windows key combinations
-stay in the entry. These personal settings live in your settings file, so they are not in a backup and do not follow
+**Your own local resources on this PC.** Likewise, **Use my own audio, drives, printers and clipboard on this PC**
+at the top of the **Local resources** section keeps remote audio, the microphone, local drives, printers and the
+clipboard for yourself on this PC (e.g. sound, drives and printers on your desk PC, nothing on a laptop). Smart cards
+and Windows key combinations stay in the entry. These personal settings live in your settings file, so they are not in a backup and do not follow
 you to another PC.
 
 See

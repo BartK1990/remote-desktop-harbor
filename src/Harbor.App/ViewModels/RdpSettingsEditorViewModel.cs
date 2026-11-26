@@ -21,20 +21,20 @@ public sealed partial class RdpSettingsEditorViewModel : ObservableObject
 
     public RdpSettingsEditorViewModel(string? rdpSettings) => Load(rdpSettings);
 
-    /// <summary>How many monitors this PC has; set by the app at start (SPEC FR-75).</summary>
-    public static Func<int> LocalMonitorCount { get; set; } = () => 1;
-
-    /// <summary>Shows Remote Desktop's own numbers of this PC's monitors (<c>mstsc /l</c>); set by the app at start.</summary>
-    public static Action? ShowMonitorIds { get; set; }
-
     /// <summary>
     /// The monitors a full screen session may use with <see cref="UseAllMonitors"/> (SPEC FR-75): one per monitor of this
-    /// PC (and per id the entry names beyond them), by Remote Desktop's monitor id. All checked = all monitors.
+    /// PC now, named by size and place, with Remote Desktop's number. All checked = all monitors.
     /// </summary>
     public ObservableCollection<MonitorChoice> Monitors { get; } = [];
 
     [RelayCommand]
-    private void ShowMonitorNumbers() => ShowMonitorIds?.Invoke();
+    private void ShowMonitorNumbers() => Infrastructure.Monitors.ShowIds?.Invoke();
+
+    /// <summary>The monitors picked, by position and size, or <c>null</c> for all (SPEC FR-75).</summary>
+    public IReadOnlyList<MonitorRef>? PickedMonitors() =>
+        UseAllMonitors && Monitors.Any(m => !m.IsSelected) && Monitors.Any(m => m.IsSelected)
+            ? [.. Monitors.Where(m => m.IsSelected).Select(m => MonitorSelection.RefOf(m.Monitor))]
+            : null;
 
     public IReadOnlyList<Choice<RdpDisplayMode>> DisplayModes { get; } =
         [new("Full screen", RdpDisplayMode.FullScreen), new("Window", RdpDisplayMode.Window)];
@@ -72,7 +72,7 @@ public sealed partial class RdpSettingsEditorViewModel : ObservableObject
     /// </summary>
     [ObservableProperty] private bool _ownDisplay;
 
-    /// <summary>Remote audio, microphone and local drives are kept for this user on this PC (SPEC FR-76).</summary>
+    /// <summary>Remote audio, microphone, local drives, printers and clipboard are kept for this user on this PC (SPEC FR-76).</summary>
     [ObservableProperty] private bool _ownResources;
 
     [ObservableProperty] private RdpDisplayMode _displayMode;
@@ -124,10 +124,13 @@ public sealed partial class RdpSettingsEditorViewModel : ObservableObject
 
         UseAllMonitors = o.UseAllMonitors;
         Monitors.Clear();
-        var count = Math.Max(LocalMonitorCount(), o.SelectedMonitors.Count > 0 ? o.SelectedMonitors.Max() + 1 : 0);
-        for (var id = 0; id < count; id++)
+        var current = Infrastructure.Monitors.Current();
+        foreach (var monitor in current)
         {
-            Monitors.Add(new MonitorChoice(id) { IsSelected = o.SelectedMonitors.Count == 0 || o.SelectedMonitors.Contains(id) });
+            Monitors.Add(new MonitorChoice(monitor, MonitorSelection.Describe(monitor, current))
+            {
+                IsSelected = o.SelectedMonitors.Count == 0 || o.SelectedMonitors.Contains(monitor.Id),
+            });
         }
 
         DynamicResolution = o.DynamicResolution;
@@ -182,10 +185,16 @@ public sealed partial class RdpSettingsEditorViewModel : ObservableObject
     }, OtherSettings);
 }
 
-/// <summary>A monitor in the editor's monitor picker (SPEC FR-75), by Remote Desktop's monitor id.</summary>
-public sealed partial class MonitorChoice(int id) : ObservableObject
+/// <summary>A monitor of this PC in the editor's monitor picker (SPEC FR-75).</summary>
+public sealed partial class MonitorChoice(LocalMonitor monitor, string label) : ObservableObject
 {
-    public int Id { get; } = id;
-    public string Label => $"Monitor {Id}";
+    public LocalMonitor Monitor { get; } = monitor;
+
+    /// <summary>Remote Desktop's number for the monitor now.</summary>
+    public int Id => Monitor.Id;
+
+    /// <summary>Size, place and number, e.g. <c>2560 × 1080 · 1st left · no. 4</c>.</summary>
+    public string Label { get; } = label;
+
     [ObservableProperty] private bool _isSelected;
 }

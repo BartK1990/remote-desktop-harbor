@@ -925,7 +925,8 @@ public sealed partial class MainViewModel : ObservableObject, IAsyncDisposable
     {
         if (_host is null) return false;
         // SPEC FR-76: as it connects on this PC, with this user's own monitors and display settings.
-        var entry = Core.Rdp.PersonalRdp.Apply(vm.Model, PersonalFor(vm.Model.Id));
+        // The monitors picked are looked up by position now: their Remote Desktop numbers change (SPEC FR-75).
+        var entry = Core.Rdp.PersonalRdp.Apply(vm.Model, PersonalFor(vm.Model.Id), Monitors.Current());
         var account = entry.FindAccount(accountId);
         var accountName = entry.QualifiedUserNameFor(account);
 

@@ -16,8 +16,8 @@ public partial class App : Application
         // Show the window first and do sign-in / database work afterwards: fast perceived startup (SPEC NFR-01).
         var settings = SettingsStore.Load();
         // SPEC FR-75: the editor's monitor picker lists this PC's monitors, numbered as Remote Desktop numbers them.
-        RdpSettingsEditorViewModel.LocalMonitorCount = Harbor.Windows.Rdp.LocalMonitors.Count;
-        RdpSettingsEditorViewModel.ShowMonitorIds = () =>
+        Monitors.Current = Harbor.Windows.Rdp.LocalMonitors.Current;
+        Monitors.ShowIds = () =>
         {
             try
             {
