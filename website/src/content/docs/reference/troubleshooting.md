@@ -5,6 +5,18 @@ description: Common problems and how to solve them.
 
 Start with the log: `logs\harbor.log` in the [data folder](../data-and-files/). It never contains passwords.
 
+## The app closes without a message
+
+Windows' event log then shows an *Application Error* for `RemoteDesktopHarbor.exe` in `coreclr.dll`, often with
+exception code `0xc0000602`. That code only says that .NET ended the app after an error nobody handled. The cause
+is in two places:
+
+- `logs\harbor.log`, in a line marked `FATAL`, with the full error and where it happened.
+- **Event Viewer → Windows Logs → Application**: the **.NET Runtime** event (ID 1026) logged just before the
+  *Application Error* has the same stack trace.
+
+Include either one when you report the crash.
+
 ## Remote Desktop asks for the password anyway
 
 - Windows Defender Credential Guard is handled: the app hands the password over in a form Remote Desktop accepts

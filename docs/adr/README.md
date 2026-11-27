@@ -60,3 +60,4 @@ Process: see [spec/README.md](../spec/README.md).
 | [0052](0052-personal-manual-tree-order.md) | The manual order of the entry tree is personal and kept in the settings, not in the database | Accepted |
 | [0053](0053-harbor-window-full-screen.md) | Harbor's Remote Desktop window goes full screen with the control's own full screen, as mstsc | Accepted |
 | [0054](0054-personal-display-settings.md) | Monitors (by position, not number), and optionally display and local resources, are kept per user and PC | Accepted |
+| [0055](0055-framework-dependent-build-without-readytorun.md) | The framework-dependent (`-requires-dotnet10`) build is published without ReadyToRun | Accepted |

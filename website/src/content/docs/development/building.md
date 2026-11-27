@@ -34,8 +34,11 @@ Single-file compression is deliberately off: it would halve the size but slow do
 For a small framework-dependent build (needs the .NET 10 Desktop Runtime):
 
 ```bash
-dotnet publish src/Harbor.App/Harbor.App.csproj -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -p:PublishReadyToRun=true
+dotnet publish src/Harbor.App/Harbor.App.csproj -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -p:PublishReadyToRun=false
 ```
+
+Leave ReadyToRun off for this build: its precompiled code would be made for the runtime on the build machine, and
+another .NET 10 patch on the user's PC can crash at start (ADR-0055).
 
 ## Repository layout
 

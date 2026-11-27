@@ -10,6 +10,9 @@ public partial class App : Application
 {
     protected override void OnStartup(StartupEventArgs e)
     {
+        // SPEC NFR-14: whatever thread an exception escapes from, the log says what it was and where, before the process ends.
+        AppDomain.CurrentDomain.UnhandledException += OnFatalException;
+        TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
         base.OnStartup(e);
         DispatcherUnhandledException += OnUnhandledException;
 
@@ -39,7 +42,7 @@ public partial class App : Application
 
     private static void OnUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
-        Log.Error("Unhandled exception", e.Exception);
+        Log.Crash("Unhandled exception on the UI thread", e.Exception);
         try
         {
             MessageWindow.Show(Current?.MainWindow, "Something went wrong", e.Exception.Message, MessageKind.Error); // SPEC FR-53
@@ -50,5 +53,20 @@ public partial class App : Application
             MessageBox.Show(e.Exception.Message, "Remote Desktop Harbor", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         e.Handled = true;
+    }
+
+    // An exception left a thread other than the UI thread (or the UI thread outside the dispatcher): the runtime ends the
+    // process after this, so only log it.
+    private static void OnFatalException(object sender, UnhandledExceptionEventArgs e)
+    {
+        if (e.ExceptionObject is Exception ex) Log.Crash("Unhandled exception, the app closes", ex);
+        else Log.Error($"Unhandled exception, the app closes: {e.ExceptionObject}");
+    }
+
+    // A failed task nobody awaited: log it and keep running (the runtime's default too).
+    private static void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
+    {
+        Log.Crash("Unobserved task exception", e.Exception);
+        e.SetObserved();
     }
 }

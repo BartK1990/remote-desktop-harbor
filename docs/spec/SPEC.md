@@ -129,6 +129,7 @@ shows who is currently connected to which machine.
 | NFR-11 | Ciphertexts are bound to their entry (associated data); swapped or tampered ciphertexts fail to decrypt. |
 | NFR-12 | No plaintext secret on disk, in `.rdp` files, on command lines or in logs. |
 | NFR-13 | With AD-group or passphrase protection, a database administrator of the shared database without vault access sees only ciphertext. With sign-in protection (FR-28) database access is vault access — an accepted trade-off chosen in Settings. |
+| NFR-14 | An exception that escapes any thread (UI thread, background thread, Remote Desktop window thread, unobserved task) is written to `logs\harbor.log` with its type, message, inner exceptions and stack trace before the app closes, so a crash ("Exception code: 0xc0000602" in the Windows event log) can be traced. |
 | NFR-20 | SQL engine specifics are isolated in one provider class per engine. |
 | NFR-30 | Business logic, storage and crypto are covered by automated tests that run in CI on any OS. View-model tests that need WPF or DPAPI (`Harbor.App.Tests`) run on Windows only (CI). |
 
@@ -247,4 +248,5 @@ for the full list.
 | FR-45 | `App/Views/SettingsWindow`, `App/ViewModels/SettingsViewModel`, `App/Themes/Tokens`, `Data/Providers/ConnectionStringMask` | `ConnectionStringMaskTests`, `ViewSourceTests`, `DialogViewModelTests` (Windows), manual (Windows) |
 | FR-46 | `App/Views/EntryEditorWindow`, `App/ViewModels/EntryEditorViewModel`, `Core/Model/EntryInput`, `App/Themes/Tokens` | `EntryInputTests`, `ViewSourceTests`, `DialogViewModelTests` (Windows), manual (Windows) |
 | NFR-10..13 | `Core/Security/*`, `Windows/Security/*` | `SecretCipherTests`, `WorkspaceTests` |
+| NFR-14 | `App/App.xaml.cs` (`OnFatalException`, `OnUnobservedTaskException`), `App/Infrastructure/Log` (`Crash`) | manual (Windows) |
 | NFR-01..05 | `App/*`, publish profile, workflows | CI publish |
