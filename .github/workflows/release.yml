@@ -47,10 +47,12 @@ jobs:
           dotnet publish src/Harbor.App/Harbor.App.csproj -p:PublishProfile=win-x64
           -o out/sc
 
+      # No ReadyToRun here (ADR-0055): its precompiled code is made against this machine's .NET runtime and crashed
+      # (0xc0000602 in coreclr.dll) on PCs with another 10.0.x patch. The self-contained build carries its runtime.
       - name: Publish framework-dependent (needs .NET 10 Desktop Runtime)
         run: >
           dotnet publish src/Harbor.App/Harbor.App.csproj -c Release -r win-x64 --self-contained false
-          -p:PublishSingleFile=true -p:PublishReadyToRun=true -p:DebugType=embedded -o out/fdd
+          -p:PublishSingleFile=true -p:PublishReadyToRun=false -p:DebugType=embedded -o out/fdd
 
       - name: Remove symbols
         shell: pwsh
